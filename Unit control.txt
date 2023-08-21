@@ -1,0 +1,112 @@
+Initialize:
+	set unitType @zenith
+	set player null
+
+	GetLinks:
+		set switch switch1
+		set scout hail1
+		jump GetLinks equal switch null
+		jump GetLinks equal scout null
+
+		sensor scoutX scout @x
+		sensor scoutY scout @y
+		sensor range scout @range
+	
+Start:
+CheckActive:
+	sensor active switch @enabled
+	jump GetPlayerUnit equal active true
+	set markX 0
+	set markY 0
+	set enemy null
+	set player null
+	jump Start always
+
+GetPlayerUnit:
+	radar player player player distance scout 1 detected
+	jump SetPlayer notEqual detected null
+	jump BindUnit always
+
+SetPlayer:
+	set player detected
+	
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	sensor unitDead @unit @dead
+	jump Start equal unitDead true
+	sensor flag @unit @flag
+	jump Start notEqual flag 0
+	
+GetUnitBehavior:
+	jump AttackUnit notEqual enemy null
+	jump Auto equal player null
+	sensor playerDead player @dead
+	jump Auto equal playerDead true
+	set auto false
+
+ControlByPlayer:
+	sensor isMarking player @shooting
+	jump FollowPlayer equal isMarking false
+	sensor markX player @shootX
+	sensor markY player @shootY
+	set targetX markX
+	set targetY markY
+	jump CheckNear always
+
+FollowPlayer:
+	ucontrol target 0 0 0
+	sensor playerX player @x
+	sensor playerY player @y
+	set targetX playerX
+	set targetY playerY
+	jump CheckNear always
+
+Auto:
+	set auto true
+	op add lastTarget targetX targetY
+	jump Start equal lastTarget 0 #if we have not had a target before, just idle
+
+CheckNear:
+	ucontrol within targetX targetY range isNear
+	jump Arrived equal isNear true
+	ucontrol boost true
+	ucontrol approach targetX targetY range
+	jump Start always
+
+Arrived:
+	ucontrol boost false
+	uradar enemy enemy enemy distance 0 1 enemy
+	jump AttackUnit notEqual enemy null	
+	jump AttackMarkedBuilding equal auto false
+
+AutoTargetBuilding:
+	ulocate building turret true 0 buildingX buildingY found targetBuilding
+	jump Start equal found false
+	ucontrol target buildingX buildingY true
+	jump Start always
+	
+AttackMarkedBuilding:
+	ucontrol getBlock markX markY t targetBuilding
+	jump Start equal targetBuilding null
+	sensor team targetBuilding @team
+	# own team is team 1
+	jump Start lessThan team 2 
+	sensor buildingDead targetBuilding @dead
+	jump Start equal buildingDead true
+	ucontrol target markX markY true
+	jump Start always
+
+AttackUnit:
+	sensor enemyDead enemy @dead
+	jump ShootEnemy equal enemyDead false
+	set enemy null
+	ucontrol targetp null 0
+	jump Start always
+
+ShootEnemy:
+	sensor enemyX enemy @x
+	sensor enemyY enemy @y
+	ucontrol targetp enemy true
+	ucontrol approach enemyX enemyY range
+	jump Start always

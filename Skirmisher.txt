@@ -1,0 +1,70 @@
+set type @atrax
+Start:
+	set runOnce false
+	
+Bind:
+	sensor active switch1 @enabled
+	jump Start equal active false
+	
+	ubind type
+	jump Bind equal @unit null
+	
+	sensor flag @unit @flag
+	sensor range @unit @range
+	jump Bind notEqual flag 0
+	
+	sensor unit_x @unit @x
+	sensor unit_y @unit @y
+	set found 0
+	
+GetOriginalLocation:
+	jump FindTargetUnit equal runOnce true
+	set original_x unit_x
+	set original_y unit_y
+	set runOnce true
+	
+FindTargetUnit:
+	uradar enemy ground any distance turret1 1 target
+	jump SetTarget notEqual target null
+	uradar enemy any any distance turret1 1 target
+	jump SetTarget notEqual target null
+		
+FindTargetBuilding:
+	ulocate building turret true @copper targ_x targ_y found building
+	jump CheckDistance equal found true
+	ulocate building core true @copper targ_x targ_y found building
+	jump CheckDistance equal found true
+	
+NoTarget:
+	ucontrol target 0
+	ucontrol pathfind 0
+	ucontrol move original_x original_y
+	jump Bind always
+
+SetTarget:
+	sensor targ_x target @x
+	sensor targ_y target @y
+	
+CheckDistance:
+	set min_dist range
+	ucontrol within targ_x targ_y min_dist atDestination
+	jump AttackBuilding equal atDestination true
+	
+CheckHealth:
+	sensor max_health @unit @maxHealth
+	sensor health @unit @health
+	op div percent_health health max_health
+	jump Follow greaterThan percent_health .5
+	op mul min_dist min_dist 2
+
+Follow:
+	sensor enemy_x target @x
+	sensor enemy_y target @y
+	ucontrol targetp target 1 1
+	ucontrol approach enemy_x enemy_y min_dist
+	jump Bind always
+
+AttackBuilding:
+	ucontrol target targ_x targ_y 1
+	ucontrol approach targ_x targ_y min_dist
+	jump Bind always

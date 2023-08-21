@@ -1,0 +1,13 @@
+set player null
+set scout hail1
+sensor scoutX scout @x
+sensor scoutY scout @y
+sensor range scout @range
+radar player player player distance scout 1 detected
+jump 8 notEqual detected null
+jump 9 notEqual player null
+set player detected
+sensor x player @x
+sensor y player @y
+op equal playerNull player null
+jump 5 always x false
