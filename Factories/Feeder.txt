@@ -1,0 +1,122 @@
+Initialize:
+	printflush message1
+	op shl procId @thisx 10
+	op add procId procId @thisy
+	set startTick @tick
+	set maxTick 600 #release mule after 10 seconds idle
+
+GetLinks:
+	set factory reconstructor1
+	set memory cell1
+	jump GetLinks equal factory null
+	jump GetLinks equal memory null
+	sensor factoryX factory @x
+	sensor factoryY factory @y
+	
+FindCore:
+	ubind @poly
+	jump LocateCore notEqual @unit null
+	ubind @flare
+	jump LocateCore notEqual @unit null
+	print "Build a flare first"
+	jump FindError always
+
+LocateCore:
+	ulocate building core false @copper sourceX sourceY found source
+	jump Start equal found 1
+	print "Core not found"
+
+FindError:
+	printflush message1
+	jump FindCore always
+
+Start:
+	read matId memory 0
+	read amount memory 1
+	jump Start equal amount 0
+	lookup item material matId 
+	jump Start equal material null
+	
+FindMule:
+	jump Start lessThanEq amount 0
+	jump CheckDeadMule notEqual mule null
+	ubind @poly
+	jump NewMule notEqual @unit null
+	ubind @flare
+	jump NewMule notEqual @unit null
+	
+NoMule:
+	print "Build a flare first"
+	printflush message1
+	set mule null
+	jump Start always
+
+CheckDeadMule:
+	sensor muleDead mule @dead
+	jump StartRun equal muleDead false
+	set mule null
+	set muleDead null
+	jump FindMule always
+	
+NewMule:
+	sensor unitDead @unit @dead
+	jump FindMule equal unitDead true
+	sensor unitFlag @unit @flag
+	jump StartRun equal unitFlag procId
+	jump FindMule notEqual unitFlag 0
+	ucontrol flag procId
+	set mule @unit
+	sensor cap mule @itemCapacity
+	
+StartRun:
+	ucontrol approach sourceX sourceY 1
+	
+DropUnneeded:
+	sensor carried mule @totalItems
+	jump Pickup equal carried 0
+	sensor carriedMat mule @firstItem
+	jump Pickup equal carriedMat material
+	set unneededI 0
+
+	DropUnneededTilEmpty:
+		ucontrol itemDrop source carried
+		sensor carried mule @totalItems
+		jump Pickup equal carried 0
+		op add unneededI unneededI 1
+		jump DropUnneededTilEmpty lessThan unneededI 100
+
+Pickup:
+	set startTick @tick
+	op min amount amount cap
+	set pickupI 0
+	LoopUntilFull:
+		ucontrol itemTake source material amount
+		op add pickupI pickupI 1
+		sensor carried mule @totalItems 
+		jump FinishRun greaterThanEq pickupI 100
+		jump LoopUntilFull lessThan carried amount
+	
+Deliver:
+	ucontrol approach factoryX factoryY 1
+	set deliverI 0
+	LoopUntilEmpty:
+		ucontrol itemDrop factory carried
+		sensor carried mule @totalItems
+		jump FinishRun equal carried 0
+		op add deliverI deliverI 1
+		jump LoopUntilEmpty lessThan deliverI 100
+
+FinishRun:
+	printflush message1
+	jump Start equal mule null
+	op sub elapsed @tick startTick
+	jump Start lessThan elapsed maxTick
+
+ReleaseMule:
+	print "Idle: release mule \n"
+	printflush message1
+	ucontrol flag 0
+	ucontrol approach sourceX sourceY 5
+	set mule null
+	jump Start always
+	

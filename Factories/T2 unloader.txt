@@ -1,0 +1,44 @@
+Initialize:
+	set sourceMin 500
+
+GetLinks:
+	set factory reconstructor1
+	set unloader unloader1
+	set source nucleus1
+	jump GetLinks equal factory null
+	jump GetLinks equal unloader null
+	jump GetLinks equal source null
+	
+Start:
+	sensor sourceSil source @silicon
+	sensor sourceGraph source @graphite
+	jump CheckFactory greaterThan sourceSil sourceMin
+	jump CheckFactory greaterThan sourceGraph sourceMin
+	jump NotEnoughStock always
+
+CheckFactory:
+	sensor facSil factory @silicon
+	sensor facGraph factory @graphite
+	jump CheckGraphite lessThan facGraph facSil
+
+CheckSilicon:
+	set material @silicon
+	set facStock facSil
+	jump CheckStock always
+
+CheckGraphite:
+	set material @graphite
+	set facStock facGraph
+	jump CheckStock always
+
+CheckStock:
+	sensor sourceStock source material
+	jump Start lessThanEq sourceStock sourceMin
+	control config unloader material
+	control enabled unloader true
+	jump Start always
+
+NotEnoughStock:
+	control enabled unloader false
+	jump Start always
+

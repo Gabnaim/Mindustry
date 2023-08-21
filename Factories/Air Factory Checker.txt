@@ -1,0 +1,91 @@
+Initialize:
+	printflush message1
+	set sourceMin 500
+
+GetLinks:
+	set factory factory1
+	set memory cell1
+	jump GetLinks equal factory null
+	jump GetLinks equal memory null
+	sensor factoryX factory @x
+	sensor factoryY factory @y
+
+FindCore:
+	ubind @flare
+	set action "find core"
+	jump LocateCore notEqual @unit null
+	print "Build a flare first"
+	jump FindError always
+
+LocateCore:
+	ulocate building core false @copper sourceX sourceY found source
+	jump Start equal found 1
+	print "Core not found"
+
+FindError:
+	printflush message1
+	jump FindCore always
+
+Start:
+	print "Check factory\n"
+	set action "check factory"
+	sensor buildType factory @config
+	jump CheckMono equal buildType @mono
+	
+CheckFlare:
+	sensor facSil factory @silicon
+	set stockLevel 30
+	jump CheckSilicon always
+
+CheckMono:	
+	sensor facSil factory @silicon
+	sensor facLead factory @lead
+	op div silLevel facSil 60
+	op div leadLevel facLead 30
+	set stockLevel 30
+	jump CheckLead lessThan leadLevel silLevel
+	set stockLevel 60
+	
+CheckSilicon:
+	op sub needed stockLevel facSil
+	set material @silicon
+	set matIndex 9
+	set facStock facSil
+	jump CheckStock greaterThan needed 0
+	
+CheckLead:
+	op sub needed stockLevel facLead
+	set material @lead
+	set matIndex 1
+	set facStock facLead
+	jump FactoryFull equal needed 0
+
+CheckStock:
+	op sub neededStock stockLevel facStock
+	sensor sourceStock source material
+	op sub available sourceStock sourceMin
+	op max available available 0
+	jump NotEnoughStock lessThanEq available 0
+	op min amount available neededStock
+	jump WriteResult greaterThan amount 0	
+
+FactoryFull:
+	print "Factory full\n"
+	set matIndex -1
+	jump WriteResult always
+
+NotEnoughStock:
+	print "Not enough "
+	print material 
+	print " available "
+	print available
+	print "\n"
+	set matIndex -1
+
+WriteResult:
+	write matIndex memory 0
+	write amount memory 1
+	printflush message1
+	jump Start always
+
+
