@@ -1,0 +1,84 @@
+Initialize:
+	op shl procId @thisx 10 # first 10 bit for x
+	op add procId procId @thisy # second 10 bit for y
+
+	set running 1
+	set stopping 2
+	set idle 3
+	set mode idle
+
+	set maxUnits 4
+	set unitCount 0
+	set unitType @zenith
+
+GetLinks:
+	set switch switch1
+	jump GetLinks equal switch null
+
+Start:	
+CheckActive:
+	sensor active switch @enabled
+	jump Bind equal active true
+	jump Start equal mode idle
+	jump Stopping always
+	
+Bind:
+	set mode running
+	ubind unitType
+	jump Start equal @unit null
+	set currentUnit @unit
+	jump SetFirst equal firstUnit null
+	jump Start equal firstUnit @unit
+
+SetFirst:
+	set firstUnit @unit
+
+CheckUnit:
+	sensor flag @unit @flag
+	jump Mine equal flag procId
+	jump Start notEqual flag 0
+
+Mine:
+	sensor isDead @unit @dead
+	jump RemoveDead equal isDead true
+	jump Start greaterThanEq unitCount maxUnits
+	op add unitCount unitCount 1
+	ucontrol flag procId
+	jump Start always
+
+RemoveDead:
+	ucontrol flag 0
+	op sub unitCount unitCount 1
+	jump Start always
+
+Stopping:
+	set mode stopping
+	set firstUnit null
+	BindForStop:
+		ubind unitType
+		jump Stop equal @unit null
+		jump Stop equal firstUnit @unit
+		sensor flag @unit @flag
+		jump BindForStop notEqual flag procId
+		jump SetFirstForStop equal firstUnit null
+		jump SetIdle always
+	
+	SetFirstForStop:
+		set firstUnit @unit
+		
+	SetIdle:
+		ucontrol flag 0
+		ucontrol stop
+		ucontrol unbind
+		jump BindForStop always
+	
+	Stop:
+		set mode idle
+		set firstUnit null
+		set unitCount 0
+		jump Start always
+
+
+	
+
+

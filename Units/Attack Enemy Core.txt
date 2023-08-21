@@ -1,0 +1,90 @@
+Initialize:
+	set switch switch1
+	jump Initialize equal switch null
+	#get the flag from the processor that is doing the flagging
+	GetId:
+		set proc processor1
+		jump GetId equal proc null
+		sensor procX proc @x
+		sensor procY proc @y
+		op shl procId procX 10 # first 10 bit for x
+		op add procId procId procY # second 10 bit for y
+		set unitType @zenith
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		sensor range @unit @range
+		op floor range range
+		ulocate building core true 0 coreX coreY coreFound enemyCore
+	
+Start:
+CheckActive:
+	sensor active switch @enabled
+	jump Start equal active false
+	
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	sensor isDead @unit @dead
+	jump Start equal isDead true
+	sensor flag @unit @flag
+	jump Start notEqual flag procId
+
+	sensor unitX @unit @x
+	sensor unitY @unit @y
+	jump AttackUnit notEqual enemy null
+	
+FindTargetUnit:
+	uradar enemy ground any distance 0 0 enemy
+	jump AttackUnit notEqual enemy null
+	uradar enemy any any distance 0 0 enemy
+	jump AttackUnit notEqual enemy null
+		
+FindTargetBuilding:
+	ulocate building turret true 0 targX targY found turret
+	jump NoTarget equal found false
+	sensor turretDead turret @dead
+	jump NoTarget equal turretDead true
+
+	op sub distanceX unitX targX
+	op abs distanceX distanceX
+	op sub coreDistX unitX coreX
+	op abs coreDistX coreDistX
+	jump AttackCore greaterThanEq distanceX coreDistX
+	
+	op sub distanceY unitY targY 
+	op abs distanceY distanceY 
+	op sub coreDistY unitY coreY
+	op abs coreDistY coreDistY
+	jump AttackCore greaterThanEq distanceY coreDistY
+	
+	ucontrol target targX targY 1
+	ucontrol approach targX targY range
+	jump Start always
+	
+NoTarget:
+	jump AttackCore equal coreFound true
+	ucontrol pathfind false
+	ucontrol target 0 0 0
+	ucontrol targetp null 0
+	jump Start always
+
+AttackCore:
+	ucontrol target coreX coreY 1
+	ucontrol approach coreX coreY range
+	jump Start always
+	
+AttackUnit:
+	sensor enemyDead enemy @dead
+	jump ShootEnemy equal enemyDead false
+	set enemy null
+	ucontrol targetp null 0
+	jump FindTargetUnit always
+
+ShootEnemy:
+	sensor enemyX enemy @x
+	sensor enemyY enemy @y
+	ucontrol targetp enemy 1 1
+	ucontrol approach enemyX enemyY range
+	jump Start always
+
