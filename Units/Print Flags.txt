@@ -1,8 +1,11 @@
 Initialize:
 	printflush message1
 	set maxIndex 37 #Serpulo
+	set showFlag true
 	set showCarried true
-	set showEmpty true
+	set showHealth true
+	op or showLine showFlag showCarried
+	op or showLine showLine showHealth
 
 Start:
 GetUnitType:
@@ -13,40 +16,52 @@ GetUnitType:
 BindUnit:
 	ubind unitType
 	jump NextUnitType equal @unit null
-  	jump ProcessUnit notEqual firstUnit null
+  	jump FinishGroup equal firstUnit @unit
+	jump ProcessUnit notEqual firstUnit null
 	
-StartGroup:
+SetFirst:
 	set firstUnit @unit
-	jump BindUnit always
 
 ProcessUnit:
-	sensor flag @unit @flag
-	op notEqual hasFlag flag 0
-	set hasItems false
-	jump PrintInfo equal showCarried false
-	sensor carried @unit @totalItems
-	op greaterThan hasItems carried 0
-	sensor material @unit @firstItem
-
-	PrintInfo:
-		op or hasData hasFlag hasItems
-		op or printLine hasData showEmpty
-		jump FinishUnit equal printLine false
+	jump FinishUnit equal showLine false
+	set hasData false
+	PrintFlag:
+		jump PrintCarried equal showFlag false
+		sensor flag @unit @flag
+		jump PrintCarried equal flag 0
+		set hasData true
 		print flag
-		jump PrintEnd equal hasItems false
 		print " "
+	
+	PrintCarried:
+		jump PrintHealth equal showCarried false
+		sensor carried @unit @totalItems
+		jump PrintHealth equal carried 0
+		sensor material @unit @firstItem
+		set hasData true
 		print carried
 		print " "
 		print material
+		print " "
 
+	PrintHealth:
+		jump PrintEnd equal showHealth false
+		sensor maxHealth @unit @maxHealth
+		sensor health @unit @health
+		jump PrintEnd equal health maxHealth
+		op mul health health 100
+		op idiv healthPct health maxHealth
+		set hasData true
+		print healthPct
+		print "%"
+		
 	PrintEnd:
+		jump FinishUnit equal hasData false
 		print "\n"
 	
 FinishUnit:
-	#op equal isStart units 0
 	op add units units 1
-	#jump BindUnit equal isStart true
-	jump BindUnit notEqual firstUnit @unit
+	jump BindUnit always
 
 FinishGroup:
 	print unitType
