@@ -1,5 +1,11 @@
 Initialize:
 	set unitType @zenith
+	set enemy 1
+	set turret 2
+	set mode enemy
+	
+	set shoot true
+	set dontShoot false
 
 	GetLinks:
 		set switch switch1
@@ -35,8 +41,38 @@ CheckHealth:
 	op div healthRatio health maxHealth
 	jump Repair lessThan healthRatio 0.5
 
-FindTarget:
+CheckMode:
+	jump FindEnemy equal mode enemy
+	jump FindBuilding equal mode turret
+	jump Start always
+
+FindBuilding:
+	ulocate building turret true 0 targetX targetY found target
+	jump ApproachBuilding equal found true
+	ulocate building core true 0 targetX targetY found target
+	jump ApproachBuilding equal found true
+
+NoTarget:
+	ucontrol target false
+	ucontrol stop
+	jump Start always
+
+ApproachBuilding:
+	ucontrol within targetX targetY approachRange isNear
+	jump ShootBuilding equal isNear true
+	ucontrol approach targetX targetY approachRange
+	jump Start always
+
+ShootBuilding:
+	ucontrol target targetX targetY shoot
+	jump Start always
+
+FindEnemy:
 	radar enemy any any distance scout 1 enemy
+	jump AttackUnit notEqual enemy null
+	uradar enemy ground any distance 0 1 enemy
+	jump AttackUnit notEqual enemy null
+	uradar enemy any any distance 0 1 enemy
 	
 AttackUnit:
 	jump NoEnemy equal enemy null
@@ -45,7 +81,7 @@ AttackUnit:
 
 NoEnemy:
 	set enemy null
-	ucontrol targetp null 0
+	ucontrol targetp null dontShoot
 	jump Start always
 
 ApproachEnemy:
@@ -57,7 +93,7 @@ ApproachEnemy:
 	jump Start always
 
 ShootEnemy:
-	ucontrol targetp enemy true
+	ucontrol targetp enemy shoot
 	jump Start always
 
 Repair:
@@ -70,7 +106,7 @@ Repair:
 	jump Start always
 
 Stop:
-	ucontrol targetp null 0
+	ucontrol targetp null dontShoot
 	ucontrol stop
 	jump Start always
 
