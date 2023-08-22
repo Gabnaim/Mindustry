@@ -1,0 +1,79 @@
+Initialize:
+	set unitType @zenith
+
+	GetLinks:
+		set switch switch1
+		set scout hail1
+		jump GetLinks equal switch null
+		jump GetLinks equal scout null
+
+	GetUnitStats:
+		ubind unitType
+		jump GetUnitStats equal @unit null
+		sensor range @unit @range
+		op sub approachRange range 2
+		sensor maxHealth @unit @maxHealth
+		
+Start:
+CheckActive:
+	sensor active switch @enabled
+	jump BindUnit equal active true
+	set enemy null
+	jump Start always
+
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	sensor unitDead @unit @dead
+	jump Start equal unitDead true
+	sensor flag @unit @flag
+	jump Start notEqual flag 0
+	set currentUnit @unit
+
+CheckHealth:
+	sensor health currentUnit @health
+	op div healthRatio health maxHealth
+	jump Repair lessThan healthRatio 0.5
+
+FindTarget:
+	radar enemy any any distance scout 1 enemy
+	
+AttackUnit:
+	jump NoEnemy equal enemy null
+	sensor enemyDead enemy @dead
+	jump ApproachEnemy equal enemyDead false
+
+NoEnemy:
+	set enemy null
+	ucontrol targetp null 0
+	jump Start always
+
+ApproachEnemy:
+	sensor enemyX enemy @x
+	sensor enemyY enemy @y
+	ucontrol within enemyX enemyY approachRange isNear
+	jump ShootEnemy equal isNear true
+	ucontrol approach enemyX enemyY approachRange
+	jump Start always
+
+ShootEnemy:
+	ucontrol targetp enemy true
+	jump Start always
+
+Repair:
+	ucontrol targetp null 0
+	ulocate building repair false 0 repairX repairY repairFound repairPoint
+	jump Start equal repairFound false
+	ucontrol within repairX repairY 5 isNearRepair
+	jump Stop equal isNearRepair true
+	ucontrol approach repairX repairY 5
+	jump Start always
+
+Stop:
+	ucontrol targetp null 0
+	ucontrol stop
+	jump Start always
+
+	
+
+	
