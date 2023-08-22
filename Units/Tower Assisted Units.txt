@@ -1,12 +1,13 @@
 Initialize:
 	set unitType @zenith
-	set enemy 1
-	set turret 2
-	set mode enemy
-	
-	set shoot true
-	set dontShoot false
+	set idle 0
+	set running 1
+	set stopping 2
+	set mode running
 
+	#targetType: "unit", "building"
+	set targetType "unit"
+	
 	GetLinks:
 		set switch switch1
 		set scout hail1
@@ -17,17 +18,19 @@ Initialize:
 		ubind unitType
 		jump GetUnitStats equal @unit null
 		sensor range @unit @range
-		op sub approachRange range 2
+		op sub range range 2
+		op floor range range
 		sensor maxHealth @unit @maxHealth
 		
 Start:
 CheckActive:
 	sensor active switch @enabled
 	jump BindUnit equal active true
-	set enemy null
-	jump Start always
+	jump Start equal mode idle
+	jump Stopping always
 
 BindUnit:
+	set mode running
 	ubind unitType
 	jump Start equal @unit null
 	sensor unitDead @unit @dead
@@ -39,32 +42,32 @@ BindUnit:
 CheckHealth:
 	sensor health currentUnit @health
 	op div healthRatio health maxHealth
-	jump Repair lessThan healthRatio 0.5
+	jump CheckTarget greaterThan healthRatio 0.5
 
-CheckMode:
-	jump FindEnemy equal mode enemy
-	jump FindBuilding equal mode turret
+	CallRepair:
+		op add repairReturn @counter 1
+		jump Repair always
 	jump Start always
+
+CheckTarget:
+	jump FindEnemy equal targetType "unit"
+	jump FindBuilding equal targetType "building"
+	jump StopShooting always
 
 FindBuilding:
 	ulocate building turret true 0 targetX targetY found target
 	jump ApproachBuilding equal found true
 	ulocate building core true 0 targetX targetY found target
-	jump ApproachBuilding equal found true
-
-NoTarget:
-	ucontrol target false
-	ucontrol stop
-	jump Start always
+	jump StopShooting equal found false
 
 ApproachBuilding:
-	ucontrol within targetX targetY approachRange isNear
+	ucontrol within targetX targetY range isNear
 	jump ShootBuilding equal isNear true
-	ucontrol approach targetX targetY approachRange
+	ucontrol approach targetX targetY range
 	jump Start always
 
 ShootBuilding:
-	ucontrol target targetX targetY shoot
+	ucontrol target targetX targetY 1
 	jump Start always
 
 FindEnemy:
@@ -73,42 +76,70 @@ FindEnemy:
 	uradar enemy ground any distance 0 1 enemy
 	jump AttackUnit notEqual enemy null
 	uradar enemy any any distance 0 1 enemy
+	jump StopShooting equal enemy null
 	
 AttackUnit:
-	jump NoEnemy equal enemy null
 	sensor enemyDead enemy @dead
-	jump ApproachEnemy equal enemyDead false
-
-NoEnemy:
-	set enemy null
-	ucontrol targetp null dontShoot
-	jump Start always
+	jump StopShooting equal enemyDead true
 
 ApproachEnemy:
 	sensor enemyX enemy @x
 	sensor enemyY enemy @y
-	ucontrol within enemyX enemyY approachRange isNear
+	ucontrol within enemyX enemyY range isNear
 	jump ShootEnemy equal isNear true
-	ucontrol approach enemyX enemyY approachRange
+	ucontrol approach enemyX enemyY range
 	jump Start always
 
 ShootEnemy:
-	ucontrol targetp enemy shoot
+	ucontrol targetp enemy 1
 	jump Start always
+
+StopShooting:
+	ucontrol targetp null 0
+	ucontrol target null
+	jump Start always
+
+Stopping:
+	set enemy null
+	set mode stopping
+	set firstStopping null
+
+	BindForStop:
+		ubind unitType
+		jump FinishStop equal @unit null
+		jump FinishStop equal firstStopping @unit
+		jump StopUnit notEqual firstStopping null
+		set firstStopping @unit 
+
+	StopUnit:
+		ucontrol targetp null 0
+		ucontrol target null
+
+		CallRepair:
+			op add repairReturn @counter 1
+			jump Repair always
+		jump BindForStop always
+
+	FinishStop:
+		set mode idle
+		set enemy null
+		set firstStopping null
+		jump Start always
 
 Repair:
-	ucontrol targetp null 0
 	ulocate building repair false 0 repairX repairY repairFound repairPoint
-	jump Start equal repairFound false
+	jump RepairReturn equal repairFound false
 	ucontrol within repairX repairY 5 isNearRepair
-	jump Stop equal isNearRepair true
-	ucontrol approach repairX repairY 5
-	jump Start always
+	jump RepairReturn equal isNearRepair true
 
-Stop:
-	ucontrol targetp null dontShoot
-	ucontrol stop
-	jump Start always
+	ApproachRepair:
+		ucontrol approach repairX repairY 5
+
+	RepairReturn:
+		set @counter repairReturn
+
+
+
 
 	
 
