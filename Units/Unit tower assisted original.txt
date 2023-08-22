@@ -1,28 +1,19 @@
-Initialize:
-	set enemy null
-	set rangePropo 0.9
-
-GetLinks:
-	getlink turret1 0
-	jump GetLinks equal turret1 null
-
-Start:
-	ubind @mega
-	sensor range @unit @range
-	ulocate building repair false @copper outx outy found repair
-	ucontrol within outx outy 8 within 0
-	op mul unitAprDist range rangePropo
-	set currenthp 0
-	sensor maxhp @unit @maxHealth
-	sensor currenthp @unit @health
-	op div %hp currenthp maxhp
-	jump 13 equal within false
-	jump 1 lessThan %hp 0.99
-
-Damaged:
-	jump 39 lessThan %hp 0.75
-	jump 31 equal currenthp 0
-
+set enemy null
+set rangePropo 0.9
+ubind @mega
+sensor range @unit @range
+ulocate building repair false @copper outx outy found repair
+ucontrol within outx outy 8 within 0
+op mul unitAprDist range rangePropo
+set currenthp 0
+sensor maxhp @unit @maxHealth
+sensor currenthp @unit @health
+op div %hp currenthp maxhp
+jump 13 equal within false
+jump 1 lessThan %hp 0.99
+jump 39 lessThan %hp 0.75
+jump 31 equal currenthp 0
+getlink turret1 0
 radar enemy any any distance turret1 1 enemy
 jump 32 equal enemy null
 ucontrol flag 17 y unitAprDist 0 0
