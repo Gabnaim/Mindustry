@@ -1,0 +1,65 @@
+Initialize:
+	set maxUnits 4
+	set unitType @zenith
+
+GetLinks:
+	# Idle until we linked everything
+	# Save links into variables so it is easy to edit the names
+	set switch switch1
+	set factory factory 1
+	jump GetLinks equal switch null
+
+Start:	
+CheckActive:
+	# Idle if switch is off
+	sensor active switch @enabled
+	jump Bind equal active true
+
+	set unitCount 0
+	set firstUnit null
+	jump Start always
+	
+Bind:
+	ubind unitType
+	jump Start equal @unit null
+
+	# If firstUnit is reached, we have counted all
+	jump FinishCount equal firstUnit @unit
+	jump CheckUnit notEqual firstUnit null
+
+SaveFirst:
+	set firstUnit @unit
+
+CheckUnit:
+	sensor isDead @unit @dead
+	jump Start equal isDead true
+
+Count:
+	op add unitCount unitCount 1
+	jump Start notEqual unitCount maxUnits
+
+MaxReached:
+	# put your code here
+
+	control config factory1 null
+	print "Max reached at "
+	print unitCount
+	print "\n"
+
+	# end code
+	jump Start always
+
+FinishCount:
+	set lastCount unitCount
+	set unitCount 0
+	set firstUnit null
+
+	print "Total: "
+	print lastCount
+	printflush message1
+	jump Start always
+
+
+	
+
+

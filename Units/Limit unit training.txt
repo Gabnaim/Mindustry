@@ -1,0 +1,95 @@
+Initialize:
+	set maxUnits 8
+	set unitType @zenith
+	set baseType @flare
+	set t2Type @horizon
+
+GetStaticLinks:
+	# Idle until we linked everything
+	# Save links into variables so it is easy to edit the names
+	set switch switch1
+	set factory factory1
+	jump GetStaticLinks equal switch null
+
+	# We should also count units in the conveyors and
+	# reconstructors. Take off 2 for the switch
+	# and the factory itself
+	op sub unitHolders @links 2
+	op sub checkLinksAt maxUnits unitHolders
+
+Start:	
+CheckActive:
+	# Idle if switch is off
+	sensor active switch @enabled
+	jump Bind equal active true
+
+	set unitCount 0
+	set firstUnit null
+	jump Start always
+	
+Bind:
+	ubind unitType
+	jump Start equal @unit null
+
+	# If firstUnit is reached, we have counted all
+	jump FinishCount equal firstUnit @unit
+	jump CheckUnit notEqual firstUnit null
+
+SaveFirst:
+	set firstUnit @unit
+
+CheckUnit:
+	sensor isDead @unit @dead
+	jump Start equal isDead true
+
+Count:
+	op add unitCount unitCount 1
+	jump Start lessThan unitCount checkLinksAt
+	
+CheckLinks:
+	set i 0
+	set builtUnits 0
+
+	LinkLoop:
+		getlink building i
+		sensor unitsBuilt building @payloadCount
+		jump NextLink equal unitsBuilt 0
+		sensor payloadType building @payloadType
+		
+		CheckType:
+			jump AddBuiltUnit equal payloadType unitType
+			jump AddBuiltUnit equal payloadType baseType
+			jump AddBuiltUnit equal payloadType t2Type
+			jump NextLink always
+
+		AddBuiltUnit:
+			op add builtUnits builtUnits unitsBuilt
+
+		NextLink:
+			op add i i 1
+			jump LinkLoop lessThan i @links
+
+	FinishLinkLoop:
+		op add totalCount unitCount builtUnits
+		jump Start lessThan totalCount maxUnits
+
+MaxReached:
+	# Setting the config to null or 0 does not clear it,
+	# but using a t2 unit does
+	control config factory t2Type
+
+FinishCount:
+	op add totalCount unitCount builtUnits
+	set lastCount totalCount
+	set unitCount 0
+	set firstUnit null
+	set builtUnits 0
+	jump Start greaterThanEq totalCount maxUnits
+	control config factory baseType
+	jump Start always
+
+
+
+	
+
+
