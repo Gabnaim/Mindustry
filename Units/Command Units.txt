@@ -1,8 +1,9 @@
 Initialize:
 	set unitType @zenith
-	set rallyX @thisx
-	set rallyY @thisy
+	op add rallyX @thisx 10
+	op add rallyY @thisy -10
 	set procId 0
+	set defend true
 
 	# We can use a turret as a scout. It will be ignored if null
 	set scout hail1
@@ -78,18 +79,15 @@ SelectAction:
 Rally:
 	set defend true
 	print "Rallying\n"
-	uradar enemy any any distance 0 1 enemy
-	jump AttackUnit notEqual enemy null
-
-	ucontrol within rallyX rallyY range isNearRally
+	ucontrol within rallyX rallyY 5 isNearRally
 	jump Stop equal isNearRally true
-	ucontrol approach rallyX rallyY range
+	ucontrol move rallyX rallyY
 	jump Start always
 
 Stop:
 	print "Stopping\n"
 	ucontrol stop
-	jump StopShooting always
+	jump FindTargetUnit always
 
 Defend:
 	set defend true
@@ -103,7 +101,7 @@ FindTargetUnit:
 	uradar enemy any any distance 0 1 enemy
 	jump AttackUnit notEqual enemy null
 	ucontrol targetp null 0
-	jump Start defend equals true
+	jump Start equal defend true
 		
 FindTargetBuilding:
 	print "Finding Target Building\n"
@@ -113,7 +111,7 @@ FindTargetBuilding:
 		sensor targetDead target @dead
 		jump SelectCloserBuilding equal targetDead false
 	FindPower:
-		ulocate building power true 0 targetX targetY powerFound target
+		ulocate building generator true 0 targetX targetY powerFound target
 		jump AttackCore equal powerFound false
 		sensor targetDead target @dead
 		jump AttackCore equal targetDead true
@@ -142,13 +140,7 @@ AttackCore:
 	set targetY enemyCoreY
 
 ApproachBuilding:
-	ucontrol within targetX targetY range isNear
-	jump ShootBuilding equal isNear true
 	ucontrol approach targetX targetY range
-	ucontrol target null 0
-	jump Start always
-
-ShootBuilding:
 	ucontrol target targetX targetY 1
 	jump Start always
 	
@@ -159,20 +151,12 @@ AttackUnit:
 ApproachEnemy:
 	sensor enemyX enemy @x
 	sensor enemyY enemy @y
-	ucontrol within enemyX enemyY range isNear
-	jump ShootEnemy equal isNear true
-	print "Approaching enemy\n"
 	ucontrol approach enemyX enemyY range
-	ucontrol targetp null 0
-	jump Start always
-
-ShootEnemy:
-	print "Shooting enemy\n"
 	ucontrol targetp enemy 1
 	jump Start always
 
 StopShooting:
 	print "Stop shooting\n"
 	ucontrol targetp null 0
-	ucontrol target null 0
+	ucontrol target 0 0 0
 	jump Start always
