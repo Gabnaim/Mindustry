@@ -1,0 +1,178 @@
+Initialize:
+	set unitType @zenith
+	set rallyX @thisx
+	set rallyY @thisy
+	set procId 0
+
+	# We can use a turret as a scout. It will be ignored if null
+	set scout hail1
+
+	GetLinks:
+		set sorter sorter1
+		jump GetLinks equal sorter null
+
+	# Get the flag from the processor that is doing the flagging
+	# If there is no processor, ignore all flagged
+	GetId:
+		set proc processor1
+		jump GetStartInfo equal proc null
+
+		sensor procX proc @x
+		sensor procY proc @y
+		op shl procId procX 10 # first 10 bit for x
+		op add procId procId procY # second 10 bit for y
+
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		sensor maxHealth @unit @maxHealth
+		sensor range @unit @range
+		op sub range range 1
+		op floor range range
+		ulocate building core true 0 enemyCoreX enemyCoreY coreFound enemyCore
+
+Start:
+	printflush message1
+CheckActive:
+	sensor choice sorter @config
+	jump Start equal choice null
+	
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	sensor isDead @unit @dead
+	jump Start equal isDead true
+	sensor flag @unit @flag
+	jump Start notEqual flag procId
+		
+GetUnit:
+	set currentUnit @unit
+	sensor unitX @unit @x
+	sensor unitY @unit @y
+	jump AttackUnit notEqual enemy null
+	ucontrol targetp null 0
+
+CheckHealth:
+	sensor health currentUnit @health
+	op div healthRatio health maxHealth
+	jump SelectAction greaterThan healthRatio 0.5
+
+Repair:
+	print "Repairing\n"
+	ulocate building repair false 0 repairX repairY repairFound repairPoint
+	jump Rally equal repairFound false
+	sensor powerIn repairPoint @powerNetIn
+	jump Rally equal powerIn 0
+	ucontrol within repairX repairY 5 isNearRepair
+	jump Stop equal isNearRepair true
+
+	ucontrol approach repairX repairY 5
+	jump StopShooting always
+
+SelectAction:
+	jump Rally equal choice @copper
+	jump Attack equal choice @lead
+	jump Defend equal choice @metaglass
+	jump Start always
+
+Rally:
+	set defend true
+	print "Rallying\n"
+	uradar enemy any any distance 0 1 enemy
+	jump AttackUnit notEqual enemy null
+
+	ucontrol within rallyX rallyY range isNearRally
+	jump Stop equal isNearRally true
+	ucontrol approach rallyX rallyY range
+	jump Start always
+
+Stop:
+	print "Stopping\n"
+	ucontrol stop
+	jump StopShooting always
+
+Defend:
+	set defend true
+	jump FindTargetUnit always
+
+Attack:
+	set defend false
+FindTargetUnit:
+	radar enemy any any distance scout 1 enemy
+	jump AttackUnit notEqual enemy null
+	uradar enemy any any distance 0 1 enemy
+	jump AttackUnit notEqual enemy null
+	ucontrol targetp null 0
+	jump Start defend equals true
+		
+FindTargetBuilding:
+	print "Finding Target Building\n"
+	FindTurret:
+		ulocate building turret true 0 targetX targetY turretFound target
+		jump FindPower equal turretFound false
+		sensor targetDead target @dead
+		jump SelectCloserBuilding equal targetDead false
+	FindPower:
+		ulocate building power true 0 targetX targetY powerFound target
+		jump AttackCore equal powerFound false
+		sensor targetDead target @dead
+		jump AttackCore equal targetDead true
+		
+SelectCloserBuilding:
+	op sub distanceX unitX targetX
+	op abs distanceX distanceX
+	op sub coreDistX unitX enemyCoreX
+	op abs coreDistX coreDistX
+	
+	op sub distanceY unitY targetY 
+	op abs distanceY distanceY 
+	op sub coreDistY unitY enemyCoreY
+	op abs coreDistY coreDistY
+
+	op add coreDist coreDistX coreDistY
+	op add targetDist distanceX distanceY
+	jump ApproachBuilding lessThan distanceY coreDistY
+
+AttackCore:
+	print "Locating core\n"
+	ulocate building core true 0 enemyCoreX enemyCoreY coreFound enemyCore
+	jump StopShooting equal coreFound false
+	print "Attacking core\n"
+	set targetX enemyCoreX
+	set targetY enemyCoreY
+
+ApproachBuilding:
+	ucontrol within targetX targetY range isNear
+	jump ShootBuilding equal isNear true
+	ucontrol approach targetX targetY range
+	ucontrol target null 0
+	jump Start always
+
+ShootBuilding:
+	ucontrol target targetX targetY 1
+	jump Start always
+	
+AttackUnit:
+	sensor enemyDead enemy @dead
+	jump StopShooting equal enemyDead true
+
+ApproachEnemy:
+	sensor enemyX enemy @x
+	sensor enemyY enemy @y
+	ucontrol within enemyX enemyY range isNear
+	jump ShootEnemy equal isNear true
+	print "Approaching enemy\n"
+	ucontrol approach enemyX enemyY range
+	ucontrol targetp null 0
+	jump Start always
+
+ShootEnemy:
+	print "Shooting enemy\n"
+	ucontrol targetp enemy 1
+	jump Start always
+
+StopShooting:
+	print "Stop shooting\n"
+	ucontrol targetp null 0
+	ucontrol target null 0
+	jump Start always
