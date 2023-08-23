@@ -1,23 +1,33 @@
 Initialize:
 	set unitType @zenith
-	op add rallyX @thisx 10
-	op add rallyY @thisy -10
-	set procId 0
+	set rallyDistanceX 10 
+	set rallyDistanceY 10 
+	op add rallyX @thisx rallyDistanceX
+	op add rallyY @thisy rallyDistanceY
 	set defend true
 
-	# We can use a turret as a scout. It will be ignored if null
-	set scout hail1
+	# set these to true if using scout or another processor to flag
+	set useFlagger false
+	set useScout true
 
-	GetLinks:
+	GetSorter:
 		set sorter sorter1
-		jump GetLinks equal sorter null
+		jump GetSorter equal sorter null
+
+	# We can use a turret as a scout. It will be ignored if null
+	GetScout:
+		set scout hail1
+		jump GetId equal useScout false
+		jump GetScout equal scout null
+
+	GetFlagger:
+		set procId 0
+		set proc processor1
+		jump GetStartInfo equal useFlagger false
+		jump GetFlagger equal proc null
 
 	# Get the flag from the processor that is doing the flagging
-	# If there is no processor, ignore all flagged
 	GetId:
-		set proc processor1
-		jump GetStartInfo equal proc null
-
 		sensor procX proc @x
 		sensor procY proc @y
 		op shl procId procX 10 # first 10 bit for x
@@ -31,9 +41,26 @@ Initialize:
 		op sub range range 1
 		op floor range range
 		ulocate building core true 0 enemyCoreX enemyCoreY coreFound enemyCore
+		jump Start equal coreFound false
+
+	GetRallyPoint:
+		SetX:
+			jump AddX greaterThan enemyCoreX @thisx
+			op sub rallyX @thisx rallyDistanceX
+			jump SetY always
+			AddX:
+				op add rallyX @thisx rallyDistanceX
+
+		SetY:
+			jump AddY greaterThan enemyCoreY @thisx
+			op sub rallyY @thisy rallyDistanceY
+			jump Start always
+			op add rallyY @thisy rallyDistanceY
+		
 
 Start:
 	printflush message1
+
 CheckActive:
 	sensor choice sorter @config
 	jump Start equal choice null
