@@ -1,0 +1,104 @@
+Initialize:
+	set unitType @dagger
+	set ground true
+	set radius 5
+	set maxPathfindOffset 10
+	op mul maxIndex maxPathfindOffset 2
+
+	op add rallyX @thisx 10
+	op add rallyY @thisy 3
+
+	set repairX 142
+	set repairY 105
+	
+	GetSorter:
+		set sorter sorter1
+		jump GetSorter equal sorter null
+
+Start:
+	printflush message1
+
+CheckActive:
+	sensor choice sorter @config
+	jump Stop equal choice null
+	
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	sensor isDead @unit @dead
+	jump Start equal isDead true
+	sensor flag @unit @flag
+	jump Start notEqual flag 0
+
+SelectAction:
+	jump Rally equal choice @copper
+	jump Repair equal choice @lead
+	jump Start always
+
+Repair:
+	set targetX repairX
+	set targetY repairY
+	set radius 10
+	jump Approach always
+	
+Rally:
+	set targetX rallyX
+	set targetY rallyY
+	set radius 4
+	jump Approach always
+
+Approach:
+	ucontrol within targetX targetY radius isNear
+	jump Stop equal isNear true
+	jump GroundApproach equal ground true
+
+	AirApproach:
+		ucontrol boost true
+		ucontrol approach targetX targetY radius
+		jump Start always
+	
+	GroundApproach:
+		ucontrol getblock targetX targetY type block
+		jump Pathfind equal type @air
+
+		FindOpenSpot:
+			sensor unitX @unit @x
+			sensor unitY @unit @y
+			set i 0
+	
+			jump AddX greaterThan unitX targetX
+			set stepx -1
+			AddX:
+				set stepx 1
+	
+			jump AddY greaterThan unitY targetY
+			set stepy -1
+			AddY:
+				set stepy 1
+		
+			FindOpenLoop:
+				op mod xmove step 2
+				jump XStep equal xmove 1
+				YStep:
+					op add targetY targetY stepy
+				XStep:
+					op add targetX targetX stepx
+				ucontrol getblock targetX targetY type block
+				jump Pathfind equal type @air
+				op add i i 1
+				jump FindOpenLoop lessThan i maxIndex
+				
+		jump Start always
+		
+		Pathfind:
+			ucontrol boost true
+			ucontrol pathfind 
+			jump Start always
+
+Stop:
+	print "Stop\n"
+	ucontrol stop
+	ucontrol boost false
+	jump Start always
+
+
