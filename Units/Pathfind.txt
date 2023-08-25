@@ -15,12 +15,23 @@ Initialize:
 		set sorter sorter1
 		jump GetSorter equal sorter null
 
+	set lastChoice null
+
 Start:
 	printflush message1
 
 CheckActive:
 	sensor choice sorter @config
+	jump ChoiceChanged notEqual choice lastChoice
+	jump BindUnit notEqual choice null
+	jump Start always
+
+ChoiceChanged:
 	jump Stop equal choice null
+	set pathfinding false
+	set firstUnit null
+	set stopping false
+	set lastChoice choice
 	
 BindUnit:
 	ubind unitType
@@ -29,6 +40,8 @@ BindUnit:
 	jump Start equal isDead true
 	sensor flag @unit @flag
 	jump Start notEqual flag 0
+	jump SelectAction notEqual firstUnit null
+	set firstUnit @unit
 
 SelectAction:
 	jump Rally equal choice @copper
@@ -36,30 +49,41 @@ SelectAction:
 	jump Start always
 
 Repair:
+	jump Approach equal pathfinding true
 	set targetX repairX
 	set targetY repairY
-	set radius 10
 	jump Approach always
 	
 Rally:
+	jump Approach equal pathfinding true
 	set targetX rallyX
 	set targetY rallyY
-	set radius 4
 	jump Approach always
 
 Approach:
 	ucontrol within targetX targetY radius isNear
 	jump Stop equal isNear true
+	ucontrol boost true
 	jump GroundApproach equal ground true
 
 	AirApproach:
-		ucontrol boost true
 		ucontrol approach targetX targetY radius
 		jump Start always
 	
 	GroundApproach:
-		ucontrol getblock targetX targetY type block
-		jump Pathfind equal type @air
+		
+		ucontrol pathfind targetX targetY 
+
+		# We only calculate the target for the first unit. All others just do a pathfind
+		jump Start notEqual @unit firstUnit
+
+		sensor startX @unit @x
+		sensor startY @unit @y
+		wait 0.2
+
+		CheckMoved:
+			ucontrol within startX startY 1 notMoved
+			jump PathFinding equal notMoved false
 
 		FindOpenSpot:
 			sensor unitX @unit @x
@@ -77,28 +101,41 @@ Approach:
 				set stepy 1
 		
 			FindOpenLoop:
-				op mod xmove step 2
+				op mod xmove i 2
 				jump XStep equal xmove 1
 				YStep:
 					op add targetY targetY stepy
 				XStep:
 					op add targetX targetX stepx
-				ucontrol getblock targetX targetY type block
-				jump Pathfind equal type @air
+
+				ucontrol pathfind targetX targetY
+				wait 0.2
+				
+				ucontrol within startX startY 1 notMoved
+				jump PathFinding equal notMoved false
+
 				op add i i 1
 				jump FindOpenLoop lessThan i maxIndex
 				
 		jump Start always
-		
-		Pathfind:
-			ucontrol boost true
-			ucontrol pathfind 
-			jump Start always
 
+		PathFinding:
+			set pathfinding true
+			jump Start always
+			
 Stop:
 	print "Stop\n"
 	ucontrol stop
 	ucontrol boost false
+	jump StopRest equal stopping true
+	op equal stopping @unit firstUnit
 	jump Start always
+
+StopRest:
+	jump Start notEqual @unit firstUnit
+	set pathfinding false
+	set stopping false
+	jump Start always
+	
 
 
