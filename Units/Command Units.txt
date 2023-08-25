@@ -4,7 +4,7 @@ Initialize:
 	set useFlagger false
 	set useScout false
 
-	set unitType @dagger
+	set unitType @flare
 	set spawnRange 40
 	set defend true
 
@@ -43,20 +43,29 @@ Initialize:
 		sensor range @unit @range
 		op sub range range 1
 		op floor range range
-		ulocate building core true 0 enemyCoreX enemyCoreY coreFound enemyCore
-		ulocate spawn core true 0 spawnX spawnY spawnFound enemySpawn
-		jump Start 
+		GetEnemyCore:
+			ulocate building core true 0 enemyCoreX enemyCoreY coreFound enemyCore
+			jump GetSpawn equal coreFound false
+			set attackX enemyCoreX
+			set attackY enemyCoreY
+			jump GetRallyPoint always
+			
+		GetSpawn:
+			ulocate spawn core true 0 spawnX spawnY spawnFound enemySpawn
+			jump Start equal spawnFound false
+			set attackX spawnX
+			set attackY spawnY
 
 	GetRallyPoint:
 		SetX:
-			jump AddX greaterThan enemyCoreX @thisx
+			jump AddX greaterThan attackX @thisx
 			op sub rallyX @thisx rallyDistanceX
 			jump SetY always
 			AddX:
 				op add rallyX @thisx rallyDistanceX
 
 		SetY:
-			jump AddY greaterThan enemyCoreY @thisx
+			jump AddY greaterThan attackY @thisx
 			op sub rallyY @thisy rallyDistanceY
 			jump Start always
 			AddY:
@@ -83,21 +92,30 @@ GetUnit:
 	sensor unitX @unit @x
 	sensor unitY @unit @y
 	jump AttackUnit notEqual enemy null
+	print "Turn off targeting when enemy is null\n"
+	ucontrol targetp null 0
 
 CheckHealth:
 	sensor health currentUnit @health
 	op div healthRatio health maxHealth
-	jump SelectAction greaterThan healthRatio 0.5
+	jump SelectAction equal healthRatio 1
 
 Repair:
 	ulocate building repair false 0 repairX repairY repairFound repairPoint
 	jump SelectAction equal repairFound false
 	ucontrol within repairX repairY 5 isNearRepair
-	jump Stop equal isNearRepair true
-	print "Approaching repair\n"
+	jump Heal equal isNearRepair true
+	print "Approach repair\n"
+	ucontrol boost true
 	ucontrol approach repairX repairY 5
 	jump Start always
 
+Heal:
+	print "Stop to heal\n"
+	ucontrol stop
+	ucontrol boost false
+	jump Start lessThan healthRatio 1
+	
 SelectAction:
 	jump Rally equal choice @copper
 	jump Attack equal choice @lead
@@ -108,13 +126,14 @@ Rally:
 	set defend true
 	ucontrol within rallyX rallyY 5 isNearRally
 	jump Stop equal isNearRally true
-	print "Pathfind to rally point\n"
-	ucontrol pathfind rallyX rallyY
+	print "Approach rally point\n"
+	ucontrol approach rallyX rallyY 5
 	jump Start always
 
 Stop:
 	print "Stop\n"
 	ucontrol stop
+	ucontrol boost false
 	jump FindTargetUnit always
 
 Defend:
@@ -135,8 +154,6 @@ FindTargetUnit:
 AttackSpawn:
 	ucontrol within spawnX spawnY spawnRange isNearSpawn
 	jump StopAtSpawn equal isNearSpawn true
-	print "Approach spawn point\n"
-	ucontrol approach spawnX spawnY spawnRange
 	print "Pathfind spawn point\n"
 	ucontrol pathfind spawnX spawnY
 	jump Start always
@@ -144,6 +161,7 @@ AttackSpawn:
 StopAtSpawn:
 	print "Stop at spawn\n"
 	ucontrol stop
+	ucontrol boost false
 	jump Start always
 	
 FindTargetBuilding:
@@ -176,6 +194,7 @@ SelectCloserBuilding:
 AttackCore:
 	jump Start equal coreFound false
 	print "Approach core\n"
+	ucontrol boost true
 	ucontrol approach enemyCoreX enemyCoreY range
 	print "Pathfind to core\n"
 	ucontrol pathfind enemyCoreX enemyCoreY
