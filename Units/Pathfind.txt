@@ -15,6 +15,13 @@ Initialize:
 		set sorter sorter1
 		jump GetSorter equal sorter null
 
+	GetUnitInfo:
+		ubind unitType
+		jump GetUnitInfo equal @unit null
+		sensor speed @unit @speed
+		op sub checkSpeed speed 1
+		op div waitTime 1 checkSpeed
+
 	set lastChoice null
 
 Start:
@@ -31,6 +38,7 @@ ChoiceChanged:
 	set pathfinding false
 	set firstUnit null
 	set stopping false
+	set arrived false
 	set lastChoice choice
 	
 BindUnit:
@@ -44,6 +52,7 @@ BindUnit:
 	set firstUnit @unit
 
 SelectAction:
+	jump Start equal arrived true
 	jump Rally equal choice @copper
 	jump Repair equal choice @lead
 	jump Start always
@@ -58,7 +67,6 @@ Rally:
 	jump Approach equal pathfinding true
 	set targetX rallyX
 	set targetY rallyY
-	jump Approach always
 
 Approach:
 	ucontrol within targetX targetY radius isNear
@@ -79,7 +87,7 @@ Approach:
 
 		sensor startX @unit @x
 		sensor startY @unit @y
-		wait 0.2
+		wait waitTime
 
 		CheckMoved:
 			ucontrol within startX startY 1 notMoved
@@ -109,7 +117,7 @@ Approach:
 					op add targetX targetX stepx
 
 				ucontrol pathfind targetX targetY
-				wait 0.2
+				wait waitTime
 				
 				ucontrol within startX startY 1 notMoved
 				jump PathFinding equal notMoved false
@@ -117,7 +125,8 @@ Approach:
 				op add i i 1
 				jump FindOpenLoop lessThan i maxIndex
 				
-		jump Start always
+			set pathfinding false
+			jump Start always
 
 		PathFinding:
 			set pathfinding true
@@ -135,6 +144,7 @@ StopRest:
 	jump Start notEqual @unit firstUnit
 	set pathfinding false
 	set stopping false
+	set arrived true
 	jump Start always
 	
 
