@@ -59,10 +59,11 @@ Initialize:
 	
 	GetUnitId:
 		set i 0
-		lookup unit i lookupUnit
-		jump SetUnitId equal lookupUnit unitType
-		op add i i 1
-		jump GetUnitId lessThan i 38
+		GetUnitIdLoop:
+			lookup unit lookupUnit i
+			jump SetUnitId equal lookupUnit unitType
+			op add i i 1
+			jump GetUnitIdLoop lessThan i 38
 
 	SetUnitId:
 		set unitId i
@@ -76,19 +77,21 @@ Initialize:
 		write procId memory FLAG_ADDR
 		op shl repairId procId 1 # add an extra bit for repair
 		op add repairId repairId 1
+
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		sensor range @unit @range
+		sensor maxHealth @unit @maxHealth
 		
 		GetEnemyCore:
-			ulocate building core true 0 enemyCoreX enemyCoreY coreFound enemyCore
+			ulocate building core true 0 attackX attackY coreFound building
 			jump GetSpawn equal coreFound false
-			set attackX enemyCoreX
-			set attackY enemyCoreY
 			jump GetRallyPoint always
 			
 		GetSpawn:
-			ulocate spawn core true 0 spawnX spawnY spawnFound enemySpawn
+			ulocate spawn core true 0 attackX attackY spawnFound building
 			jump Start equal spawnFound false
-			set attackX spawnX
-			set attackY spawnY
 
 	GetRallyPoint:
 		SetX:
@@ -120,7 +123,6 @@ ChoiceChanged:
 	jump StopAll equal choice null
 	set firstUnit null
 	set status IDLE
-	jump BindUnit always
 	
 BindUnit:
 	ubind unitType
@@ -130,14 +132,11 @@ BindUnit:
 	sensor flag @unit @flag
 	jump GetUnit equal flag procId
 	jump GetUnit equal flag repairId
-	jump Start always
+	jump Start notEqual flag 0
 		
 GetUnit:
 	set currentUnit @unit
-	sensor unitX @unit @x
-	sensor unitY @unit @y
 	jump AttackUnit notEqual enemy null
-	print "Turn off targeting when enemy is null\n"
 	ucontrol targetp null 0
 
 CheckHealth:
@@ -154,14 +153,14 @@ Repair:
 	set targetX repairX 
 	set targetY repairY
 	set radius 5
-	ucontrol flag @unit repairId
+	ucontrol flag repairId
 	jump Approach always
 
 Heal:
 	jump Start lessThan healthRatio 1
 	
 SelectAction:
-	ucontrol flag @unit procId
+	ucontrol flag procId
 	write procId memory FLAG_ADDR
 	jump Rally equal choice @copper
 	jump Attack equal choice @lead
@@ -195,33 +194,35 @@ FindTargetUnit:
 
 AttackSpawn:
 	jump Approach equal status APPROACHING
-	set targetX spawnX
-	set targetY spawnY
+	set targetX attackX
+	set targetY attackY
 	set radius spawnRange
 	set action ATTACK_SPAWN
 	jump Approach always
 	
 FindTargetBuilding:
 	FindTurret:
-		ulocate building turret true 0 targetX targetY turretFound target
+		ulocate building turret true 0 targetX targetY turretFound building
 		jump FindPower equal turretFound false
-		sensor targetDead target @dead
+		sensor targetDead building @dead
 		jump SelectCloserBuilding equal targetDead false
 	FindPower:
-		ulocate building generator true 0 targetX targetY powerFound target
+		ulocate building generator true 0 targetX targetY powerFound building
 		jump AttackCore equal powerFound false
-		sensor targetDead target @dead
+		sensor targetDead building @dead
 		jump AttackCore equal targetDead true
 		
 SelectCloserBuilding:
+	sensor unitX @unit @x
+	sensor unitY @unit @y
 	op sub distanceX unitX targetX
 	op abs distanceX distanceX
-	op sub coreDistX unitX enemyCoreX
+	op sub coreDistX unitX attackX
 	op abs coreDistX coreDistX
 	
 	op sub distanceY unitY targetY 
 	op abs distanceY distanceY 
-	op sub coreDistY unitY enemyCoreY
+	op sub coreDistY unitY attackY
 	op abs coreDistY coreDistY
 
 	op add coreDist coreDistX coreDistY
@@ -230,13 +231,14 @@ SelectCloserBuilding:
 
 AttackCore:
 	jump Approach equal status APPROACHING
-	set targetX enemyCoreX
-	set targetY enemyCoreY
+	set targetX attackX
+	set targetY attackY
 	set radius range
 	set action ATTACK_CORE
 	jump Approach always
 	
 AttackUnit:
+	ucontrol flag procId
 	sensor enemyDead enemy @dead
 	jump StopShooting equal enemyDead true
 

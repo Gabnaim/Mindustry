@@ -32,14 +32,6 @@ Initialize:
 
 	set status IDLE
 	set maxIndex 20
-
-	GetUnitInfo:
-		ubind unitType
-		jump GetUnitInfo equal @unit null
-		sensor speed @unit @speed
-		op sub speed speed 1
-		op div waitTime 1 speed
-
 	set lastCommand NONE
 	set lastUnitTypeId -1
 	set lastInputFlag -1
@@ -50,8 +42,10 @@ Start:
 CheckCommand:
 	read command memory COMMAND_ADDR
 	read inputFlag memory FLAG_ADDR
+	read unitTypeId memory UNIT_TYPE_ADDR
 	jump CommandChanged notEqual command lastCommand
 	jump CommandChanged notEqual inputFlag lastInputFlag
+	jump CommandChanged notEqual unitTypeId lastUnitTypeId
 	
 	jump BindUnit notEqual command NONE
 	jump Start always
@@ -62,7 +56,6 @@ CommandChanged:
 	write tag memory LAST_TAG_ADDR
 	jump StopAll equal command STOP
 
-	read unitTypeId memory UNIT_TYPE_ADDR
 	read targetX memory X_ADDR
 	read targetY memory Y_ADDR
 	read radius memory RADIUS_ADDR
@@ -106,7 +99,7 @@ Approach:
 	ucontrol within targetX targetY radius isNear
 	jump StopUnit equal isNear true
 	ucontrol boost true
-	jump GroundApproach equal ground true
+	jump GroundApproach equal isGround true
 
 	AirApproach:
 		ucontrol approach targetX targetY radius
