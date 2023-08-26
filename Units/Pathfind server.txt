@@ -3,27 +3,32 @@ Initialize:
 		set memory cell1
 		jump GetLinks equal memory null
 
-	# data structure
-	# inputs
-	set FLAG_ADDR 0
-	set COMMAND_ADDR 1
-	set UNIT_TYPE_ADDR 2
-	set X_ADDR 3
-	set Y_ADDR 4
-	set RADIUS_ADDR 5
-	# outputs
-	set STATUS_ADDR 10
+	DeclareDataStructure:
+		# inputs
+		set FLAG_ADDR 0
+		set COMMAND_ADDR 1
+		set UNIT_TYPE_ADDR 2
+		set X_ADDR 3
+		set Y_ADDR 4
+		set RADIUS_ADDR 5
+		set TAG_ADDR 6 # general purpose client tag
 
-	# move statuses
-	set IDLE 0
-	set APPROACHING 1
-	set STOPPING 2
-	set ARRIVED 3
-
-	# commands
-	set NONE 0
-	set MOVE 1
-	set STOP 2
+		# outputs
+		set STATUS_ADDR 10
+		set TARGETX_ADDR 11
+		set TARGETY_ADDR 12
+		set LAST_TAG_ADDR 13
+	
+		# move statuses
+		set IDLE 0
+		set APPROACHING 1
+		set STOPPING 2
+		set ARRIVED 3
+	
+		# commands
+		set NONE 0
+		set MOVE 1
+		set STOP 2
 
 	set status IDLE
 	set maxIndex 20
@@ -37,29 +42,36 @@ Initialize:
 
 	set lastCommand NONE
 	set lastUnitTypeId -1
+	set lastInputFlag -1
 
 Start:
 	printflush message1
 
 CheckCommand:
 	read command memory COMMAND_ADDR
+	read inputFlag memory FLAG_ADDR
 	jump CommandChanged notEqual command lastCommand
+	jump CommandChanged notEqual inputFlag lastInputFlag
+	
 	jump BindUnit notEqual command NONE
 	jump Start always
 
 CommandChanged:
 	set lastCommand command
+	read tag memory TAG_ADDR
+	write tag memory LAST_TAG_ADDR
 	jump StopAll equal command STOP
 
 	read unitTypeId memory UNIT_TYPE_ADDR
-	read flagId memory FLAG_ADDR
 	read targetX memory X_ADDR
-	read targetX memory X_ADDR
+	read targetY memory Y_ADDR
 	read radius memory RADIUS_ADDR
 
 	set firstUnit null
 	set status IDLE
 	write status memory STATUS_ADDR
+	write targetX memory TARGETX_ADDR
+	write targetY memory TARGETY_ADDR
 
 	jump BindUnit equal unitTypeId lastUnitTypeId
 
@@ -80,7 +92,7 @@ BindUnit:
 	sensor isDead @unit @dead
 	jump Start equal isDead true
 	sensor flag @unit @flag
-	jump Start notEqual flag flagId
+	jump Start notEqual flag inputFlag
 
 	jump SelectAction notEqual firstUnit null
 	set firstUnit @unit
@@ -155,6 +167,8 @@ Approach:
 
 		PathFinding:
 			set status APPROACHING
+			write targetX memory TARGETX_ADDR
+			write targetY memory TARGETY_ADDR
 			write status memory STATUS_ADDR
 			jump Start always
 
@@ -164,13 +178,22 @@ StopAll:
 	write status memory STATUS_ADDR
 	StopLoop:
 		ubind unitType
+		jump StopFinish equal @unit null
+		sensor isDead @unit @dead
+		jump StopLoop equal isDead true
+		sensor flag @unit @flag
+		jump StopLoop notEqual flag inputFlag
+		
 		ucontrol stop
 		ucontrol boost false
 		jump StopLoop notEqual @unit firstUnit
 
-	set status IDLE
-	write status memory STATUS_ADDR
-	jump Start always
+	StopFinish:
+		set status IDLE
+		write 0 memory TARGETX_ADDR
+		write 0 memory TARGETY_ADDR
+		write status memory STATUS_ADDR
+		jump Start always
 			
 StopUnit:
 	ucontrol stop
