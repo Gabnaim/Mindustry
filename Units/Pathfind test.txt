@@ -1,0 +1,173 @@
+Initialize:
+	set IDLE 0
+	set PATHFINDING 1
+	set STOPPING 2
+	set ARRIVED 3
+
+	set status IDLE
+
+	set unitType @dagger
+	set ground true
+	set radius 5
+	set maxPathfindOffset 10
+	op mul maxIndex maxPathfindOffset 2
+
+	op add rallyX @thisx 10
+	op add rallyY @thisy 3
+
+	set repairX 142
+	set repairY 105
+	
+	GetSorter:
+		set sorter sorter1
+		jump GetSorter equal sorter null
+
+	GetUnitInfo:
+		ubind unitType
+		jump GetUnitInfo equal @unit null
+		sensor speed @unit @speed
+		op sub checkSpeed speed 1
+		op div waitTime 1 checkSpeed
+
+	set lastChoice null
+
+Start:
+	printflush message1
+
+CheckActive:
+	sensor choice sorter @config
+	jump ChoiceChanged notEqual choice lastChoice
+	jump BindUnit notEqual choice null
+	jump Start always
+
+ChoiceChanged:
+	set lastChoice choice
+	jump StopAll equal choice null
+	set firstUnit null
+	set status IDLE
+	jump BindUnit always
+	
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	sensor isDead @unit @dead
+	jump Start equal isDead true
+	sensor flag @unit @flag
+	jump Start notEqual flag 0
+
+	jump SelectAction notEqual firstUnit null
+	set firstUnit @unit
+
+SelectAction:
+	jump Start equal status ARRIVED
+	jump Rally equal choice @copper
+	jump Repair equal choice @lead
+	jump Start always
+
+Repair:
+	jump Approach equal status PATHFINDING
+	set targetX repairX
+	set targetY repairY
+	jump Approach always
+	
+Rally:
+	jump Approach equal status PATHFINDING
+	set targetX rallyX
+	set targetY rallyY
+
+Approach:
+	ucontrol within targetX targetY radius isNear
+	jump StopUnit equal isNear true
+	ucontrol boost true
+	jump GroundApproach equal ground true
+
+	AirApproach:
+		ucontrol approach targetX targetY radius
+		jump Start always
+	
+	GroundApproach:
+		
+		ucontrol pathfind targetX targetY 
+
+		# We only calculate the target for the first unit. 
+		# All others just do a pathfind using last target
+		jump Start notEqual @unit firstUnit
+
+		sensor startX @unit @x
+		sensor startY @unit @y
+		wait waitTime
+
+		CheckMoved:
+			ucontrol within startX startY 1 notMoved
+			jump PathFinding equal notMoved false
+
+		FindOpenSpot:
+			sensor unitX @unit @x
+			sensor unitY @unit @y
+			set i 0
+	
+			jump AddX greaterThan unitX targetX
+			set stepx -1
+			AddX:
+				set stepx 1
+	
+			jump AddY greaterThan unitY targetY
+			set stepy -1
+			AddY:
+				set stepy 1
+		
+			FindOpenLoop:
+				op mod xmove i 2
+				jump XStep equal xmove 1
+				YStep:
+					op add targetY targetY stepy
+				XStep:
+					op add targetX targetX stepx
+
+				ucontrol pathfind targetX targetY
+				wait waitTime
+				
+				ucontrol within startX startY 1 notMoved
+				jump PathFinding equal notMoved false
+
+				op add i i 1
+				jump FindOpenLoop lessThan i maxIndex
+				
+			set status IDLE
+			jump Start always
+
+		PathFinding:
+			set status PATHFINDING
+			jump Start always
+
+StopAll:
+	set firstUnit @unit
+	set status STOPPING
+	StopLoop:
+		ubind unitType
+		ucontrol stop
+		ucontrol boost false
+		jump StopLoop notEqual @unit firstUnit
+
+	set status IDLE
+	jump Start always
+			
+StopUnit:
+	print "StopUnit\n"
+	ucontrol stop
+	ucontrol boost false
+	jump StopRest equal status STOPPING
+	jump StopFirst equal @unit firstUnit
+	jump Start always
+
+StopFirst:
+	set status STOPPING
+	jump Start always
+
+StopRest:
+	jump Start notEqual @unit firstUnit
+	set status ARRIVED 
+	jump Start always
+	
+
+

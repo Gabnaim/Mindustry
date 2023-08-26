@@ -1,0 +1,335 @@
+Initialize:
+	set unitType @dagger
+	set useFlagger false
+	set useScout false
+
+	GetLinks:
+		set memory cell1
+		jump GetLinks equal memory null
+		set sorter sorter1
+		jump GetLinks equal sorter null
+		GetScout:
+			set scout hail1
+			jump GetFlagger equal useScout false
+			jump GetScout equal scout null
+		GetFlagger:
+			set procId 0
+			set proc processor1
+			jump DeclareDataStructure equal useFlagger false
+			jump GetFlagger equal proc null
+
+	DeclareDataStructure:
+		# inputs
+		set FLAG_ADDR 0
+		set COMMAND_ADDR 1
+		set UNIT_TYPE_ADDR 2
+		set X_ADDR 3
+		set Y_ADDR 4
+		set RADIUS_ADDR 5
+
+		# outputs
+		set STATUS_ADDR 10
+	
+		# move statuses
+		set IDLE 0
+		set APPROACHING 1
+		set STOPPING 2
+		set ARRIVED 3
+	
+		# commands
+		set NONE 0
+		set MOVE 1
+		set STOP 2
+
+	set status IDLE
+
+	set spawnRange 40
+	set rallyDistanceX 10 
+	set rallyDistanceY 10 
+	
+	GetUnitId:
+		set i 0
+		lookup unit i lookupUnit
+		jump SetUnitId equal lookupUnit unitType
+		op add i i 1
+		jump GetUnitId lessThan i 38
+
+	SetUnitId:
+		set unitId i
+		write unitId memory UNIT_TYPE_ADDR
+
+	# Get the flag from the processor that is doing the flagging
+	GetId:
+		sensor procX proc @x
+		sensor procY proc @y
+		op shl procId procX 10 # first 10 bit for x
+		op add procId procId procY # second 10 bit for y
+		write procId memory FLAG_ADDR
+
+		GetEnemyCore:
+			ulocate building core true 0 enemyCoreX enemyCoreY coreFound enemyCore
+			jump GetSpawn equal coreFound false
+			set attackX enemyCoreX
+			set attackY enemyCoreY
+			jump GetRallyPoint always
+			
+		GetSpawn:
+			ulocate spawn core true 0 spawnX spawnY spawnFound enemySpawn
+			jump Start equal spawnFound false
+			set attackX spawnX
+			set attackY spawnY
+
+	GetRallyPoint:
+		SetX:
+			jump AddX greaterThan attackX @thisx
+			op sub rallyX @thisx rallyDistanceX
+			jump SetY always
+			AddX:
+				op add rallyX @thisx rallyDistanceX
+
+		SetY:
+			jump AddY greaterThan attackY @thisx
+			op sub rallyY @thisy rallyDistanceY
+			jump Start always
+			AddY:
+				op add rallyY @thisy rallyDistanceY
+		
+
+Start:
+	printflush message1
+
+CheckActive:
+	sensor choice sorter @config
+	jump ChoiceChanged notEqual choice lastChoice
+	jump BindUnit notEqual choice null
+	jump Start always
+
+ChoiceChanged:
+	set lastChoice choice
+	jump StopAll equal choice null
+	set firstUnit null
+	set status IDLE
+	jump BindUnit always
+	
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	sensor isDead @unit @dead
+	jump Start equal isDead true
+	sensor flag @unit @flag
+	jump Start notEqual flag procId
+		
+GetUnit:
+	set currentUnit @unit
+	sensor unitX @unit @x
+	sensor unitY @unit @y
+	jump AttackUnit notEqual enemy null
+	print "Turn off targeting when enemy is null\n"
+	ucontrol targetp null 0
+
+CheckHealth:
+	sensor health currentUnit @health
+	op div healthRatio health maxHealth
+	jump SelectAction equal healthRatio 1
+
+Repair:
+	ulocate building repair false 0 repairX repairY repairFound repairPoint
+	jump SelectAction equal repairFound false
+	ucontrol within repairX repairY 5 isNearRepair
+	jump Heal equal isNearRepair true
+	print "Approach repair\n"
+	ucontrol boost true
+	ucontrol approach repairX repairY 5
+	jump Start always
+
+Heal:
+	print "Stop to heal\n"
+	ucontrol stop
+	ucontrol boost false
+	jump Start lessThan healthRatio 1
+	
+SelectAction:
+	jump Rally equal choice @copper
+	jump Attack equal choice @lead
+	jump Defend equal choice @metaglass
+	jump Start always
+
+Rally:
+	set defend true
+	ucontrol within rallyX rallyY 5 isNearRally
+	jump Stop equal isNearRally true
+	print "Approach rally point\n"
+	ucontrol approach rallyX rallyY 5
+	jump Start always
+
+Stop:
+	print "Stop\n"
+	ucontrol stop
+	ucontrol boost false
+	jump FindTargetUnit always
+
+Defend:
+	set defend true
+	jump FindTargetUnit always
+
+Attack:
+	set defend false
+
+FindTargetUnit:
+	radar enemy any any distance scout 1 enemy
+	jump AttackUnit notEqual enemy null
+	uradar enemy any any distance 0 1 enemy
+	jump AttackUnit notEqual enemy null
+	jump Start equal defend true
+	jump FindTargetBuilding equal spawnFound false
+
+AttackSpawn:
+	jump Approach equal status APPROACHING
+	set targetX spawnX
+	set targetY spawnY
+	set radius spawnRange
+	jump Approach always
+	
+FindTargetBuilding:
+	FindTurret:
+		ulocate building turret true 0 targetX targetY turretFound target
+		jump FindPower equal turretFound false
+		sensor targetDead target @dead
+		jump SelectCloserBuilding equal targetDead false
+	FindPower:
+		ulocate building generator true 0 targetX targetY powerFound target
+		jump AttackCore equal powerFound false
+		sensor targetDead target @dead
+		jump AttackCore equal targetDead true
+		
+SelectCloserBuilding:
+	op sub distanceX unitX targetX
+	op abs distanceX distanceX
+	op sub coreDistX unitX enemyCoreX
+	op abs coreDistX coreDistX
+	
+	op sub distanceY unitY targetY 
+	op abs distanceY distanceY 
+	op sub coreDistY unitY enemyCoreY
+	op abs coreDistY coreDistY
+
+	op add coreDist coreDistX coreDistY
+	op add targetDist distanceX distanceY
+	jump Approach greaterThan coreDist targetDist
+
+AttackCore:
+	jump Approach equal status APPROACHING
+	set targetX enemyCoreX
+	set targetY enemyCoreY
+	set radius range
+	jump Approach always
+
+Approach:
+	ucontrol within targetX targetY radius isNear
+	jump StopUnit equal isNear true
+	ucontrol boost true
+	jump GroundApproach equal ground true
+
+	AirApproach:
+		ucontrol approach targetX targetY radius
+		set status APPROACHING
+		jump Start always
+	
+	GroundApproach:
+		ucontrol pathfind targetX targetY 
+
+		# We only calculate the target for the first unit. 
+		# All others just do a pathfind using last target
+		jump Start notEqual @unit firstUnit
+
+		sensor startX @unit @x
+		sensor startY @unit @y
+		wait waitTime
+
+		CheckMoved:
+			ucontrol within startX startY 1 notMoved
+			jump PathFinding equal notMoved false
+
+		FindOpenSpot:
+			sensor unitX @unit @x
+			sensor unitY @unit @y
+			set i 0
+	
+			jump AddX greaterThan unitX targetX
+			set stepx -1
+			AddX:
+				set stepx 1
+	
+			jump AddY greaterThan unitY targetY
+			set stepy -1
+			AddY:
+				set stepy 1
+		
+			FindOpenLoop:
+				op mod xmove i 2
+				jump XStep equal xmove 1
+				YStep:
+					op add targetY targetY stepy
+				XStep:
+					op add targetX targetX stepx
+
+				ucontrol pathfind targetX targetY
+				wait waitTime
+				
+				ucontrol within startX startY 1 notMoved
+				jump PathFinding equal notMoved false
+
+				op add i i 1
+				jump FindOpenLoop lessThan i maxIndex
+				
+			set status IDLE
+			jump Start always
+
+		PathFinding:
+			set status APPROACHING
+			jump Start always
+	
+AttackUnit:
+	sensor enemyDead enemy @dead
+	jump StopShooting equal enemyDead true
+
+ApproachEnemy:
+	sensor enemyX enemy @x
+	sensor enemyY enemy @y
+	ucontrol approach enemyX enemyY range
+	ucontrol targetp enemy 1
+	jump Start always
+
+StopShooting:
+	ucontrol targetp null 0
+	set enemy null
+	jump Start always
+
+StopAll:
+	set firstUnit @unit
+	set status STOPPING
+	StopLoop:
+		ubind unitType
+		ucontrol stop
+		ucontrol boost false
+		jump StopLoop notEqual @unit firstUnit
+
+	set status IDLE
+	jump Start always
+
+StopUnit:
+	print "StopUnit\n"
+	ucontrol stop
+	ucontrol boost false
+	jump StopRest equal status STOPPING
+	jump StopFirst equal @unit firstUnit
+	jump Start always
+
+StopFirst:
+	set status STOPPING
+	jump Start always
+
+StopRest:
+	jump Start notEqual @unit firstUnit
+	set status ARRIVED 
+	jump Start always

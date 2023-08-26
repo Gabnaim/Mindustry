@@ -1,52 +1,78 @@
 Initialize:
-	# constants
+	GetLinks:
+		set memory cell1
+		jump GetLinks equal memory null
+
+	# data structure
+	# inputs
+	set FLAG_ADDR 0
+	set COMMAND_ADDR 1
+	set UNIT_TYPE_ADDR 2
+	set X_ADDR 3
+	set Y_ADDR 4
+	set RADIUS_ADDR 5
+	# outputs
+	set STATUS_ADDR 10
+
+	# move statuses
 	set IDLE 0
-	set PATHFINDING 1
+	set APPROACHING 1
 	set STOPPING 2
 	set ARRIVED 3
 
+	# commands
+	set NONE 0
+	set MOVE 1
+	set STOP 2
+
 	set status IDLE
-
-	set unitType @dagger
-	set ground true
-	set radius 5
-	set maxPathfindOffset 10
-	op mul maxIndex maxPathfindOffset 2
-
-	op add rallyX @thisx 10
-	op add rallyY @thisy 3
-
-	set repairX 142
-	set repairY 105
-	
-	GetSorter:
-		set sorter sorter1
-		jump GetSorter equal sorter null
+	set maxIndex 20
 
 	GetUnitInfo:
 		ubind unitType
 		jump GetUnitInfo equal @unit null
 		sensor speed @unit @speed
-		op sub checkSpeed speed 1
-		op div waitTime 1 checkSpeed
+		op sub speed speed 1
+		op div waitTime 1 speed
 
-	set lastChoice null
+	set lastCommand NONE
+	set lastUnitTypeId -1
 
 Start:
 	printflush message1
 
-CheckActive:
-	sensor choice sorter @config
-	jump ChoiceChanged notEqual choice lastChoice
-	jump BindUnit notEqual choice null
+CheckCommand:
+	read command memory COMMAND_ADDR
+	jump CommandChanged notEqual command lastCommand
+	jump BindUnit notEqual command NONE
 	jump Start always
 
-ChoiceChanged:
-	set lastChoice choice
-	jump StopAll equal choice null
+CommandChanged:
+	set lastCommand command
+	jump StopAll equal command STOP
+
+	read unitTypeId memory UNIT_TYPE_ADDR
+	read flagId memory FLAG_ADDR
+	read targetX memory X_ADDR
+	read targetX memory X_ADDR
+	read radius memory RADIUS_ADDR
+
 	set firstUnit null
 	set status IDLE
-	jump BindUnit always
+	write status memory STATUS_ADDR
+
+	jump BindUnit equal unitTypeId lastUnitTypeId
+
+UnitTypeChanged:
+	lookup unit unitType unitTypeId
+	op lessThan isGround unitTypeId 15
+	set lastUnitTypeId unitTypeId
+	set firstUnit null
+	GetUnitTypeInfo:
+		ubind unitType
+		sensor speed @unit @speed
+		op sub checkSpeed speed 1
+		op div waitTime 1 checkSpeed
 	
 BindUnit:
 	ubind unitType
@@ -54,27 +80,15 @@ BindUnit:
 	sensor isDead @unit @dead
 	jump Start equal isDead true
 	sensor flag @unit @flag
-	jump Start notEqual flag 0
+	jump Start notEqual flag flagId
 
 	jump SelectAction notEqual firstUnit null
 	set firstUnit @unit
 
 SelectAction:
-	jump Start equal status ARRIVED
-	jump Rally equal choice @copper
-	jump Repair equal choice @lead
+	jump Approach equal command MOVE
+	jump StopAll equal command STOP
 	jump Start always
-
-Repair:
-	jump Approach equal status PATHFINDING
-	set targetX repairX
-	set targetY repairY
-	jump Approach always
-	
-Rally:
-	jump Approach equal status PATHFINDING
-	set targetX rallyX
-	set targetY rallyY
 
 Approach:
 	ucontrol within targetX targetY radius isNear
@@ -84,10 +98,11 @@ Approach:
 
 	AirApproach:
 		ucontrol approach targetX targetY radius
+		set status APPROACHING
+		write status memory STATUS_ADDR
 		jump Start always
 	
 	GroundApproach:
-		
 		ucontrol pathfind targetX targetY 
 
 		# We only calculate the target for the first unit. 
@@ -135,15 +150,18 @@ Approach:
 				jump FindOpenLoop lessThan i maxIndex
 				
 			set status IDLE
+			write status memory STATUS_ADDR
 			jump Start always
 
 		PathFinding:
-			set status PATHFINDING
+			set status APPROACHING
+			write status memory STATUS_ADDR
 			jump Start always
 
 StopAll:
 	set firstUnit @unit
 	set status STOPPING
+	write status memory STATUS_ADDR
 	StopLoop:
 		ubind unitType
 		ucontrol stop
@@ -151,10 +169,10 @@ StopAll:
 		jump StopLoop notEqual @unit firstUnit
 
 	set status IDLE
+	write status memory STATUS_ADDR
 	jump Start always
 			
 StopUnit:
-	print "StopUnit\n"
 	ucontrol stop
 	ucontrol boost false
 	jump StopRest equal status STOPPING
@@ -163,11 +181,13 @@ StopUnit:
 
 StopFirst:
 	set status STOPPING
+	write status memory STATUS_ADDR
 	jump Start always
 
 StopRest:
 	jump Start notEqual @unit firstUnit
 	set status ARRIVED 
+	write status memory STATUS_ADDR
 	jump Start always
 	
 
