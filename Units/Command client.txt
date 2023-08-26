@@ -121,7 +121,6 @@ CheckActive:
 ChoiceChanged:
 	set lastChoice choice
 	jump StopAll equal choice null
-	set firstUnit null
 	set status IDLE
 	
 BindUnit:
@@ -201,6 +200,7 @@ AttackSpawn:
 	jump Approach always
 	
 FindTargetBuilding:
+	jump Approach equal status APPROACHING
 	FindTurret:
 		ulocate building turret true 0 targetX targetY turretFound building
 		jump FindPower equal turretFound false
@@ -227,7 +227,7 @@ SelectCloserBuilding:
 
 	op add coreDist coreDistX coreDistY
 	op add targetDist distanceX distanceY
-	jump Approach greaterThan coreDist targetDist
+	jump AttackBuilding greaterThan coreDist targetDist
 
 AttackCore:
 	jump Approach equal status APPROACHING
@@ -235,6 +235,9 @@ AttackCore:
 	set targetY attackY
 	set radius range
 	set action ATTACK_CORE
+
+AttackBuilding:
+	ucontrol target targetX targetY true
 	jump Approach always
 	
 AttackUnit:
@@ -246,6 +249,18 @@ ApproachEnemy:
 	set action ATTACK_UNIT
 	sensor enemyX enemy @x
 	sensor enemyY enemy @y
+	ucontrol within enemyX enemyY range isNear
+	jump ShootEnemy equal isNear true
+	jump GroundApproachEnemy equal isGround true
+	ucontrol approach enemyX enemyY range
+	ucontrol targetp enemy 1
+	jump Start always
+
+GroundApproachEnemy:
+	ucontrol pathFind enemyX enemyY
+	jump Start always
+
+ShootEnemy:
 	ucontrol approach enemyX enemyY range
 	ucontrol targetp enemy 1
 	jump Start always
@@ -259,8 +274,8 @@ StopShooting:
 Approach:
 	CheckApproachStatus:
 		read status memory STATUS_ADDR
-		jump Arrived equal moveStatus ARRIVED
-		jump StartApproach equal moveStatus IDLE
+		jump Arrived equal status ARRIVED
+		jump StartApproach equal status IDLE
 		jump Start always
 
 	StartApproach:
