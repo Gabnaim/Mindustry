@@ -1,0 +1,27 @@
+Initialize:
+	set unitType @poly
+
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+
+		ulocate building core false 0 coreX coreY coreFound core
+
+Start:
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	sensor isDead @unit @dead
+	jump Start equal isDead true
+	sensor flag @unit @flag
+	jump Start notEqual flag procId
+
+RepairDamaged:
+	ulocate damaged null 0 0 dmgX dmgY foundDmg dmgBuilding
+jump 4 equal foundDmg true
+ucontrol approach outx outy 5 0 0
+ucontrol target outx outy foundDmg 0 0
+ucontrol within 0 0 0 0 0
+
+ReturnToCore:
+	
