@@ -1,6 +1,5 @@
 Initialize:
 	set unitType @dagger
-	set isGround true
 	set useScout false
 	set useFlagger false
 
@@ -43,10 +42,6 @@ Initialize:
 		sensor range @unit @range
 		op sub range range 1
 		op floor range range
-
-		sensor speed @unit @speed
-		op sub checkSpeed speed 1
-		op div waitTime 1 checkSpeed
 
 		GetEnemyCore:
 			ulocate building core true 0 attackX attackY coreFound building
@@ -111,7 +106,6 @@ Repair:
 	ucontrol within repairX repairY 5 isNearRepair
 	jump Heal equal isNearRepair true
 	
-	set action REPAIR
 	set targetX repairX 
 	set targetY repairY
 	set radius 5
@@ -158,7 +152,6 @@ AttackSpawn:
 	set targetX attackX
 	set targetY attackY
 	set radius spawnRange
-	set action ATTACK_SPAWN
 	jump Approach always
 	
 FindTargetBuilding:
@@ -208,13 +201,8 @@ AttackUnit:
 		sensor enemyY enemy @y
 		ucontrol within enemyX enemyY range isNear
 		jump ShootEnemy equal isNear true
-		jump GroundApproachEnemy equal isGround true
 		ucontrol approach enemyX enemyY range
 		ucontrol targetp enemy 1
-		jump Start always
-	
-	GroundApproachEnemy:
-		ucontrol pathFind enemyX enemyY
 		jump Start always
 	
 	ShootEnemy:
@@ -225,74 +213,16 @@ AttackUnit:
 	StopShooting:
 		ucontrol targetp null 0
 		set enemy null
-		set action NONE
 		jump Start always
 
 Approach:
 	ucontrol within targetX targetY radius isNear
 	jump StopUnit equal isNear true
 	ucontrol boost true
-	jump GroundApproach equal isGround true
-
-	AirApproach:
-		ucontrol approach targetX targetY radius
-		set status APPROACHING
-		jump Start always
+	ucontrol approach targetX targetY radius
+	set status APPROACHING
+	jump Start always
 	
-	GroundApproach:
-		ucontrol pathfind targetX targetY 
-
-		# We only calculate the target for the first unit. 
-		# All others just do a pathfind using last target
-		jump Start notEqual @unit firstUnit
-
-		sensor startX @unit @x
-		sensor startY @unit @y
-		wait waitTime
-
-		CheckMoved:
-			ucontrol within startX startY 1 notMoved
-			jump PathFinding equal notMoved false
-
-		FindOpenSpot:
-			sensor unitX @unit @x
-			sensor unitY @unit @y
-			set i 0
-	
-			jump AddX greaterThan unitX targetX
-			set stepx -1
-			AddX:
-				set stepx 1
-	
-			jump AddY greaterThan unitY targetY
-			set stepy -1
-			AddY:
-				set stepy 1
-		
-			FindOpenLoop:
-				op mod xmove i 2
-				jump XStep equal xmove 1
-				YStep:
-					op add targetY targetY stepy
-				XStep:
-					op add targetX targetX stepx
-
-				ucontrol pathfind targetX targetY
-				wait waitTime
-				
-				ucontrol within startX startY 1 notMoved
-				jump PathFinding equal notMoved false
-
-				op add i i 1
-				jump FindOpenLoop lessThan i maxIndex
-				
-			set status IDLE
-			jump Start always
-
-		PathFinding:
-			set status APPROACHING
-			jump Start always
-
 StopAll:
 	set firstUnit @unit
 	set status STOPPING
