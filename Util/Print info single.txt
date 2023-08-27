@@ -1,6 +1,6 @@
 Initialize:
+	set unitType @flare
 	printflush message1
-	set maxIndex 37 #Serpulo
 	set showFlag true
 	set showCarried true
 	set showHealth true
@@ -8,24 +8,14 @@ Initialize:
 	op or showLine showLine showHealth
 
 Start:
-GetUnitType:
-	lookup unit unitType unitIndex
-	set firstUnit null
-	set units 0
-
 BindUnit:
 	ubind unitType
-	jump NextUnitType equal @unit null
+	jump Start equal @unit null
 	sensor dead @unit @dead
 	jump BindUnit equal dead true
-  	jump FinishGroup equal firstUnit @unit
-	jump ProcessUnit notEqual firstUnit null
-	
-SetFirst:
-	set firstUnit @unit
 
 ProcessUnit:
-	jump FinishUnit equal showLine false
+	jump Next equal showLine false
 	set hasData false
 	PrintFlag:
 		jump PrintCarried equal showFlag false
@@ -58,24 +48,24 @@ ProcessUnit:
 		print "%"
 		
 	PrintEnd:
-		jump FinishUnit equal hasData false
+		jump Next equal hasData false
 		print "\n"
 	
-FinishUnit:
+Next:
 	op add units units 1
-	jump BindUnit always
+	jump SetFirst equal firstUnit null
+	jump FinishGroup equal firstUnit @unit
+	jump Start always
+
+SetFirst:
+	set firstUnit @unit
+	jump Start always
 
 FinishGroup:
 	print unitType
 	print ": "
 	print units
 	print "\n"
-
-NextUnitType:
-	op add unitIndex unitIndex 1
-	jump GetUnitType lessThanEq unitIndex maxIndex
-	
-Finish:
-	set unitIndex 0
+	set units 0
 	printflush message1
 	jump Start always
