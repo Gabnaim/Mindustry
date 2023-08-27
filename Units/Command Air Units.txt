@@ -17,10 +17,10 @@ Initialize:
 			jump GetFlagger equal proc null
 
 	Constants:
-		# commands
-		set NONE 0
-		set MOVE 1
-		set STOP 2
+		set IDLE 0
+		set APPROACHING 1
+		set STOPPING 2
+		set ARRIVED 3
 
 	set status IDLE
 	set spawnRange 40
@@ -111,7 +111,7 @@ Repair:
 	set radius 5
 	jump Approach always
 
-Heal:
+Heal: 
 	ucontrol stop
 	ucontrol boost false
 	jump Start lessThan healthRatio 1
@@ -192,20 +192,12 @@ AttackBuilding:
 	jump Approach always
 	
 AttackUnit:
-	ucontrol flag procId
 	sensor enemyDead enemy @dead
 	jump StopShooting equal enemyDead true
 
 	ApproachEnemy:
 		sensor enemyX enemy @x
 		sensor enemyY enemy @y
-		ucontrol within enemyX enemyY range isNear
-		jump ShootEnemy equal isNear true
-		ucontrol approach enemyX enemyY range
-		ucontrol targetp enemy 1
-		jump Start always
-	
-	ShootEnemy:
 		ucontrol approach enemyX enemyY range
 		ucontrol targetp enemy 1
 		jump Start always
@@ -222,7 +214,12 @@ Approach:
 	ucontrol approach targetX targetY radius
 	set status APPROACHING
 	jump Start always
-	
+
+StopUnit:
+	ucontrol stop
+	ucontrol boost false
+	jump Start always
+
 StopAll:
 	set firstUnit @unit
 	set status STOPPING
@@ -242,18 +239,4 @@ StopAll:
 		set status IDLE
 		jump Start always
 			
-StopUnit:
-	ucontrol stop
-	ucontrol boost false
-	jump StopRest equal status STOPPING
-	jump StopFirst equal @unit firstUnit
-	jump Start always
 
-StopFirst:
-	set status STOPPING
-	jump Start always
-
-StopRest:
-	jump Start notEqual @unit firstUnit
-	set status ARRIVED 
-	jump Start always

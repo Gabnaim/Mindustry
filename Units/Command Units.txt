@@ -18,10 +18,10 @@ Initialize:
 			jump GetFlagger equal proc null
 
 	Constants:
-		# commands
-		set NONE 0
-		set MOVE 1
-		set STOP 2
+		set IDLE 0
+		set APPROACHING 1
+		set STOPPING 2
+		set ARRIVED 3
 
 	set status IDLE
 	set spawnRange 40

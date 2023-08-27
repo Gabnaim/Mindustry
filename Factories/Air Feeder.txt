@@ -3,31 +3,70 @@ Initialize:
 	op shl procId @thisx 10
 	op add procId procId @thisy
 	set maxTick 600 #release mule after 10 seconds idle
+	set sourceMin 500
+	set dropRange 1
 
 	GetLinks:
 		set factory factory1
-		set memory cell1
 		jump GetLinks equal factory null
-		jump GetLinks equal memory null
 	
-		sensor factoryX factory @x
-		sensor factoryY factory @y
+	sensor factoryX factory @x
+	sensor factoryY factory @y
 	
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
 		sensor cap @unit @itemCapacity
 		sensor range @unit @range
-		ulocate building core false 0 sourceX sourceY sourceFound
+		ulocate building core false 0 sourceX sourceY sourceFound source
 
 Start:
 	printflush message1
-	read matId memory 0
-	read amount memory 1
-	jump Start equal amount 0
-	lookup item material matId 
-	jump Start equal material null
+###########################################	
+CheckFactory:
+###########################################
+	sensor buildType factory @config
+	jump CheckMono equal buildType @mono
 
+CheckFlare:
+	sensor facSil factory @silicon
+	set stockLevel 30
+	jump CheckSilicon always
+
+CheckMono:	
+	sensor facSil factory @silicon
+	sensor facLead factory @lead
+	op div silLevel facSil 60
+	op div leadLevel facLead 30
+	set stockLevel 30
+	jump CheckLead lessThan leadLevel silLevel
+	set stockLevel 60
+	
+CheckSilicon:
+	op sub needed stockLevel facSil
+	set material @silicon
+	jump CheckStock greaterThan needed 0
+	
+CheckLead:
+	op sub needed stockLevel facLead
+	set material @lead
+	jump NothingToDo equal needed 0
+
+CheckStock:
+	sensor sourceStock source material
+	op sub available sourceStock sourceMin
+	jump NothingToDo lessThanEq available 0
+	op min amount available needed
+	jump FeedFactory greaterThan amount 0	
+
+NothingToDo:
+	set amount 0
+	set material null
+	jump Start always
+
+###########################################
+FeedFactory:
+###########################################
 CheckMule:
 	jump FindMule equal mule null
 	sensor muleDead mule @dead
@@ -35,20 +74,24 @@ CheckMule:
 	
 FindMule:
 	ubind unitType
+	jump Start equal @unit null
 	sensor unitDead @unit @dead
 	jump FindMule equal unitDead true
 	sensor unitFlag @unit @flag
-	jump StartRun equal unitFlag procId
+	jump GrabMule equal unitFlag procId
 	jump FindMule notEqual unitFlag 0
 	ucontrol flag procId
+
+GrabMule:
 	set mule @unit
 	
 StartRun:
-	ucontrol approach sourceX sourceY 1
+	ucontrol approach sourceX sourceY dropRange
 	
 DropUnneeded:
 	sensor carried mule @totalItems
 	jump Pickup equal carried 0
+	jump Pickup equal carried null
 	sensor carriedMat mule @firstItem
 	jump Pickup equal carriedMat material
 	set unneededI 0
@@ -72,7 +115,7 @@ Pickup:
 		jump LoopUntilFull lessThan carried amount
 	
 Deliver:
-	ucontrol approach factoryX factoryY 1
+	ucontrol approach factoryX factoryY dropRange
 	set deliverI 0
 	LoopUntilEmpty:
 		ucontrol itemDrop factory carried
@@ -82,6 +125,8 @@ Deliver:
 		jump LoopUntilEmpty lessThan deliverI 100
 
 FinishRun:
+	jump Start always
+	#jump Start equal mule null
 	op sub elapsed @tick startTick
 	jump Start lessThan elapsed maxTick
 
@@ -91,3 +136,5 @@ ReleaseMule:
 	set mule null
 	jump Start always
 	
+
+
