@@ -3,6 +3,7 @@ Initialize:
 	set unitType @zenith
 	set baseType @flare
 	set t2Type @horizon
+	set t3type @zenith
 
 GetStaticLinks:
 	# Idle until we linked everything
@@ -57,9 +58,9 @@ CheckLinks:
 		sensor payloadType building @payloadType
 		
 		CheckType:
-			jump AddBuiltUnit equal payloadType unitType
 			jump AddBuiltUnit equal payloadType baseType
 			jump AddBuiltUnit equal payloadType t2Type
+			jump AddBuiltUnit equal payloadType t3Type
 			jump NextLink always
 
 		AddBuiltUnit:
