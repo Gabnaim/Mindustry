@@ -2,8 +2,8 @@ Initialize:
 	set unitType @flare
 	printflush message1
 	set showFlag true
-	set showCarried true
-	set showHealth true
+	set showCarried false
+	set showHealth false
 	op or showLine showFlag showCarried
 	op or showLine showLine showHealth
 
@@ -56,11 +56,11 @@ Next:
 	jump SetFirst equal firstUnit null
 	jump FinishGroup equal firstUnit @unit
 	jump Start always
-
+	
 SetFirst:
 	set firstUnit @unit
 	jump Start always
-
+	
 FinishGroup:
 	print unitType
 	print ": "

@@ -1,7 +1,9 @@
 Initialize:
+	printflush message1
 	set maxUnits 4
 	set unitType @flare
 	set runCount 0
+	set unitCount 0
 
 GetLinks:
 	set switch switch1
@@ -21,18 +23,14 @@ CheckActive:
 Bind:
 	ubind unitType
 	jump Start equal @unit null
-	jump FinishCount equal firstUnit @unit
-	jump CheckUnit notEqual firstUnit null
-
-SaveFirst:
-	set firstUnit @unit
-
-CheckUnit:
 	sensor isDead @unit @dead
 	jump Start equal isDead true
+	op equal isFirst firstUnit null
 
 	# ignore unit if max is reached
 	jump IgnoreUnit greaterThanEq unitCount maxUnits
+	jump ProcessUnit equal isFirst false
+	set firstUnit @unit
 
 ProcessUnit:
 	 # do stuff with unit
@@ -48,28 +46,38 @@ IgnoreUnit:
 
 Next:
 	op add unitCount unitCount 1
-	jump Start notEqual unitCount maxUnits
+	sensor currentFlag @unit @flag
+	print currentFlag
+	print "\n"
+	jump MaxReached equal unitCount maxUnits
+	jump Start equal isFirst true
+	jump FinishGroup equal firstUnit @unit
+	jump Start always
 
 MaxReached:
 	sensor currentFlag @unit @flag
-	op add maxFlag currentFlag 100
+	op mul maxFlag currentFlag -1
 	ucontrol flag maxFlag
 	print "Max reached at "
 	print unitCount
 	print "\n"
-	jump Start always
+	jump Start notEqual firstUnit @unit
 
-FinishCount:
+FinishGroup:
 	set lastCount unitCount
 	set unitCount 0
-	set firstUnit null
 	op add runCount runCount 1
 	op mul runFlag runCount 10
 
 	print "Total: "
 	print lastCount
+    print "\nRun: "
+	print runCount
 	printflush message1
+	wait 5
 	jump Start always
+
+
 
 
 	
