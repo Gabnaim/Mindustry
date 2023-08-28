@@ -1,11 +1,20 @@
 Initialize:
 	set unitType @poly
+	set coreRadius 15
+	set minedOre @coal
+	set mineDistance 7
+
+	# actions
+	set IDLE 0
+	set	REPAIR 1
+	set MINE 2
+	set DEFEND 3
 
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
-
 		ulocate building core false 0 coreX coreY coreFound core
+		sensor maxStock core @itemCapacity
 
 Start:
 BindUnit:
@@ -14,14 +23,75 @@ BindUnit:
 	sensor isDead @unit @dead
 	jump Start equal isDead true
 	sensor flag @unit @flag
-	jump Start notEqual flag procId
+	jump Start notEqual flag 0
 
 RepairDamaged:
-	ulocate damaged null 0 0 dmgX dmgY foundDmg dmgBuilding
-jump 4 equal foundDmg true
-ucontrol approach outx outy 5 0 0
-ucontrol target outx outy foundDmg 0 0
-ucontrol within 0 0 0 0 0
+	ulocate damaged null 0 0 dmgX dmgY dmgFound damaged
+	jump ReturnToCore equal dmgFound false
+	ucontrol approach dmgX dmgY 5
+	ucontrol target dmgX dmgY dmgFound
+	jump Start always
 
 ReturnToCore:
+	ucontrol target 0 0 0
+	ucontrol within coreX coreY coreRadius isNearCore
+	jump DefendCore equal isNearCore true
+	ucontrol approach coreX coreY coreRadius
+	jump Start always
+
+DefendCore:
+	uradar enemy any any distance 0 1 enemy
+	jump AttackUnit notEqual enemy null
+
+Mine:
+CheckStock:
+	sensor copper core @copper
+	sensor lead core @lead
+	sensor coal core @coal
+
+	jump SelectOre lessThan copper maxStock
+	jump SelectOre lessThan lead maxStock
+	jump Start equal coal maxStock
+
+	SelectOre:
+		jump LessCopper lessThan copper lead
+		jump LessLead lessThan lead coal
+		jump LessCoal always
+		
+		LessCopper:
+			jump LessCoal lessThan coal copper
+			set minedOre @copper
+			jump MineOre always
+		LessLead:
+			set minedOre @lead
+			jump MineOre always
+		LessCoal:
+			set minedOre @coal
+
+MineOre:
+	ulocate ore 0 0 minedOre oreX oreY oreFound oreMine
+	jump Start equal oreFound false
+	ucontrol within oreX oreY 5
+	ucontrol approach oreX oreY 5
+	
+
+
+	
+
+AttackUnit:
+	sensor enemyDead enemy @dead
+	jump StopShooting equal enemyDead true
+
+	ApproachEnemy:
+		sensor enemyX enemy @x
+		sensor enemyY enemy @y
+		ucontrol approach enemyX enemyY range
+		ucontrol targetp enemy 1
+		jump Start always
+	
+	StopShooting:
+		ucontrol targetp null 0
+		set enemy null
+		jump Start always
+
 	
