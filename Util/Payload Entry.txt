@@ -94,7 +94,6 @@ Proceed:
 			print "Moving to entry\n"
 			wait 1
 			ucontrol payEnter
-			ucontrol flag 0
 			jump ProceedLoop lessThan j totalFlagged
 
 		FinishProceed:
@@ -135,6 +134,7 @@ FinishRun:
 	
 Reset:
 	set status STARTING
+	set totalFlagged 0
 	printflush message1
 	jump Start always
 	

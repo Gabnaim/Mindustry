@@ -36,5 +36,6 @@ Finished:
 
 Reset:
 	set finished false
+	set firstUnit null
 	jump Start always
 	
