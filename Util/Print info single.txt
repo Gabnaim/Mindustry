@@ -4,15 +4,24 @@ Initialize:
 	set showFlag true
 	set showCarried false
 	set showHealth false
+	set showDead false
 	op or showLine showFlag showCarried
 	op or showLine showLine showHealth
+	op or showLine showLine showDead
+	op equal skipDead showDead false
 
 Start:
-BindUnit:
+Bind:
 	ubind unitType
-	jump Start equal @unit null
-	sensor dead @unit @dead
-	jump BindUnit equal dead true
+	jump NoUnits equal @unit null
+	sensor isDead @unit @dead
+	op and skipDead skipDead isDead
+	jump Start equal skipDead true
+	jump FinishGroup equal firstUnit @unit
+	jump ProcessUnit notEqual firstUnit null
+
+SetFirst:
+	set firstUnit @unit
 
 ProcessUnit:
 	jump Next equal showLine false
@@ -37,7 +46,7 @@ ProcessUnit:
 		print " "
 
 	PrintHealth:
-		jump PrintEnd equal showHealth false
+		jump PrintDead equal showHealth false
 		sensor maxHealth @unit @maxHealth
 		sensor health @unit @health
 		jump PrintEnd equal health maxHealth
@@ -46,6 +55,12 @@ ProcessUnit:
 		set hasData true
 		print healthPct
 		print "%"
+
+	PrintDead:
+		jump PrintEnd equal showDead false
+		jump PrintEnd equal isDead false
+		set hasData true
+		print " dead"
 		
 	PrintEnd:
 		jump Next equal hasData false
@@ -53,12 +68,6 @@ ProcessUnit:
 	
 Next:
 	op add units units 1
-	jump SetFirst equal firstUnit null
-	jump FinishGroup equal firstUnit @unit
-	jump Start always
-	
-SetFirst:
-	set firstUnit @unit
 	jump Start always
 	
 FinishGroup:
@@ -67,5 +76,14 @@ FinishGroup:
 	print units
 	print "\n"
 	set units 0
+	set firstUnit null
 	printflush message1
 	jump Start always
+
+NoUnits:
+	print "No "
+	print unitType
+	print "s were found"
+	printflush message1
+	jump Start always
+

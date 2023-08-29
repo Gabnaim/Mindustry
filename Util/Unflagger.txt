@@ -1,25 +1,47 @@
 Initialize:
-	set switch switch1
-	jump Initialize equal switch null
+	set maxUnitIndex 37 #Serpulo
 
-Start:
+GetLinks:
+	set switch switch1
+	jump GetLinks equal switch null
+
+Start:	
+GetUnitType:
+	lookup unit unitType unitIndex
+	set firstUnit null
+	set i 0
+
+GetNextUnit:
+CheckActive:
 	sensor active switch @enabled
-	jump Start equal active false
-	lookup unit unitType i
+	jump BindUnit equal active true
+	
+	Disabled:
+		set unitIndex 0
+		set firstUnit null
+		jump Start always
+
+BindUnit:
 	ubind unitType
-	jump Next equal @unit null
-	jump Next equal @unit firstUnit
-	jump Process notEqual firstUnit null
+	jump NextUnitType equal @unit null
+	jump StartGroup equal firstUnit null
+	jump NextUnitType equal firstUnit @unit
+  	jump ProcessUnit always
+
+StartGroup:
 	set firstUnit @unit
 
-Process:
+ProcessUnit:
 	ucontrol flag 0
-
-Next:
+	
+FinishUnit:
 	op add i i 1
-	set firstUnit null
-	jump Start lessThan i 38
+	jump GetNextUnit always
 
+NextUnitType:
+	op add unitIndex unitIndex 1
+	jump GetUnitType lessThanEq unitIndex maxUnitIndex
+	
 Finish:
-	set i 0
+	set unitIndex 0
 	jump Start always

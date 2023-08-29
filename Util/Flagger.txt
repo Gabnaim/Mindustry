@@ -1,0 +1,144 @@
+Initialize:
+	printflush message2
+	set unitType @zenith
+	set maxUnits 4
+	
+	op shl procId @thisx 10 # first 10 bit for x
+	op add procId procId @thisy # second 10 bit for y
+
+GetLinks:
+	set switch switch1
+	jump GetLinks equal switch null
+	
+Start:
+CheckActive:
+	sensor active switch @enabled
+	jump Reset equal active false
+	
+SelectAction:
+	print "Select Action \n"
+	jump Count equal countDone false
+	jump Flag lessThan totalFlagged maxUnits
+	jump Unflag greaterThan totalFlagged maxUnits
+	jump FinishRun always
+	
+Count:
+	print "Counting\n"
+	set i 0
+	set flaggedCount 0
+	set freeCount 0
+	set firstUnit null
+	CountLoop:
+		ubind unitType
+		jump Start equal @unit null
+		sensor isDead @unit @dead
+		jump Start equal isDead true
+	
+		jump FinishCount equal firstUnit @unit
+		jump CountProcess notEqual firstUnit null
+		set firstUnit @unit
+	
+	CountProcess:
+		sensor flag @unit @flag
+		jump CountFlagged equal flag procId
+		jump CountFree equal flag 0
+		jump NextCount always
+		
+	CountFlagged:
+		op add flaggedCount flaggedCount 1
+		jump NextCount always
+
+	CountFree:
+		op add freeCount freeCount 1
+	
+	NextCount:
+		op add i i 1
+		jump CountLoop always
+
+	FinishCount:
+		set totalFlagged flaggedCount
+		set totalFree freeCount
+		set totalUnits i
+		set countDone true
+		jump Start always
+
+Flag:
+	print "Flagging "
+	op sub neededFlags maxUnits totalFlagged
+	op min neededFlags neededFlags totalFree
+	print neededFlags
+	print "\n"
+	jump FinishRun lessThanEq neededFlags 0
+
+	set flagged 0
+	set firstUnit null
+	FlagLoop:
+		ubind unitType
+		jump Start equal @unit null
+		sensor isDead @unit @dead
+		jump Start equal isDead true
+	
+		jump FinishRun equal firstUnit @unit
+		jump FinishRun greaterThanEq flagged neededFlags
+		jump FlagProcess notEqual firstUnit null
+		set firstUnit @unit
+	
+	FlagProcess:
+		sensor flag @unit @flag
+		jump FlagLoop equal flag procId
+		jump FlagLoop notEqual flag 0
+
+		ucontrol flag procId
+		op add flagged flagged 1
+		jump FlagLoop always
+
+Unflag:
+	op sub neededUnflags totalFlagged maxUnits
+	print "Unflagging "
+	print neededUnflags
+	print "\n"
+	jump FinishRun lessThanEq neededUnflags 0
+	
+	set unflagged 0
+	set firstUnit null
+
+	UnflagLoop:
+		ubind unitType
+		jump Start equal @unit null
+		sensor isDead @unit @dead
+		jump Start equal isDead true
+	
+		jump FinishRun equal firstUnit @unit
+		jump FinishRun greaterThanEq unflagged neededUnflags
+		jump UnflagProcess notEqual firstUnit null
+		set firstUnit @unit
+	
+	UnflagProcess:
+		sensor flag @unit @flag
+		jump UnflagLoop equal flag 0
+		jump UnflagLoop notEqual flag procId
+
+		ucontrol flag 0
+		op add unflagged unflagged 1
+		jump UnflagLoop always
+
+FinishRun:
+	op add runCount runCount 1
+	print "\nTotal: "
+	print totalUnits
+	print " Flagged: "
+	print totalFlagged
+	print " Free: "
+	print totalFree
+	printflush message2
+	set countDone false
+	jump Start always
+	
+Reset:
+	jump Start equal runCount 0
+	set totalFlagged 0
+	set totalFree 0
+	set totalUnits 0
+	set countDone false
+	printflush message2
+	jump Start always

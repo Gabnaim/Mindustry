@@ -16,23 +16,22 @@ CheckActive:
 
 	set unitCount 0
 	set runCount 0
-	set runFlag 0
 	set firstUnit null
 	jump Start always
 	
 Bind:
 	ubind unitType
-	jump Start equal @unit null
+	jump NoUnits equal @unit null
 	sensor isDead @unit @dead
 	jump Start equal isDead true
-	op equal isFirst firstUnit null
+	jump FinishGroup equal firstUnit @unit
+	jump ProcessUnit notEqual firstUnit null
 
-	# ignore unit if max is reached
-	jump IgnoreUnit greaterThanEq unitCount maxUnits
-	jump ProcessUnit equal isFirst false
+StartGroup:
 	set firstUnit @unit
 
 ProcessUnit:
+	jump IgnoreUnit greaterThanEq unitCount maxUnits
 	 # do stuff with unit
 	op add processFlag unitCount 1
 	op add processFlag processFlag runFlag
@@ -49,10 +48,7 @@ Next:
 	sensor currentFlag @unit @flag
 	print currentFlag
 	print "\n"
-	jump MaxReached equal unitCount maxUnits
-	jump Start equal isFirst true
-	jump FinishGroup equal firstUnit @unit
-	jump Start always
+	jump Start notEqual unitCount maxUnits
 
 MaxReached:
 	sensor currentFlag @unit @flag
@@ -61,11 +57,12 @@ MaxReached:
 	print "Max reached at "
 	print unitCount
 	print "\n"
-	jump Start notEqual firstUnit @unit
+	jump Start always
 
 FinishGroup:
 	set lastCount unitCount
 	set unitCount 0
+	set firstUnit null
 	op add runCount runCount 1
 	op mul runFlag runCount 10
 
@@ -74,7 +71,13 @@ FinishGroup:
     print "\nRun: "
 	print runCount
 	printflush message1
-	wait 5
+	jump Start always
+
+NoUnits:
+	print "No "
+	print unitType
+	print "s were found"
+	printflush message1
 	jump Start always
 
 

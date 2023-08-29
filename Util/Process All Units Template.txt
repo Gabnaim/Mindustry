@@ -2,20 +2,36 @@ Initialize:
 	printflush message1
 	set maxUnitIndex 37 #Serpulo
 
+GetLinks:
+	set switch switch1
+	jump GetLinks equal switch null
+
 Start:
 GetUnitType:
 	lookup unit unitType unitIndex
 	set firstUnit null
-	set units 0
+	set unitCount 0
+
+GetNextUnit:
+CheckActive:
+	sensor active switch @enabled
+	jump BindUnit equal active true
+	
+	Disabled:
+		set unitIndex 0
+		set firstUnit null
+		jump Start always
 
 BindUnit:
 	ubind unitType
 	jump NextUnitType equal @unit null
+	sensor isDead @unit @dead
+	jump GetNextUnit equal isDead true
+	jump FinishGroup equal firstUnit @unit
   	jump ProcessUnit notEqual firstUnit null
 
 StartGroup:
 	set firstUnit @unit
-	jump BindUnit always
 
 ProcessUnit:
 	sensor flag @unit @flag
@@ -23,12 +39,12 @@ ProcessUnit:
 	
 FinishUnit:
 	print "\n"
-	op add units units 1
-	jump BindUnit notEqual firstUnit @unit
+	op add unitCount unitCount 1
+	jump GetNextUnit notEqual firstUnit @unit
 
 FinishGroup:
 	print "total: "
-	print units
+	print unitCount
 	print "\n\n"
 
 NextUnitType:
