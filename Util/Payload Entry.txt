@@ -72,7 +72,6 @@ StartMove:
 
 Proceed:
 	print "Proceeding\n"
-	set firstUnit null
 	set j 0
 
 	ProceedLoop:
@@ -103,6 +102,7 @@ Proceed:
 
 Release:
 	print "Releasing\n"
+	set firstUnit null
 	set k 0
 
 	ReleaseLoop:
@@ -111,7 +111,12 @@ Release:
 			jump Start equal @unit null
 			sensor isDead @unit @dead
 			jump ReleaseLoop equal isDead true
+
 			jump FinishRelease greaterThanEq k totalFlagged
+			jump FinishRelease equal firstUnit @unit
+			jump ReleaseUnit notEqual firstUnit null
+
+			set firstUnit @unit
 		
 		ReleaseUnit:
 			sensor flag @unit @flag
