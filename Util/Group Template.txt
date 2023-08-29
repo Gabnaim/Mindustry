@@ -11,12 +11,7 @@ GetLinks:
 Start:	
 CheckActive:
 	sensor active switch @enabled
-	jump Bind equal active true
-
-	Disabled:
-		set unitCount 0
-		set firstUnit null
-		jump Start always
+	jump Reset equal active false
 	
 Bind:
 	ubind unitType
@@ -25,8 +20,6 @@ Bind:
 	jump Start equal isDead true
 	jump FinishGroup equal firstUnit @unit
 	jump ProcessUnit notEqual firstUnit null
-
-StartGroup:
 	set firstUnit @unit
 
 ProcessUnit:
@@ -57,6 +50,11 @@ NoUnits:
 	print unitType
 	print "s were found"
 	printflush message1
+	jump Start always
+
+Reset:
+	set unitCount 0
+	set firstUnit null
 	jump Start always
 
 

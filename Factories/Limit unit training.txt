@@ -6,11 +6,10 @@ Initialize:
 	set t3type @zenith
 
 GetStaticLinks:
-	# Idle until we linked everything
-	# Save links into variables so it is easy to edit the names
 	set switch switch1
 	set factory factory1
 	jump GetStaticLinks equal switch null
+	jump GetStaticLinks equal factory null
 
 	# We should also count units in the conveyors and
 	# reconstructors. Take off 2 for the switch
@@ -20,7 +19,6 @@ GetStaticLinks:
 
 Start:	
 CheckActive:
-	# Idle if switch is off
 	sensor active switch @enabled
 	jump Bind equal active true
 
@@ -31,18 +29,13 @@ CheckActive:
 Bind:
 	ubind unitType
 	jump Start equal @unit null
-
-	# If firstUnit is reached, we have counted all
-	jump FinishCount equal firstUnit @unit
-	jump CheckUnit notEqual firstUnit null
-
-SaveFirst:
-	set firstUnit @unit
-
-CheckUnit:
 	sensor isDead @unit @dead
 	jump Start equal isDead true
 
+	jump FinishCount equal firstUnit @unit
+	jump Count notEqual firstUnit null
+	set firstUnit @unit
+	
 Count:
 	op add unitCount unitCount 1
 	jump Start lessThan unitCount checkLinksAt

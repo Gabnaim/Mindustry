@@ -76,7 +76,7 @@ Flag:
 		ubind unitType
 		jump Start equal @unit null
 		sensor isDead @unit @dead
-		jump Start equal isDead true
+		jump FlagLoop equal isDead true
 	
 		jump FinishRun equal firstUnit @unit
 		jump FinishRun greaterThanEq flagged neededFlags
@@ -106,7 +106,7 @@ Unflag:
 		ubind unitType
 		jump Start equal @unit null
 		sensor isDead @unit @dead
-		jump Start equal isDead true
+		jump UnflagLoop equal isDead true
 	
 		jump FinishRun equal firstUnit @unit
 		jump FinishRun greaterThanEq unflagged neededUnflags
@@ -140,5 +140,6 @@ Reset:
 	set totalFree 0
 	set totalUnits 0
 	set countDone false
+	set runCount 0
 	printflush message2
 	jump Start always
