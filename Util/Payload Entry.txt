@@ -81,6 +81,7 @@ Proceed:
 			jump Start equal @unit null
 			sensor isDead @unit @dead
 			jump ProceedLoop equal isDead true
+			jump FinishProceed greaterThanEq j totalFlagged
 		
 		Navigate:
 			sensor flag @unit @flag
@@ -110,23 +111,22 @@ Release:
 			jump Start equal @unit null
 			sensor isDead @unit @dead
 			jump ReleaseLoop equal isDead true
+			jump FinishRelease greaterThanEq k totalFlagged
 		
 		ReleaseUnit:
 			sensor flag @unit @flag
 			jump ReleaseLoop notEqual flag procId
-			
-			ucontrol within moveX moveY radius isNear
-			jump ProceedLoop equal isNear false
-	
 			op add k k 1
 			print "Releasing unit\n"
 			ucontrol flag 0
-			control unbind
+			ucontrol unbind
 			jump ReleaseLoop lessThan k totalFlagged
 
+		FinishRelease:
+			set status FINISHED
 
 FinishRun:
-	set status FINISHED
+	
 	print "\nFlagged: "
 	print totalFlagged
 	printflush message1
