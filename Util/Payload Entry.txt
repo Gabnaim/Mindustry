@@ -8,7 +8,8 @@ Initialize:
 
 	set STARTING 0
 	set MOVING 1
-	set ARRIVED 2
+	set RELEASING 2
+	set FINISHED 3
 	set status STARTING
 
 GetLinks:
@@ -32,8 +33,9 @@ CheckActive:
 	print status
 	print "\n"
 
-	jump Start equal status ARRIVED
+	jump Start equal status FINISHED
 	jump Proceed equal status MOVING
+	jump Release equal status RELEASING
 	
 StartMove:
 	print "Starting move\n"
@@ -60,7 +62,6 @@ StartMove:
 			ucontrol flag procId
 			op add i i 1
 			ucontrol approach moveX moveY radius
-			wait 1
 			jump MoveLoop lessThan i maxUnits
 		
 		FinishMoveGroup:
@@ -84,8 +85,7 @@ Proceed:
 		Navigate:
 			sensor flag @unit @flag
 			jump ProceedLoop notEqual flag procId
-			print "Navigating\n"
-
+			
 			ucontrol within moveX moveY radius isNear
 			jump ProceedLoop equal isNear false
 
@@ -94,15 +94,40 @@ Proceed:
 			print "Moving to entry\n"
 			wait 1
 			ucontrol payEnter
-			ucontrol stop
 			ucontrol flag 0
-			ucontrol unbind
-			
-
 			jump ProceedLoop lessThan j totalFlagged
 
+		FinishProceed:
+			set status RELEASING
+			jump Start always
+
+Release:
+	print "Releasing\n"
+	set k 0
+
+	ReleaseLoop:
+		Bind:
+			ubind unitType
+			jump Start equal @unit null
+			sensor isDead @unit @dead
+			jump ReleaseLoop equal isDead true
+		
+		ReleaseUnit:
+			sensor flag @unit @flag
+			jump ReleaseLoop notEqual flag procId
+			
+			ucontrol within moveX moveY radius isNear
+			jump ProceedLoop equal isNear false
+	
+			op add k k 1
+			print "Releasing unit\n"
+			ucontrol flag 0
+			control unbind
+			jump ReleaseLoop lessThan k totalFlagged
+
+
 FinishRun:
-	set status ARRIVED
+	set status FINISHED
 	print "\nFlagged: "
 	print totalFlagged
 	printflush message1
