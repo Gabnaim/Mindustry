@@ -28,6 +28,10 @@ CheckActive:
 	sensor active switch @enabled
 	jump Reset equal active false
 
+	print "Status: "
+	print status
+	print "\n"
+
 	jump Start equal status ARRIVED
 	jump Proceed equal status MOVING
 	
@@ -51,11 +55,13 @@ StartMove:
 		ProcessMove:
 			sensor flag @unit @flag
 			jump MoveLoop notEqual flag 0
+			print "Moving\n"
 
 			ucontrol flag procId
 			op add i i 1
 			ucontrol approach moveX moveY radius
-			jump MoveLoop always
+			wait 1
+			jump MoveLoop lessThan i maxUnits
 		
 		FinishMoveGroup:
 			set totalFlagged i
@@ -66,7 +72,7 @@ StartMove:
 Proceed:
 	print "Proceeding\n"
 	set firstUnit null
-	set i 0
+	set j 0
 
 	ProceedLoop:
 		Bind:
@@ -74,30 +80,26 @@ Proceed:
 			jump Start equal @unit null
 			sensor isDead @unit @dead
 			jump ProceedLoop equal isDead true
-
-			jump FinishProceed equal firstUnit @unit
-			jump FinishProceed greaterThanEq i totalFlagged
-			jump Navigate notEqual firstUnit null
-			set firstUnit @unit
 		
 		Navigate:
 			sensor flag @unit @flag
-			jump MoveLoop notEqual flag procId
+			jump ProceedLoop notEqual flag procId
+			print "Navigating\n"
 
 			ucontrol within moveX moveY radius isNear
-			jump MoveLoop equal isNear false
+			jump ProceedLoop equal isNear false
 
 			ucontrol move moveX moveY
+			op add j j 1
+			print "Moving to entry\n"
 			wait 1
 			ucontrol payEnter
+			ucontrol stop
 			ucontrol flag 0
 			ucontrol unbind
-			op add i i 1
-
-			jump ProceedLoop always
- 
-		FinishProceed:
 			
+
+			jump ProceedLoop lessThan j totalFlagged
 
 FinishRun:
 	set status ARRIVED
