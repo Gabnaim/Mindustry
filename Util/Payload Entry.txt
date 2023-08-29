@@ -1,0 +1,126 @@
+Initialize:
+	set maxUnits 4
+	set unitType @zenith
+	set radius 5
+
+	op shl procId @thisx 10 # first 10 bit for x
+	op add procId procId @thisy # second 10 bit for y
+
+	# statuses
+	set NONE 0
+	set STARTMOVE 1
+	set CHECKNEAR 2
+	set ARRIVED 3
+
+	set moveDone false
+
+GetLinks:
+	GetEntry:
+		set entry conveyor1
+		jump GetEntry equal entry null
+	GetSwitch:
+		set switch switch1
+		jump GetSwitch equal switch null
+
+	sensor moveX entry @x
+	sensor moveY entry @y
+
+
+Start:
+CheckActive:
+	sensor active switch @enabled
+	jump Reset equal active false
+
+SelectAction:
+	print "Select Action \n"
+	jump Proceed equal moveDone true
+
+StartMove:
+	print "Starting move\n"
+	set unitCount 0
+	set firstUnit null
+
+	MoveLoop:
+		Bind:
+			ubind unitType
+			jump Start equal @unit null
+			sensor isDead @unit @dead
+			jump MoveLoop equal isDead true
+			jump FinishMoveGroup equal firstUnit @unit
+			jump ProcessMove notEqual firstUnit null
+			set firstUnit @unit
+		
+		ProcessMove:
+			jump IgnoreUnit greaterThanEq unitCount maxUnits
+			sensor flag @unit @flag
+			jump MoveLoop notEqual flag 0
+			ucontrol flag procId
+			ucontrol approach moveX moveY radius
+			jump NextMove always
+		
+		IgnoreUnit:
+		
+		NextMove:
+			op add unitCount unitCount 1
+			jump MoveLoop lessThan unitCount maxUnits
+		
+		FinishMoveGroup:
+			set flagged unitCount
+			set unitCount 0
+			set firstUnit null
+			set moveDone true
+			printflush message1
+			jump Start always
+
+Proceed:
+	print "Proceeding\n"
+	set unitCount 0
+	set firstUnit null
+
+	ProceedLoop:
+		Bind:
+			ubind unitType
+			jump Start equal @unit null
+			sensor isDead @unit @dead
+			jump ProceedLoop equal isDead true
+
+			jump FinishRun equal firstUnit @unit
+			jump ProcessProceed notEqual firstUnit null
+			set firstUnit @unit
+		
+		ProcessProceed:
+			sensor flag @unit @flag
+			jump MoveLoop notEqual flag procId
+
+			ucontrol within moveX moveY radius isNear
+			jump MoveLoop equal isNear false
+
+			ucontrol move moveX moveY
+			wait 1
+			ucontrol payenter
+			ucontrol flag 0
+			ucontrol unbind
+		
+		ProceedNext:
+			op add unitCount unitCount 1
+			jump ProceedLoop always
+
+FinishRun:
+	op add runCount runCount 1
+	print "\nFlagged: "
+	print flagged
+	print "\nRun: "
+	print runCount
+	printflush message1
+	set moveDone false
+	jump Start always
+	
+Reset:
+	jump Start equal runCount 0
+	set runCount 0
+	set moveDone false
+	printflush message2
+	jump Start always
+	
+	
+
