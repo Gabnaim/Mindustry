@@ -1,0 +1,45 @@
+Initialize:
+	set unitType @zenith
+	op add moveX @thisx 0
+	op add moveY @thisy 10
+
+	GetLinks:
+		set switch switch1
+		jump GetLinks equal switch null
+
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		sensor size @unit @size
+		op mul radius size 2
+	
+Start:
+CheckActive:
+	sensor active switch @enabled
+	jump Reset equal active false
+
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	jump Finished equal firstUnit @unit
+
+	sensor flag @unit @flag
+	jump Start notEqual flag 0
+
+  	jump Move notEqual firstUnit null
+	set firstUnit @unit
+	
+Move:
+	ucontrol approach moveX moveY radius
+	jump Start always
+	
+Finished:
+	set finished true
+	set enabled switch false
+	jump Start always
+
+Reset:
+	set finished false
+	set firstUnit null
+	jump Start always
+	
