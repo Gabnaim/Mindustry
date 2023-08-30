@@ -1,22 +1,19 @@
 Initialize:
-	set unitType @flare
+	set unitType @poly
 	printflush message1
 	set showFlag true
-	set showCarried false
-	set showHealth false
-	set showDead false
+	set showCarried true
+	set showHealth true
 	op or showLine showFlag showCarried
 	op or showLine showLine showHealth
-	op or showLine showLine showDead
-	op equal skipDead showDead false
 
 Start:
 Bind:
 	ubind unitType
 	jump NoUnits equal @unit null
 	sensor isDead @unit @dead
-	op and skipDead skipDead isDead
-	jump Start equal skipDead true
+	jump Start equal isDead true
+
 	jump FinishGroup equal firstUnit @unit
 	jump ProcessUnit notEqual firstUnit null
 
@@ -26,6 +23,7 @@ SetFirst:
 ProcessUnit:
 	jump Next equal showLine false
 	set hasData false
+
 	PrintFlag:
 		jump PrintCarried equal showFlag false
 		sensor flag @unit @flag
@@ -35,7 +33,7 @@ ProcessUnit:
 		print " "
 	
 	PrintCarried:
-		jump PrintHealth equal showCarried false
+		jump PrintHealth equal showHealth false
 		sensor carried @unit @totalItems
 		jump PrintHealth equal carried 0
 		sensor material @unit @firstItem
@@ -46,7 +44,7 @@ ProcessUnit:
 		print " "
 
 	PrintHealth:
-		jump PrintDead equal showHealth false
+		jump PrintEnd equal showHealth false
 		sensor maxHealth @unit @maxHealth
 		sensor health @unit @health
 		jump PrintEnd equal health maxHealth
@@ -55,12 +53,6 @@ ProcessUnit:
 		set hasData true
 		print healthPct
 		print "%"
-
-	PrintDead:
-		jump PrintEnd equal showDead false
-		jump PrintEnd equal isDead false
-		set hasData true
-		print " dead"
 		
 	PrintEnd:
 		jump Next equal hasData false
