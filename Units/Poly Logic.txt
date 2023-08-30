@@ -1,8 +1,8 @@
 Initialize:
 	set unitType @poly
-	set coreRadius 15
-	set minedOre @coal
-	set mineDistance 7
+	set withdrawDistance 3
+	set defendRadius 23
+	set miningRange 8
 
 	# actions
 	set IDLE 0
@@ -15,6 +15,12 @@ Initialize:
 		jump GetStartInfo equal @unit null
 		ulocate building core false 0 coreX coreY coreFound core
 		sensor maxStock core @itemCapacity
+		sensor range @unit @range
+		op sub range range 1
+
+	set flip false
+	set firstUnit null
+	set status IDLE
 
 Start:
 BindUnit:
@@ -25,25 +31,68 @@ BindUnit:
 	sensor flag @unit @flag
 	jump Start notEqual flag 0
 
-RepairDamaged:
-	ulocate damaged null 0 0 dmgX dmgY dmgFound damaged
+	jump DoStuff notEqual firstUnit null
+	set firstUnit @unit
+
+DoStuff:
+Defend:
+	uradar enemy any any distance 0 1 enemy
+	jump FindDamage equal enemy null
+	sensor enemyDead enemy @dead
+	jump FindDamage equal enemyDead true
+
+	sensor enemyX enemy @x
+	sensor enemyY enemy @y
+	op sub enemyDistX coreX enemyX
+	op sub enemyDistY coreY enemyY
+	op len enemyDist enemyDistX enemyDistY
+
+	jump AttackUnit lessThanEq enemyDist defendRadius
+
+FindDamage:
+	ulocate damaged core true 0 dmgX dmgY dmgFound damaged
 	jump ReturnToCore equal dmgFound false
-	ucontrol approach dmgX dmgY 5
+
+	jump Repair equal enemy null
+	jump Repair equal enemyDead true
+
+AvoidDanger:
+	op sub dangerDistX dmgX enemyX
+	op sub dangerDistY dmgY enemyY
+	op len dangerDist dangerDistX dangerDistY
+	jump ReturnToCore lessThanEq dangerDist defendRadius
+
+Repair:
+	ucontrol approach dmgX dmgY 20
+	set status REPAIR
+	# Use every second poly to rebuild
+	op notEqual flip flip true
+	jump RebuildGhost equal flip true
+
 	ucontrol target dmgX dmgY dmgFound
+	jump Start always
+
+RebuildGhost:
+	# There is no command to rebuild a ghost (dead building) nor to find one. 
+	# However, if we revert to standard AI (unbind), polies will rebuild
+	# destroyed buildings.
+	# We don't know where they are, but near a damaged building is a good bet.
+	ucontrol unbind
 	jump Start always
 
 ReturnToCore:
 	ucontrol target 0 0 0
-	ucontrol within coreX coreY coreRadius isNearCore
-	jump DefendCore equal isNearCore true
-	ucontrol approach coreX coreY coreRadius
+	ucontrol targetp null 0
+	jump Mine equal status MINE
+	ucontrol within coreX coreY withdrawDistance isNearCore
+	jump Mine equal isNearCore true
+	ucontrol approach coreX coreY withdrawDistance
 	jump Start always
 
-DefendCore:
-	uradar enemy any any distance 0 1 enemy
-	jump AttackUnit notEqual enemy null
-
 Mine:
+	# check stock only once per cycle (when we reach first unit)
+	jump FindOre notEqual firstUnit @unit
+
 CheckStock:
 	sensor copper core @copper
 	sensor lead core @lead
@@ -61,30 +110,32 @@ CheckStock:
 		LessCopper:
 			jump LessCoal lessThan coal copper
 			set minedOre @copper
-			jump MineOre always
+			jump FindOre always
 		LessLead:
 			set minedOre @lead
-			jump MineOre always
+			jump FindOre always
 		LessCoal:
 			set minedOre @coal
 
-MineOre:
-	ulocate ore 0 0 minedOre oreX oreY oreFound oreMine
+FindOre:
+	ulocate ore core true minedOre oreX oreY oreFound oreMine
 	jump Start equal oreFound false
-	ucontrol within oreX oreY 5
-	ucontrol approach oreX oreY 5
+	ucontrol within oreX oreY miningRange isNear
+	jump MineOre equal isNear true
+	ucontrol approach oreX oreY miningRange
+	jump FindOre always
+
+MineOre:
+	set status MINE
+	ucontrol mine oreX oreY
+	jump Start always
 	
-
-
-	
-
 AttackUnit:
+	set status DEFEND
 	sensor enemyDead enemy @dead
 	jump StopShooting equal enemyDead true
 
 	ApproachEnemy:
-		sensor enemyX enemy @x
-		sensor enemyY enemy @y
 		ucontrol approach enemyX enemyY range
 		ucontrol targetp enemy 1
 		jump Start always
