@@ -6,9 +6,12 @@ Initialize:
 
 	# actions
 	set IDLE 0
-	set	REPAIR 1
-	set MINE 2
-	set DEFEND 3
+	set ATCORE 1
+	set	REPAIR 2
+	set MINE 3
+	set DEFEND 4
+
+	set status IDLE
 
 	GetStartInfo:
 		ubind unitType
@@ -20,9 +23,16 @@ Initialize:
 
 	set flip false
 	set firstUnit null
-	set status IDLE
-
+	
+	GetLinks:
+		set switch switch1
+		jump GetLinks equal switch null
+	
 Start:
+CheckActive:
+	sensor active switch @enabled
+	jump Reset equal active false
+
 BindUnit:
 	ubind unitType
 	jump Start equal @unit null
@@ -144,5 +154,10 @@ AttackUnit:
 		ucontrol targetp null 0
 		set enemy null
 		jump Start always
+
+Reset:
+	set status IDLE
+	set firstUnit null
+	jump Start always
 
 	
