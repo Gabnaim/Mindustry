@@ -1,10 +1,19 @@
 Initialize:
-	set unitType @poly
-	set switch switch1
+	set unitType @risso
 	op shl procId @thisx 10 # first 10 bit for x
 	op add procId procId @thisy # second 10 bit for y
 	op shl startFlag procId 1 	#set bit after id to 0
 	op add endFlag startFlag 1 	#set bit after id to 1
+
+	GetLinks:
+		set switch switch1
+		jump GetLinks equal switch null
+
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		sensor range @unit @range
+		op sub range range 1
 
 	InitWaypoints:
 		set exactCoords false #edit to true for manual setting
@@ -12,8 +21,8 @@ Initialize:
 
 		OffsetFromHere:
 			set patrolRangeX 20
-			set patrolRangeY 20
-			set offsetX 10
+			set patrolRangeY 0
+			set offsetX -5
 			set offsetY 10
 			op add baseX @thisx offsetX
 			op add baseY @thisy offsetY
@@ -37,9 +46,12 @@ CheckActive:
 	
 BindUnit:
 	ubind unitType
-	jump BindUnit equal @unit null
+	jump Start equal @unit null
 	sensor dead @unit @dead
-	jump BindUnit equal dead true
+	jump Start equal dead true
+
+	jump ReleaseUnit equal releaseUnits true
+
 	sensor flag @unit @flag
 	jump UseUnit equal flag startFlag
 	jump UseUnit equal flag endFlag
@@ -47,25 +59,13 @@ BindUnit:
 	jump BindUnit notEqual flag 0
 
 GrabUnit:
-	jump Start equal releaseUnits true
 	ucontrol flag startFlag
 
 UseUnit:
-	jump FindTarget equal releaseUnits false
-
-ReleaseUnit:
-	ucontrol flag 0
-	jump Start always
-
 FindTarget:
-	uradar enemy any any distance 0 1 target
-	jump SetWaypoints equal target null
-	sensor range @unit @range
-	sensor targX target @x
-	sensor targY target @y
-	ucontrol approach targX targY range
-	ucontrol targetp target true range
-	jump Start always
+	uradar enemy any any distance 0 1 enemy
+	jump AttackUnit notEqual enemy null
+	ucontrol targetp null 0
 
 SetWaypoints:
 	sensor flag @unit @flag
@@ -74,27 +74,45 @@ SetWaypoints:
 SetStartPoint:
 	set targX startX
 	set targY startY
-	jump CheckProgress always
+	jump Move always
 
 SetEndPoint:
 	set targX endX
 	set targY endY
 
-CheckProgress:
-	ucontrol within targX targY 2 atDestination
-	jump AtDestination equal atDestination true
-
 Move:
-	ucontrol move targX targY
+	ucontrol within targX targY 3 isNear
+	jump Arrived equal isNear true
+	ucontrol pathfind targX targY
 	jump Start always
 
-AtDestination:
+Arrived:
 	jump TurnBack equal flag startFlag
 
 TurnForward:
 	ucontrol flag startFlag
+	ucontrol pathfind startX startY
 	jump Start always
 
 TurnBack:
 	ucontrol flag endFlag
+	ucontrol pathfind endX endY
+	jump Start always
+
+AttackUnit:
+	sensor enemyDead enemy @dead
+	jump StopShooting equal enemyDead true
+
+	ApproachEnemy:
+		ucontrol approach enemyX enemyY range
+		ucontrol targetp enemy 1
+		jump Start always
+	
+	StopShooting:
+		ucontrol targetp null 0
+		set enemy null
+		jump Start always
+
+ReleaseUnit:
+	ucontrol flag 0
 	jump Start always
