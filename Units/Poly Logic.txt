@@ -4,15 +4,6 @@ Initialize:
 	set defendRadius 23
 	set miningRange 8
 
-	# actions
-	set IDLE 0
-	set WITHDRAW 1
-	set DEFEND 2
-	set	REPAIR 3
-	set MINE 4
-
-	set action IDLE
-
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
@@ -22,6 +13,21 @@ Initialize:
 		sensor range @unit @range
 		op sub range range 1
 
+		# Use this unit to find the nearest ore sources
+		# this way they are always the same
+		GoToCore:
+			ucontrol within coreX coreY 1 isAtCore
+			jump LocateMines equal isAtCore true
+			ucontrol move coreX coreY
+			jump GoToCore always
+
+		# There are no maps that can use a processor
+		# and have no copper, lead and coal
+		LocateMines:
+			ulocate ore core true @copper copperX copperY copperFound oreMine
+			ulocate ore core true @lead leadX leadY leadFound oreMine
+			ulocate ore core true @coal coalX coalY coalFound oreMine
+			
 	# use a flip to alternate units between repair and rebuild
 	set flip false
 	set firstUnit null
@@ -31,6 +37,7 @@ Initialize:
 		jump GetLinks equal switch null
 	
 Start:
+	printflush message1
 CheckActive:
 	sensor active switch @enabled
 	jump Reset equal active false
@@ -51,9 +58,7 @@ BindUnit:
 SelectAction:
 	uradar enemy any any distance 0 1 enemy
 	jump Defend notEqual enemy null
-	sensor enemyDead enemy @dead
-	jump Withdraw equal enemyDead true
-
+	
 	FindDamage:
 		ulocate damaged core true 0 dmgX dmgY dmgFound damaged
 		jump Repair equal dmgFound true
@@ -63,16 +68,21 @@ SelectAction:
 	# repairing. Withdraw to core and reset
 	sensor isShooting @unit @shooting
 	jump Withdraw equal isShooting true
-	jump Withdraw equal action IDLE
 
 	sensor isMining @unit @mining
 	jump Mine equal isMining true
+
 	sensor carried @unit @totalItems
 	jump DropItems equal carried cap
+	jump Mine equal carried 0
 
+	sensor carriedItem @unit firstItem
+	jump DropItems notEqual carriedItem minedOre
 	jump Mine always
 
 Defend:
+	sensor enemyDead enemy @dead
+	jump Withdraw equal enemyDead true
 	sensor enemyX enemy @x
 	sensor enemyY enemy @y
 	op sub enemyDistX coreX enemyX
@@ -83,10 +93,10 @@ Defend:
 	jump FindDamage always
 
 Repair:
-	set action REPAIR
 	ucontrol within dmgX dmgY range isNearDmg
 	jump DoRepair equal isNearDmg true
-	ucontrol approach dmgX dmgY range
+	print "Approaching damage\n"
+	ucontrol move dmgX dmgY
 	jump Start always
 	
 	DoRepair:
@@ -110,13 +120,15 @@ Withdraw:
 	ucontrol targetp null 0
 	ucontrol within coreX coreY withdrawDistance isNearCore
 	jump Mine equal isNearCore true
-	ucontrol approach coreX coreY withdrawDistance
+	print "Approaching core\n"
+	ucontrol move coreX coreY
 	jump Start always
 
 DropItems:
-	ucontrol within coreX coreY range isNearDrop
+	ucontrol within coreX coreY miningRange isNearDrop
 	jump DropLoop equal isNearDrop true
-	ucontrol approach coreX coreY range
+	print "Approaching drop\n"
+	ucontrol move coreX coreY
 	jump Start always
 
 	DropLoop:
@@ -130,60 +142,58 @@ DropItems:
 			op add i i 1
 			jump LoopUntilEmpty lessThan i 100 
 		FinishDrop:
-			ucontrol approach oreX oreY miningRange
-			jump Start always
 
 Mine:
 	# check stock only once per cycle (when we reach first unit)
 	jump FindOre equal isFirst false
-
+	
 CheckStock:
 	sensor copper core @copper
 	sensor lead core @lead
 	sensor coal core @coal
 
-	jump SelectOre lessThan copper maxStock
-	jump SelectOre lessThan lead maxStock
-	jump Start equal coal maxStock
-
 	SelectOre:
-		jump LessCopper lessThan copper lead
-		jump LessLead lessThan lead coal
-		jump LessCoal always
+		CheckCopper:
+		jump MinCopper lessThan copper lead
+		jump MinLead lessThan lead coal
+		jump MinCoal always
 		
-		LessCopper:
-			jump LessCoal lessThan coal copper
+		MinCopper:
+			jump MinCoal lessThan coal copper
 			set minedOre @copper
+			set oreX copperX
+			set oreY copperY
 			jump EndCheckStock always
-		LessLead:
+		MinLead:
 			set minedOre @lead
+			set oreX leadX
+			set oreY leadY
 			jump EndCheckStock always
-		LessCoal:
+		MinCoal:
 			set minedOre @coal
+			set oreX coalX
+			set oreY coalY
 	EndCheckStock:
 	
 FindOre:
-	ulocate ore core true minedOre oreX oreY oreFound oreMine
-	jump Start equal oreFound false
-	ucontrol within oreX oreY miningRange isNear
-	jump MineOre equal isNear true
-	ucontrol approach oreX oreY miningRange
+	jump DropItems notEqual carriedItem minedOre
+	jump MineOre equal isMining true
+	ucontrol within oreX oreY miningRange isNearMine
+	jump MineOre equal isNearMine true
+	print "Approaching mine\n"
+	ucontrol move oreX oreY
 	jump Start always
 
 MineOre:
-	sensor carried @unit @totalItems
-	sensor 
-DoMine:
-	set action MINE
 	ucontrol mine oreX oreY
 	jump Start always
 	
 AttackUnit:
-	set action DEFEND
 	sensor enemyDead enemy @dead
 	jump StopShooting equal enemyDead true
 
 	ApproachEnemy:
+		print "Approaching enemy\n"
 		ucontrol approach enemyX enemyY range
 		ucontrol targetp enemy 1
 		jump Start always
@@ -194,7 +204,6 @@ StopShooting:
 	jump Start always
 
 Reset:
-	set action IDLE
 	set firstUnit null
 	jump Start always
 
