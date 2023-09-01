@@ -2,6 +2,7 @@ Initialize:
 	set unitType @zenith
 	op add moveX @thisx 0
 	op add moveY @thisy 10
+	set flagId 0
 
 	GetLinks:
 		set switch switch1
@@ -24,7 +25,7 @@ BindUnit:
 	jump Finished equal firstUnit @unit
 
 	sensor flag @unit @flag
-	jump Start notEqual flag 0
+	jump Start notEqual flag flagId
 
   	jump Move notEqual firstUnit null
 	set firstUnit @unit
