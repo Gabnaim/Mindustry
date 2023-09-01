@@ -3,7 +3,7 @@ Initialize:
 	set withdrawDistance 3
 	set defendRadius 23
 	set miningRange 8
-
+	
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
@@ -50,10 +50,12 @@ BindUnit:
 	sensor flag @unit @flag
 	jump Start notEqual flag 0
 
-	op equal isFirst firstUnit @unit
-
+	jump FinishGroup equal firstUnit @unit
 	jump SelectAction notEqual firstUnit null
+
+StartGroup:
 	set firstUnit @unit
+	set isFirst true
 
 SelectAction:
 	uradar enemy any any distance 0 1 enemy
@@ -70,14 +72,9 @@ SelectAction:
 	jump Withdraw equal isShooting true
 
 	sensor isMining @unit @mining
-	jump Mine equal isMining true
-
 	sensor carried @unit @totalItems
-	jump DropItems equal carried cap
-	jump Mine equal carried 0
-
 	sensor carriedItem @unit firstItem
-	jump DropItems notEqual carriedItem minedOre
+	jump DropItems equal carried cap
 	jump Mine always
 
 Defend:
@@ -97,7 +94,7 @@ Repair:
 	jump DoRepair equal isNearDmg true
 	print "Approaching damage\n"
 	ucontrol approach dmgX dmgY range
-	jump Start always
+	jump Next always
 	
 	DoRepair:
 		# Use every second poly to rebuild
@@ -105,7 +102,7 @@ Repair:
 		jump RebuildGhost equal flip true
 	
 		ucontrol target dmgX dmgY dmgFound
-		jump Start always
+		jump Next always
 	
 	RebuildGhost:
 		# There is no command to rebuild a ghost (dead building) nor to find one. 
@@ -113,7 +110,7 @@ Repair:
 		# destroyed buildings.
 		# We don't know where they are, but near a damaged building is a good bet.
 		ucontrol unbind
-		jump Start always
+		jump Next always
 	
 Withdraw:
 	ucontrol target 0 0 0
@@ -122,32 +119,25 @@ Withdraw:
 	jump Mine equal isNearCore true
 	print "Approaching core\n"
 	ucontrol approach coreX coreY withdrawDistance
-	jump Start always
+	jump Next always
 
 DropItems:
 	ucontrol within coreX coreY miningRange isNearDrop
 	jump DropLoop equal isNearDrop true
 	print "Approaching drop\n"
 	ucontrol approach coreX coreY miningRange
-	jump Start always
+	jump Next always
 
 	DropLoop:
-		ucontrol stop
-		set i 0
 		sensor carried @unit @totalItems
 		LoopUntilEmpty:
 			ucontrol itemDrop core carried
 			sensor carried @unit @totalItems
-			jump FinishDrop equal carried 0
-			# infinite loop detection
-			op add i i 1
-			jump LoopUntilEmpty lessThan i 100 
-		FinishDrop:
+			jump LoopUntilEmpty greaterThan carried 0 
 
 Mine:
-	# check stock only once per cycle (when we reach first unit)
 	# jump CheckStock equal minedOre null
-	# jump FindOre equal isFirst false
+	# jump FindOre notEqual isFirst true
 	
 CheckStock:
 	sensor copper core @copper
@@ -155,7 +145,6 @@ CheckStock:
 	sensor coal core @coal
 
 	SelectOre:
-		CheckCopper:
 		jump MinCopper lessThan copper lead
 		jump MinLead lessThan lead coal
 		jump MinCoal always
@@ -176,23 +165,21 @@ CheckStock:
 			set oreX coalX
 			set oreY coalY
 	EndCheckStock:
-	
+
 FindOre:
 	jump MoveToOre equal carried 0
 	jump DropItems notEqual carriedItem minedOre
+	jump MineOre equal isMining true
 
 MoveToOre:
-	jump MineOre equal isMining true
 	ucontrol within oreX oreY miningRange isNearMine
 	jump MineOre equal isNearMine true
 	print "Approaching mine\n"
 	ucontrol approach oreX oreY miningRange
-	jump Start always
 
 MineOre:
-	ucontrol stop
 	ucontrol mine oreX oreY
-	jump Start always
+	jump Next always
 	
 AttackUnit:
 	sensor enemyDead enemy @dead
@@ -202,15 +189,21 @@ AttackUnit:
 		print "Approaching enemy\n"
 		ucontrol approach enemyX enemyY range
 		ucontrol targetp enemy 1
-		jump Start always
+		jump Next always
 	
 StopShooting:
 	ucontrol targetp null 0
 	set enemy null
+	jump Next always
+
+Next:
+	op add unitI unitI 1
 	jump Start always
 
 Reset:
+FinishGroup:
+	set totalCount unitI
+	set unitI 0
 	set firstUnit null
 	jump Start always
-
 	
