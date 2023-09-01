@@ -1,0 +1,97 @@
+Initialize:
+	set unitType @pulsar
+	set material @titanium
+	op shl procId @thisx 10
+	op add procId procId @thisy
+	
+	GetLinks:
+		set switch switch1
+		set source container1
+		jump GetLinks equal source null
+		jump GetLinks equal switch null
+	
+		sensor sourceX source @x
+		sensor sourceY source @y
+	
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		sensor cap @unit @itemCapacity
+		sensor range @unit @range
+		op sub range range 1
+		ulocate building core false 0 coreX coreY coreFound core
+
+Start:
+	printflush message1
+CheckActive:
+	sensor active switch @enabled
+	jump Reset equal active false
+
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	sensor isDead @unit @dead
+	jump Start equal isDead true
+
+	sensor flag @unit @flag
+	jump Start notEqual flag procId
+
+	jump FinishGroup equal firstUnit @unit
+	jump SelectAction notEqual firstUnit null
+
+StartGroup:
+	set firstUnit @unit
+	set isFirst true
+
+SelectAction:
+	sensor carried @unit @totalItems
+	sensor carriedItem @unit firstItem
+	jump DropItems equal carried cap
+	jump Pickup equal carried 0
+	jump DropItems notEqual carriedItem material
+	jump Pickup always 
+	
+DropItems:
+	ucontrol within coreX coreY range isNearDrop
+	jump DropLoop equal isNearDrop true
+	print "Approaching drop\n"
+	ucontrol boost true
+	ucontrol approach coreX coreY range
+	jump Next always
+
+	DropLoop:
+		ucontrol boost false
+		sensor carried @unit @totalItems
+		LoopUntilEmpty:
+			ucontrol itemDrop core carried
+			sensor carried @unit @totalItems
+			jump LoopUntilEmpty greaterThan carried 0 
+	jump Next always
+
+Pickup:
+	ucontrol within sourceX sourceY range isNearPickup
+	jump PickupLoop equal isNearPickup true
+	print "Approaching pickup\n"
+	ucontrol boost true
+	ucontrol approach sourceX sourceY range
+	jump Next always
+
+	PickupLoop:
+		ucontrol boost false
+		sensor carried @unit @totalItems
+		LoopUntilFull:
+			ucontrol itemTake source material cap
+			sensor carried @unit @totalItems
+			jump LoopUntilFull lessThan carried cap
+
+Next:
+	op add unitI unitI 1
+	jump Start always
+
+Reset:
+FinishGroup:
+	set totalCount unitI
+	set unitI 0
+	set firstUnit null
+	jump Start always
+	
