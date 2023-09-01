@@ -3,6 +3,8 @@ Initialize:
 	set withdrawDistance 3
 	set defendRadius 23
 	set miningRange 8
+	# mining coal can be turned off. Copper and lead can't
+	set mineCoal true
 	
 	GetStartInfo:
 		ubind unitType
@@ -142,6 +144,10 @@ Mine:
 CheckStock:
 	sensor copper core @copper
 	sensor lead core @lead
+	jump MineCoal equal mineCoal true
+	set coal 999999
+	jump SelectOre always
+MineCoal:
 	sensor coal core @coal
 
 	SelectOre:
