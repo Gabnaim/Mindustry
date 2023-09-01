@@ -4,6 +4,21 @@ Initialize:
 	set minedOre @sand
 	set dropToCore false
 
+	# using units flagged by an external flagger 
+	# with our procId
+	set useFlagger true
+
+	op shl procId @thisx 10
+	op add procId procId @thisy
+
+	jump UseUnflagged equal useFlagger false
+	UseFlagged:
+		set usedFlag procId
+		jump GetLinks always
+
+	UseUnflagged:
+		set usedFlag 0
+
 	GetLinks:
 		set switch switch1
 		jump GetLinks equal switch null
@@ -54,7 +69,7 @@ BindUnit:
 	sensor isDead @unit @dead
 	jump Start equal isDead true
 	sensor flag @unit @flag
-	jump Start notEqual flag 0
+	jump Start notEqual flag usedFlag
 
 	jump FinishGroup equal firstUnit @unit
 	jump SelectAction notEqual firstUnit null
