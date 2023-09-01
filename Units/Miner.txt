@@ -81,7 +81,7 @@ StartGroup:
 SelectAction:
 	sensor isMining @unit @mining
 	sensor carried @unit @totalItems
-	sensor carriedItem @unit firstItem
+	sensor carriedItem @unit @firstItem
 
 	jump DropItems equal carried cap
 	jump Mine equal carried 0
