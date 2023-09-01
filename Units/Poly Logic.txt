@@ -96,7 +96,7 @@ Repair:
 	ucontrol within dmgX dmgY range isNearDmg
 	jump DoRepair equal isNearDmg true
 	print "Approaching damage\n"
-	ucontrol move dmgX dmgY
+	ucontrol approach dmgX dmgY range
 	jump Start always
 	
 	DoRepair:
@@ -121,17 +121,18 @@ Withdraw:
 	ucontrol within coreX coreY withdrawDistance isNearCore
 	jump Mine equal isNearCore true
 	print "Approaching core\n"
-	ucontrol move coreX coreY
+	ucontrol approach coreX coreY withdrawDistance
 	jump Start always
 
 DropItems:
 	ucontrol within coreX coreY miningRange isNearDrop
 	jump DropLoop equal isNearDrop true
 	print "Approaching drop\n"
-	ucontrol move coreX coreY
+	ucontrol approach coreX coreY miningRange
 	jump Start always
 
 	DropLoop:
+		ucontrol stop
 		set i 0
 		sensor carried @unit @totalItems
 		LoopUntilEmpty:
@@ -145,7 +146,8 @@ DropItems:
 
 Mine:
 	# check stock only once per cycle (when we reach first unit)
-	jump FindOre equal isFirst false
+	# jump CheckStock equal minedOre null
+	# jump FindOre equal isFirst false
 	
 CheckStock:
 	sensor copper core @copper
@@ -176,15 +178,19 @@ CheckStock:
 	EndCheckStock:
 	
 FindOre:
+	jump MoveToOre equal carried 0
 	jump DropItems notEqual carriedItem minedOre
+
+MoveToOre:
 	jump MineOre equal isMining true
 	ucontrol within oreX oreY miningRange isNearMine
 	jump MineOre equal isNearMine true
 	print "Approaching mine\n"
-	ucontrol move oreX oreY
+	ucontrol approach oreX oreY miningRange
 	jump Start always
 
 MineOre:
+	ucontrol stop
 	ucontrol mine oreX oreY
 	jump Start always
 	
