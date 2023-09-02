@@ -1,0 +1,17 @@
+Initialize:
+	set unitType @mono
+
+GetLinks:
+	set switch switch1
+	jump GetLinks equal switch null
+
+Start:	
+	sensor active switch @enabled
+	jump Start equal active false
+
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	ucontrol flag 0
+	jump Start always
+
