@@ -1,0 +1,35 @@
+Initialize:
+	set material @copper
+	
+	GetLimits:
+		set sourceMin 0
+		set sourceMax 999999
+		jump GetLimits greaterThan sourceMin sourceMax
+
+	GetLinks:
+		set source nucleus1
+		jump GetLinks equal source null
+		set numLinks @links
+		jump GetLinks lessThan numLinks 2
+
+Start:
+	sensor stock source material
+	op lessThanEq withinMax stock sourceMax 
+	op greaterThanEq withinMin stock sourceMin
+	op and isOpen withinMin withinMax 
+
+	set i 0
+	LoopThroughLinks:
+		getlink link i
+		jump Next equal link source
+		control enabled link isOpen
+		
+		Next:
+			op add i i 1
+			jump LoopThroughLinks lessThan i numLinks
+
+	jump Start always
+			
+
+
+	
