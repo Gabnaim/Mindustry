@@ -1,11 +1,23 @@
 Initialize:
-	set unitType @zenith
+	set useMemory true
+	set unitType @mono
+	set UNIT_TYPE_ADDR 0
+
 	op add moveX @thisx 0
 	op add moveY @thisy 10
 
 	GetLinks:
 		set switch switch1
 		jump GetLinks equal switch null
+		set memory cell1
+		jump GetStartInfo equal useMemory false
+		jump GetLinks equal memory null
+
+	ReadStartUnit:
+		read unitTypeId memory UNIT_TYPE_ADDR
+		jump ReadStartUnit lessThan unitTypeId 0
+		jump ReadStartUnit greaterThan unitTypeId 55
+		lookup unit unitType unitTypeId
 
 	GetStartInfo:
 		ubind unitType
@@ -14,10 +26,19 @@ Initialize:
 		op mul radius size 2
 	
 Start:
+	set lastUnitType unitType
 CheckActive:
 	sensor active switch @enabled
 	jump Reset equal active false
 	jump Start equal finished true
+	jump BindUnit equal useMemory false
+
+ReadUnitType:
+	read unitTypeId memory UNIT_TYPE_ADDR
+	jump Start lessThan unitTypeId 0
+	jump Start greaterThan unitTypeId 55
+	lookup unit unitType unitTypeId
+	jump Reset notEqual unitType lastUnitType
 
 BindUnit:
 	ubind unitType

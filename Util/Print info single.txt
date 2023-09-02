@@ -1,13 +1,32 @@
 Initialize:
-	set unitType @poly
 	printflush message1
+	set useMemory true
+	set unitType @poly
+	set UNIT_TYPE_ADDR 0
+
 	set showFlag true
 	set showCarried true
 	set showHealth true
+
 	op or showLine showFlag showCarried
 	op or showLine showLine showHealth
 
+GetLinks:
+	set memory cell1
+	jump Start equal useMemory false
+	jump GetLinks equal memory null
+
 Start:
+	set lastUnitType unitType
+	jump Bind equal useMemory false
+
+ReadUnitType:
+	read unitTypeId memory UNIT_TYPE_ADDR
+	jump InvalidType lessThan unitTypeId 0
+	jump InvalidType greaterThan unitTypeId 55
+	lookup unit unitType unitTypeId
+	jump Reset notEqual unitType lastUnitType
+
 Bind:
 	ubind unitType
 	jump NoUnits equal @unit null
@@ -66,16 +85,20 @@ FinishGroup:
 	print unitType
 	print ": "
 	print units
-	print "\n"
-	set units 0
-	set firstUnit null
-	printflush message1
-	jump Start always
+	jump Reset always
 
 NoUnits:
 	print "No "
 	print unitType
 	print "s were found"
+	jump Reset always
+
+InvalidType:
+	print "Invalid unit type"
+
+Reset:
+	set units 0
+	set firstUnit null
 	printflush message1
 	jump Start always
 

@@ -1,22 +1,24 @@
 Initialize:
 	set useMemory true
 	set unitType @mono
+	set UNIT_TYPE_ADDR 0
 
-GetLinks:
-	set switch switch1
-	jump GetLinks equal switch null
-	set memory cell1
-	jump Start equal useMemory false
-	jump GetLinks equal memory null
-
+	GetLinks:
+		set switch switch1
+		jump GetLinks equal switch null
+		set memory cell1
+		jump Start equal useMemory false
+		jump GetLinks equal memory null
+	
 Start:	
 	sensor active switch @enabled
 	jump Start equal active false
 	jump BindUnit equal useMemory false
 
-ReadMemory:
-	set UNIT_TYPE_ADDR 0
+ReadUnitType:
 	read unitTypeId memory UNIT_TYPE_ADDR
+	jump Start lessThan unitTypeId 0
+	jump Start greaterThan unitTypeId 55
 	lookup unit unitType unitTypeId
 
 BindUnit:

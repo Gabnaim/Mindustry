@@ -84,10 +84,6 @@ Next:
 		jump InvalidChoice greaterThan tierChoice 4
 
 Process:
-	print unitChoice
-	print " "
-	print tierChoice
-	print " "
 	print unitType
 	printflush message1
 
