@@ -1,0 +1,109 @@
+Initialize:
+	set UNIT_TYPE_ADDR 0
+	GetLinks:
+		set input1 sorter1
+		jump GetLinks equal input1 null
+		set input2 sorter2
+		jump GetLinks equal input2 null
+		set memory cell1
+		jump GetLinks equal memory null
+
+	set flip false
+	set unitChoice -1
+	set tierChoice -1
+
+Start:
+GetNextNumber:
+	op notEqual flip flip true
+	jump GetNumber2 equal flip true
+
+GetNumber1:
+	sensor choice input1 @config
+	jump GetSelection always
+
+GetNumber2:
+	sensor choice input2 @config
+
+GetSelection:
+	jump Copper equal choice @copper
+	jump Lead equal choice @lead
+	jump Metaglass equal choice @metaglass
+	jump Graphite equal choice @graphite
+	jump Sand equal choice @sand
+	jump Coal equal choice @coal
+	jump Titanium equal choice @titanium
+	jump Thorium equal choice @thorium
+	jump Scrap equal choice @scrap
+	jump Silicon equal choice @silicon
+	jump NoSelection always
+	
+Copper:
+	set digit 0
+	jump Next always
+Lead:
+	set digit 1
+	jump Next always
+Metaglass:
+	set digit 2
+	jump Next always
+Graphite:
+	set digit 3
+	jump Next always
+Sand:
+	set digit 4
+	jump Next always
+Coal:
+	set digit 5
+	jump Next always
+Titanium:
+	set digit 6
+	jump Next always
+Thorium:
+	set digit 7
+	jump Next always
+Scrap:
+	set digit 8
+	jump Next always
+Silicon:
+	set digit 9
+	jump Next always
+
+NoSelection:
+	set digit -1
+
+Next:
+	jump SetNumber2 equal flip true
+	SetNumber1:
+		set unitChoice digit
+		jump InvalidChoice lessThan digit 0
+		jump InvalidChoice greaterThan unitChoice 7
+		jump Start always
+	SetNumber2:
+		set tierChoice digit
+		jump InvalidChoice lessThan digit 0
+		jump InvalidChoice greaterThan tierChoice 4
+
+Process:
+	print unitChoice
+	print " "
+	print tierChoice
+	print " "
+	print unitType
+	printflush message1
+
+	op mul baseTypeId unitChoice 5
+	op add unitTypeId baseTypeId tierChoice
+	
+	lookup unit unitType unitTypeId
+	write unitTypeId memory UNIT_TYPE_ADDR 
+
+	jump Start always
+
+InvalidChoice:
+	print "Invalid selection"
+	printflush message1
+	write -1 memory UNIT_TYPE_ADDR 
+	op notEqual flip flip true
+	jump Start always 
+	
+	
