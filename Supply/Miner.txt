@@ -2,7 +2,6 @@ Initialize:
 	set unitType @mono
 	set miningRange 7
 	set minedOre @sand
-	set dropToCore false
 
 	# using units flagged by an external flagger 
 	# with our procId
@@ -22,17 +21,12 @@ Initialize:
 	GetLinks:
 		set switch switch1
 		jump GetLinks equal switch null
-		jump GetStartInfo equal dropToCore true
-		set dropTarget container1
-		jump GetLinks equal dropTarget null
 	
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
 		sensor cap @unit @itemCapacity
 		ulocate building core false 0 coreX coreY coreFound core
-		
-		jump GetDropCoords equal dropToCore false
 		set dropTarget core
 
 		GetDropCoords:
@@ -62,6 +56,7 @@ Start:
 CheckActive:
 	sensor active switch @enabled
 	jump Reset equal active false
+	set isStopped false
 
 BindUnit:
 	ubind unitType
@@ -70,13 +65,6 @@ BindUnit:
 	jump Start equal isDead true
 	sensor flag @unit @flag
 	jump Start notEqual flag usedFlag
-
-	jump FinishGroup equal firstUnit @unit
-	jump SelectAction notEqual firstUnit null
-
-StartGroup:
-	set firstUnit @unit
-	set isFirst true
 
 SelectAction:
 	sensor isMining @unit @mining
@@ -112,13 +100,26 @@ Mine:
 		jump Next always
 	
 Next:
-	op add unitI unitI 1
 	jump Start always
 
 Reset:
-FinishGroup:
-	set totalCount unitI
-	set unitI 0
+	jump Start equal isStopped true
+
 	set firstUnit null
-	jump Start always
+	StopLoop:
+		ubind unitType
+		jump AllStopped equal @unit firstUnit
+		sensor flag @unit @flag
+		jump StopLoop notEqual flag usedFlag
+
+		jump ReleaseUnit equal firstUnit null
+		set firstUnit @unit
+		
+		ReleaseUnit:
+			ucontrol stop
+			ucontrol unbind
+		
+	AllStopped:
+		set isStopped true
+		jump Start always
 	
