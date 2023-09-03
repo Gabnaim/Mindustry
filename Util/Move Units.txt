@@ -2,6 +2,7 @@ Initialize:
 	set useMemory true
 	set unitType @mono
 	set UNIT_TYPE_ADDR 0
+	set range 3
 
 	op add moveX @thisx 0
 	op add moveY @thisy 10
@@ -37,7 +38,15 @@ BindUnit:
 	set firstUnit @unit
 	
 Move:
-	ucontrol move moveX moveY
+	ucontrol within moveX moveY range isNear
+	jump Arrived equal isNear true
+	ucontrol boost true
+	ucontrol pathfind moveX moveY
+	jump Start always
+
+Arrived:
+	ucontrol boost false
+	ucontrol stop
 	jump Start always
 	
 Finished:
