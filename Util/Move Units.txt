@@ -5,25 +5,14 @@ Initialize:
 
 	op add moveX @thisx 0
 	op add moveY @thisy 10
+	set finished false
 
 	GetLinks:
 		set switch switch1
 		jump GetLinks equal switch null
 		set memory cell1
-		jump GetStartInfo equal useMemory false
+		jump Start equal useMemory false
 		jump GetLinks equal memory null
-
-	ReadStartUnit:
-		read unitTypeId memory UNIT_TYPE_ADDR
-		jump ReadStartUnit lessThan unitTypeId 0
-		jump ReadStartUnit greaterThan unitTypeId 55
-		lookup unit unitType unitTypeId
-
-	GetStartInfo:
-		ubind unitType
-		jump GetStartInfo equal @unit null
-		sensor size @unit @size
-		op mul radius size 2
 	
 Start:
 	set lastUnitType unitType
@@ -48,7 +37,7 @@ BindUnit:
 	set firstUnit @unit
 	
 Move:
-	ucontrol approach moveX moveY radius
+	ucontrol move moveX moveY
 	jump Start always
 	
 Finished:
