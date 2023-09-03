@@ -1,5 +1,7 @@
 Initialize:
 	set unitType @risso
+	set useFlagger true #only use pre-flagged units
+
 	op shl procId @thisx 10 # first 10 bit for x
 	op add procId procId @thisy # second 10 bit for y
 	op shl startFlag procId 1 	#set bit after id to 0
@@ -56,6 +58,10 @@ BindUnit:
 	jump UseUnit equal flag startFlag
 	jump UseUnit equal flag endFlag
 	jump GrabUnit equal flag procId
+
+	# if we are pre-flagged, skip other flags, including 0
+	jump Start equal useFlagger true
+
 	jump BindUnit notEqual flag 0
 
 GrabUnit:
