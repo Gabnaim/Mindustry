@@ -76,15 +76,30 @@ SelectAction:
 	sensor carried @unit @totalItems
 	sensor carriedItem @unit @firstItem
 
-	jump DropItems equal carried cap
 	jump Mine equal carried 0
-	jump Mine equal carriedItem minedOre
+	jump DumpUnneeded notEqual carriedItem minedOre
+	jump DropItems equal carried cap
+	jump Mine always
+
+DumpUnneeded:
+	ucontrol within coreX coreY miningRange isNearCore
+	jump DumpLoop equal isNearCore true
+	ucontrol approach coreX coreY miningRange
+	jump Start always
+
+	DumpLoop:
+		sensor carried @unit @totalItems
+		LoopUntilEmpty:
+			ucontrol itemDrop core carried
+			sensor carried @unit @totalItems
+			jump LoopUntilEmpty greaterThan carried 0 
+	jump Start always
 
 DropItems:
 	ucontrol within dropX dropY miningRange isNearDrop
 	jump DropLoop equal isNearDrop true
 	ucontrol approach dropX dropY miningRange
-	jump Next always
+	jump Start always
 
 	DropLoop:
 		sensor carried @unit @totalItems
@@ -92,7 +107,7 @@ DropItems:
 			ucontrol itemDrop dropTarget carried
 			sensor carried @unit @totalItems
 			jump LoopUntilEmpty greaterThan carried 0 
-	jump Next always
+	jump Start always
 
 Mine:
 	MoveToOre:
@@ -102,10 +117,7 @@ Mine:
 	
 	MineOre:
 		ucontrol mine oreX oreY
-		jump Next always
-	
-Next:
-	jump Start always
+		jump Start always
 
 Reset:
 	jump Start equal isStopped true
