@@ -52,8 +52,6 @@ BindUnit:
 	sensor dead @unit @dead
 	jump Start equal dead true
 
-	jump ReleaseUnit equal releaseUnits true
-
 	sensor flag @unit @flag
 	jump UseUnit equal flag startFlag
 	jump UseUnit equal flag endFlag
@@ -68,6 +66,8 @@ GrabUnit:
 	ucontrol flag startFlag
 
 UseUnit:
+	jump ReleaseUnit equal releaseUnits true
+
 FindTarget:
 	uradar enemy any any distance 0 1 enemy
 	jump AttackUnit notEqual enemy null
