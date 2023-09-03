@@ -1,0 +1,9 @@
+Initialize:
+	op shl procId @thisx 10
+	op add procId procId @thisy
+
+	op shr procX procId 10
+	op shl mask 1 10
+	op sub mask mask 1
+	op and procY procId mask
+	

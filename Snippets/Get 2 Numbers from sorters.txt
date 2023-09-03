@@ -1,0 +1,89 @@
+Initialize:
+	GetLinks:
+		set input1 sorter1
+		jump GetLinks equal input1 null
+		set input2 sorter2
+		jump GetLinks equal input2 null
+
+	set flip false
+	set number1 -1
+	set number2 -1
+
+Start:
+GetNextNumber:
+	op notEqual flip flip true
+	jump GetNumber2 equal flip true
+
+GetNumber1:
+	sensor choice input1 @config
+	jump GetSelection always
+
+GetNumber2:
+	sensor choice input2 @config
+
+GetSelection:
+	jump Copper equal choice @copper
+	jump Lead equal choice @lead
+	jump Metaglass equal choice @metaglass
+	jump Graphite equal choice @graphite
+	jump Sand equal choice @sand
+	jump Coal equal choice @coal
+	jump Titanium equal choice @titanium
+	jump Thorium equal choice @thorium
+	jump Scrap equal choice @scrap
+	jump Silicon equal choice @silicon
+	jump NoSelection always
+	
+Copper:
+	set digit 0
+	jump Next always
+Lead:
+	set digit 1
+	jump Next always
+Metaglass:
+	set digit 2
+	jump Next always
+Graphite:
+	set digit 3
+	jump Next always
+Sand:
+	set digit 4
+	jump Next always
+Coal:
+	set digit 5
+	jump Next always
+Titanium:
+	set digit 6
+	jump Next always
+Thorium:
+	set digit 7
+	jump Next always
+Scrap:
+	set digit 8
+	jump Next always
+Silicon:
+	set digit 9
+	jump Next always
+
+Next:
+	jump SetNumber2 equal flip true
+	SetNumber1:
+		set number1 digit
+		jump Start always
+	SetNumber2:
+		set number2 digit
+		
+Process:
+	print number1
+	print " "
+	print number2
+	printflush message1
+	jump Start always
+
+NoSelection:
+	print "No selection"
+	printflush message1
+	op notEqual flip flip true
+	jump Start always 
+	
+	
