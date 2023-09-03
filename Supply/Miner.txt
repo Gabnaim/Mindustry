@@ -112,14 +112,16 @@ Reset:
 		sensor flag @unit @flag
 		jump StopLoop notEqual flag usedFlag
 
-		jump ReleaseUnit equal firstUnit null
+		jump ReleaseUnit notEqual firstUnit null
 		set firstUnit @unit
 		
 		ReleaseUnit:
 			ucontrol stop
 			ucontrol unbind
+		jump StopLoop always
 		
 	AllStopped:
 		set isStopped true
+		set firstUnit null
 		jump Start always
 	
