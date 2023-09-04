@@ -13,20 +13,22 @@ Initialize:
 		jump GetLinks equal source null
 		jump GetLinks equal switch null
 	
-		sensor sourceX source @x
-		sensor sourceY source @y
+	sensor sourceX source @x
+	sensor sourceY source @y
 	
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
 		sensor cap @unit @itemCapacity
 		ulocate building core false 0 coreX coreY coreFound core
+	set dropTarget core
+	sensor dropX dropTarget @x
+	sensor dropY dropTarget @y
 
 Start:
-	printflush message1
 CheckActive:
 	sensor active switch @enabled
-	jump Reset equal active false
+	jump Start equal active false
 
 BindUnit:
 	ubind unitType
@@ -37,13 +39,6 @@ BindUnit:
 	sensor flag @unit @flag
 	jump Start notEqual flag procId
 
-	jump FinishGroup equal firstUnit @unit
-	jump SelectAction notEqual firstUnit null
-
-StartGroup:
-	set firstUnit @unit
-	set isFirst true
-
 SelectAction:
 	sensor carried @unit @totalItems
 	sensor carriedItem @unit firstItem
@@ -53,12 +48,12 @@ SelectAction:
 	jump Pickup always 
 	
 DropItems:
-	ucontrol within coreX coreY dropRange isNearDrop
+	ucontrol within dropX dropY dropRange isNearDrop
 	jump DropLoop equal isNearDrop true
 	print "Approaching drop\n"
 	ucontrol boost true
-	ucontrol approach coreX coreY dropRange
-	jump Next always
+	ucontrol approach dropX dropY dropRange
+	jump Start always
 
 	DropLoop:
 		ucontrol boost false
@@ -74,9 +69,10 @@ Pickup:
 	print "Approaching pickup\n"
 	ucontrol boost true
 	ucontrol approach sourceX sourceY dropRange
-	jump Next always
+	jump Start always
 
 	SelectItem:
+		jump PickupLoop equal takeAll false
 		set maxStock 0
 		set i 0
 		set maxMaterial material
@@ -101,14 +97,4 @@ Pickup:
 			sensor carried @unit @totalItems
 			jump LoopUntilFull lessThan carried cap
 
-Next:
-	op add unitI unitI 1
 	jump Start always
-
-Reset:
-FinishGroup:
-	set totalCount unitI
-	set unitI 0
-	set firstUnit null
-	jump Start always
-	
