@@ -1,0 +1,133 @@
+Initialize:
+	set unitType @poly
+	set maxUnits 3
+	set range 3
+	op add moveX @thisx 5
+	op add moveY @thisy 5
+	
+	GetLinks:
+		set switch switch1
+		jump GetLinks equal switch null
+	
+	op shl procId @thisx 10 # first 10 bits for x
+	op add procId procId @thisy # second 10 bits for y
+
+# There will be three runs (cycles through all units).
+# In the first run, we try to grab already flagged units.
+# In the second run, we will flag free units if we still need them
+# In the third phase, we check if the units arrived, and 
+# stop them if they did. This can be multiple cycles.
+	
+	# statuses
+	set NONE 0
+	set REUSE 1
+	set GRABNEW 2
+	set FLAGGED 3
+	set TRACK 4
+	set FINISHED 5
+
+	set status REUSE
+
+Start:	
+CheckActive:
+	sensor active switch @enabled
+	jump Reset equal active false
+
+SelectAction:
+	jump Start equal status FINISHED
+	jump Track greaterThanEq status FLAGGED
+
+Flag:
+	# Two runs: REUSE and GRABNEW
+	set i 0
+	set firstUnit null
+	set flagged 0
+	FlagLoop:
+		ubind unitType
+		jump Start equal @unit null
+		sensor isDead @unit @dead
+		jump FlagLoop equal isDead true
+	
+		jump FinishFlagGroup equal firstUnit @unit
+		jump ProcessFlag notEqual firstUnit null
+		set firstUnit @unit
+	
+	ProcessFlag:
+		sensor flag @unit @flag
+		jump UseUnit equal flag procId
+		jump FlagLoop notEqual flag 0
+	
+		# in the first run we just count available units
+		jump FlagNext equal status REUSE
+	
+		# in the second run, we flag them
+		ucontrol flag procId
+	
+	UseUnit:
+		op add flagged flagged 1
+		ucontrol boost true
+		ucontrol pathfind moveX moveY
+	
+	FlagNext:
+		op add i i 1
+		jump FlagLoop lessThan flagged maxUnits
+	
+	MaxReached:
+		set status FLAGGED
+
+	FinishFlagGroup:
+		op add runs runs 1
+		set firstUnit null
+		set total i
+
+	ChangeStatus:
+		jump Start equal status FLAGGED
+		jump AllFlagged lessThanEq total maxUnits
+		jump GrabNew equal status REUSE
+		jump AllFlagged equal status GRABNEW
+		jump Start always
+
+		GrabNew:
+			set status GRABNEW
+			jump FlagLoop always
+	
+		AllFlagged:
+			set status FLAGGED
+			set flagged 0
+			jump Start always
+
+Track:
+	set status TRACK
+	set arrived 0
+
+	TrackLoop:
+		ubind unitType
+		sensor flag @unit @flag
+		jump TrackLoop notEqual flag procId
+		
+	CheckMove:
+		ucontrol within moveX moveY range isNear
+		jump Arrived equal isNear true
+		ucontrol boost true
+		ucontrol pathfind moveX moveY
+		jump TrackLoop always
+	
+	Arrived:
+		ucontrol boost false
+		ucontrol stop
+		op add arrived arrived 1
+		jump TrackLoop lessThan arrived flagged
+
+Finished:
+	set status FINISHED
+	set total 0
+	jump Start always
+
+Reset:
+	set status REUSE
+	set total 0
+	set runs 0
+	set firstUnit null
+	set flagged 0
+	set arrived 0
+	jump Start always
