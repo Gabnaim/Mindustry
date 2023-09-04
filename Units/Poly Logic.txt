@@ -2,9 +2,11 @@ Initialize:
 	set unitType @poly
 	set withdrawDistance 3
 	set defendRadius 23
-	set miningRange 8
+	set miningRange 7
 	# mining coal can be turned off. Copper and lead can't
 	set mineCoal true
+
+	set maxTick 360 #break loop after 6 seconds idle
 	
 	GetStartInfo:
 		ubind unitType
@@ -119,22 +121,27 @@ Withdraw:
 	ucontrol targetp null 0
 	ucontrol within coreX coreY withdrawDistance isNearCore
 	jump Mine equal isNearCore true
-	print "Approaching core\n"
 	ucontrol approach coreX coreY withdrawDistance
 	jump Next always
 
 DropItems:
 	ucontrol within coreX coreY miningRange isNearDrop
 	jump DropLoop equal isNearDrop true
-	print "Approaching drop\n"
 	ucontrol approach coreX coreY miningRange
 	jump Next always
 
 	DropLoop:
+		set startTick @tick
+		ucontrol boost false
 		sensor carried @unit @totalItems
 		LoopUntilEmpty:
 			ucontrol itemDrop core carried
 			sensor carried @unit @totalItems
+			jump Next equal carried 0
+
+			# break loop if idling too long
+			op sub elapsed @tick startTick
+			jump Next greaterThan elapsed maxTick
 			jump LoopUntilEmpty greaterThan carried 0 
 
 Mine:
@@ -180,7 +187,7 @@ FindOre:
 MoveToOre:
 	ucontrol within oreX oreY miningRange isNearMine
 	jump MineOre equal isNearMine true
-	print "Approaching mine\n"
+	ucontrol mine oreX oreY
 	ucontrol approach oreX oreY miningRange
 
 MineOre:
