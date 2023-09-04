@@ -20,6 +20,7 @@ GetId:
 	set NONE 0
 	set COUNTING 1
 	set FLAGGING 2
+	set RELEASING 3
 	
 Start:
 CheckActive:
@@ -88,6 +89,13 @@ Unflag:
 	set grabbedFlag procId
 	jump RunFlagLoop always
 
+UnflagAll:
+	op sub neededFlags totalFlagged maxUnits
+	jump FinishRun lessThanEq neededFlags 0
+	set usedFlag 0
+	set grabbedFlag procId
+	jump RunFlagLoop always
+
 RunFlagLoop:
 	set status FLAGGING
 	set flagged 0
@@ -113,15 +121,37 @@ RunFlagLoop:
 		jump FlagLoop always
 	
 FinishRun:
-	op add runCount runCount 1
 	set countDone false
 	jump Start always
 	
 Reset:
-	jump Start equal runCount 0
+	jump Start equal status NONE
 	set totalFlagged 0
 	set totalFree 0
 	set totalUnits 0
-	set countDone false
-	set runCount 0
-	jump Start always
+
+ReleaseAll:
+	# wait a little because the other processor
+	# might be doing its own releasing on the flagged units
+	wait 6
+	set status RELEASING
+	set neededUnflags maxUnits
+	set firstUnit null
+
+	ReleaseLoop:
+		ubind unitType
+		jump FinishRelease equal @unit null
+		jump FinishRelease equal firstUnit @unit
+		jump ReleaseUnit notEqual firstUnit null
+		set firstUnit @unit
+	
+		ReleaseUnit:
+			sensor flag @unit @flag
+			jump ReleaseLoop notEqual flag procId
+			ucontrol flag 0
+			jump ReleaseLoop always
+
+	FinishRelease:
+		set countDone false
+		set status NONE
+		jump Start always
