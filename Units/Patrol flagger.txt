@@ -109,8 +109,8 @@ Flag:
 
 Unflag:
 	set status UNFLAGGING
-	op sub neededFlags totalFlagged maxUnits
-	jump FinishRun lessThanEq neededFlags 0
+	op sub neededUnflags totalFlagged maxUnits
+	jump FinishRun lessThanEq neededUnflags 0
 	set unflagged 0
 	set firstUnit null
 
