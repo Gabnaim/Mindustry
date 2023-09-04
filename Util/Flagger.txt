@@ -1,9 +1,10 @@
 Initialize:
-	set unitType @zenith
+	set unitType @poly
 	set maxUnits 4
+	set waitTicks 1200 # wait 20 secs before releasing when idle
 	
 	GetLinks:
-		set switch switch1
+		set switch switch2
 		jump GetLinks equal switch null
 
 		# if flagging without a proc, set it to @this
@@ -126,16 +127,18 @@ FinishRun:
 	
 Reset:
 	jump Start equal status NONE
+	jump ReleaseAll equal status RELEASING
+	set startTicks @tick
 	set totalFlagged 0
 	set totalFree 0
 	set totalUnits 0
 
 ReleaseAll:
-	# wait a little because the other processor
-	# might be doing its own releasing on the flagged units
-	wait 6
+	# loop until release wait 
 	set status RELEASING
-	set neededUnflags maxUnits
+	op sub elapsed @tick startTick
+	jump Start lessThan elapsed maxTick
+
 	set firstUnit null
 
 	ReleaseLoop:
