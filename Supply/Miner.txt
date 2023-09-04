@@ -23,11 +23,11 @@ Initialize:
 	GetDropTarget:
 		set l 0
 		LinkLoop:
-			getLink link i
-			jump NextLink equal link switch
+			getlink link l
+			sensor type link @type
 			jump Found equal link core
-			jump Found equal link @container
-			jump Found equal link @vault
+			jump Found equal type @container
+			jump Found equal type @vault
 		NextLink:
 			op add l l 1
 			jump LinkLoop lessThan l @links
@@ -47,12 +47,10 @@ Initialize:
 		jump UseUnflagged equal useFlagger false
 		UseFlagged:
 			set usedFlag procId
-			jump GetStartInfo always
+			jump Start always
 	
 		UseUnflagged:
 			set usedFlag 0
-
-	set oreFound false
 	
 Start:
 	printflush message1
@@ -70,7 +68,7 @@ BindUnit:
 	jump Start notEqual flag usedFlag
 
 SelectAction:
-	jump LocateMine equal oreFound false
+	jump FindOre equal oreFound false
 	sensor isMining @unit @mining
 	sensor carried @unit @totalItems
 	sensor carriedItem @unit @firstItem
@@ -118,14 +116,15 @@ Mine:
 		ucontrol mine oreX oreY
 		jump Start always
 
-LocateMine:
+FindOre:
 	# Use this unit to find the nearest ore source
 	GoToDrop:
 		ucontrol within dropX dropY 1 isNearDrop
-		jump LocateMine equal isNearDrop true
+		jump LocateOre equal isNearDrop true
 		ucontrol approach dropX dropY 1
 		jump GoToDrop always
-
+	
+	LocateOre:
 		ulocate ore core true minedOre oreX oreY oreFound oreMine
 		jump Start equal oreFound true
 

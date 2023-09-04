@@ -1,12 +1,15 @@
 Initialize:
-	set unitType @pulsar
+	set unitType @poly
+	set takeAll true
 	set material @titanium
+	set dropRange 3
+
 	op shl procId @thisx 10
 	op add procId procId @thisy
 	
 	GetLinks:
 		set switch switch1
-		set source container1
+		set source container2
 		jump GetLinks equal source null
 		jump GetLinks equal switch null
 	
@@ -17,8 +20,6 @@ Initialize:
 		ubind unitType
 		jump GetStartInfo equal @unit null
 		sensor cap @unit @itemCapacity
-		sensor range @unit @range
-		op sub range range 1
 		ulocate building core false 0 coreX coreY coreFound core
 
 Start:
@@ -52,11 +53,11 @@ SelectAction:
 	jump Pickup always 
 	
 DropItems:
-	ucontrol within coreX coreY range isNearDrop
+	ucontrol within coreX coreY dropRange isNearDrop
 	jump DropLoop equal isNearDrop true
 	print "Approaching drop\n"
 	ucontrol boost true
-	ucontrol approach coreX coreY range
+	ucontrol approach coreX coreY dropRange
 	jump Next always
 
 	DropLoop:
@@ -66,16 +67,32 @@ DropItems:
 			ucontrol itemDrop core carried
 			sensor carried @unit @totalItems
 			jump LoopUntilEmpty greaterThan carried 0 
-	jump Next always
 
 Pickup:
-	ucontrol within sourceX sourceY range isNearPickup
-	jump PickupLoop equal isNearPickup true
+	ucontrol within sourceX sourceY dropRange isNearPickup
+	jump SelectItem equal isNearPickup true
 	print "Approaching pickup\n"
 	ucontrol boost true
-	ucontrol approach sourceX sourceY range
+	ucontrol approach sourceX sourceY dropRange
 	jump Next always
 
+	SelectItem:
+		set maxStock 0
+		set i 0
+		set maxMaterial material
+		SelectLoop:
+			lookup item mat i
+			sensor stock source mat 
+			jump NextMat lessThanEq stock maxStock
+			set maxStock stock
+			set maxMaterial mat
+		NextMat:
+			op add i i 1
+			jump SelectLoop lessThan i 16
+	
+		jump Start equal maxStock 0
+		set material maxMaterial
+	
 	PickupLoop:
 		ucontrol boost false
 		sensor carried @unit @totalItems
