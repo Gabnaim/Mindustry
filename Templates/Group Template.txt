@@ -1,29 +1,28 @@
 Initialize:
-	printflush message1
-	set maxUnits 4
 	set unitType @flare
-	set unitCount 0
-
-GetLinks:
-	set switch switch1
-	jump GetLinks equal switch null
+	set maxUnits 4
+	
+	GetLinks:
+		set switch switch1
+		jump GetLinks equal switch null
 
 Start:	
 CheckActive:
 	sensor active switch @enabled
 	jump Reset equal active false
 	
-Bind:
+BindUnit:
 	ubind unitType
 	jump NoUnits equal @unit null
 	sensor isDead @unit @dead
 	jump Start equal isDead true
+
 	jump FinishGroup equal firstUnit @unit
 	jump ProcessUnit notEqual firstUnit null
 	set firstUnit @unit
 
 ProcessUnit:
-	jump IgnoreUnit greaterThanEq unitCount maxUnits
+	jump IgnoreUnit greaterThanEq i maxUnits
 	 # do stuff with unit
 	jump Next always
 
@@ -31,15 +30,15 @@ IgnoreUnit:
 	# do stuff with ignored unit
 
 Next:
-	op add unitCount unitCount 1
-	jump Start notEqual unitCount maxUnits
+	op add i i 1
+	jump Start notEqual i maxUnits
 
 MaxReached:
 	# do stuff when maxed reached
 	jump Start always
 
 FinishGroup:
-	set unitCount 0
+	set i 0
 	set firstUnit null
 	# do stuff when group is finished
 	printflush message1
@@ -53,7 +52,7 @@ NoUnits:
 	jump Start always
 
 Reset:
-	set unitCount 0
+	set i 0
 	set firstUnit null
 	jump Start always
 
