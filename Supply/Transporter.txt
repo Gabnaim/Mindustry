@@ -3,6 +3,7 @@ Initialize:
 	set takeAll true
 	set material @titanium
 	set dropRange 3
+	set maxTick 360 #break loop after 6 seconds idle
 
 	op shl procId @thisx 10
 	op add procId procId @thisy
@@ -56,11 +57,16 @@ DropItems:
 	jump Start always
 
 	DropLoop:
+		set startTick @tick
 		ucontrol boost false
 		sensor carried @unit @totalItems
 		LoopUntilEmpty:
 			ucontrol itemDrop core carried
 			sensor carried @unit @totalItems
+			jump Pickup equal carried 0
+			# break loop if idling too long
+			op sub elapsed @tick startTick
+			jump Start greaterThan elapsed maxTick
 			jump LoopUntilEmpty greaterThan carried 0 
 
 Pickup:
@@ -90,11 +96,17 @@ Pickup:
 		set material maxMaterial
 	
 	PickupLoop:
+		set startTick @tick
 		ucontrol boost false
 		sensor carried @unit @totalItems
 		LoopUntilFull:
 			ucontrol itemTake source material cap
 			sensor carried @unit @totalItems
+			jump DropItems equal carried cap
+
+			# break loop if idling too long
+			op sub elapsed @tick startTick
+			jump Start greaterThan elapsed maxTick
 			jump LoopUntilFull lessThan carried cap
 
-	jump Start always
+		jump Start always
