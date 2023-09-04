@@ -64,6 +64,7 @@ DropItems:
 			ucontrol itemDrop core carried
 			sensor carried @unit @totalItems
 			jump Pickup equal carried 0
+
 			# break loop if idling too long
 			op sub elapsed @tick startTick
 			jump Start greaterThan elapsed maxTick

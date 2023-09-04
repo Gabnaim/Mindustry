@@ -6,6 +6,8 @@ Initialize:
 	set dropToCore false
 	set useFlagger true
 
+	set maxTick 360 #break loop after 6 seconds idle
+
 	GetSwitch:
 		set switch switch1
 		jump GetSwitch equal switch null
@@ -85,24 +87,38 @@ DumpUnneeded:
 	jump Start always
 
 	DumpLoop:
+		set startTick @tick
 		sensor carried @unit @totalItems
 		LoopUntilEmpty:
 			ucontrol itemDrop core carried
 			sensor carried @unit @totalItems
+			jump Start equal carried 0
+
+			# break loop if idling too long
+			op sub elapsed @tick startTick
+			jump Start greaterThan elapsed maxTick
 			jump LoopUntilEmpty greaterThan carried 0 
 	jump Start always
 
 DropItems:
 	ucontrol within dropX dropY miningRange isNearDrop
 	jump DropLoop equal isNearDrop true
+	ucontrol boost true
 	ucontrol approach dropX dropY miningRange
 	jump Start always
 
 	DropLoop:
+		set startTick @tick
+		ucontrol boost false
 		sensor carried @unit @totalItems
 		LoopUntilEmpty:
 			ucontrol itemDrop dropTarget carried
 			sensor carried @unit @totalItems
+			jump Mine equal carried 0
+
+			# break loop if idling too long
+			op sub elapsed @tick startTick
+			jump Start greaterThan elapsed maxTick
 			jump LoopUntilEmpty greaterThan carried 0 
 	jump Start always
 
