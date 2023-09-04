@@ -1,17 +1,44 @@
 Initialize:
-	set unitType @mono
+	set unitType @poly
 	set miningRange 7
-	set minedOre @sand
+	set minedOre @scrap
 
 	set dropToCore false
 	set useFlagger true
 
-	GetLinks:
+	GetSwitch:
 		set switch switch1
-		jump GetLinks equal switch null
-		jump GetId equal dropToCore true
-		set dropTarget container1
-		jump GetLinks equal dropTarget null
+		jump GetSwitch equal switch null
+
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		sensor cap @unit @itemCapacity
+		ulocate building core false 0 coreX coreY coreFound core
+
+	jump GetDropTarget equal dropToCore false
+	set dropTarget core
+	jump GetDropCoords always
+
+	GetDropTarget:
+		set l 0
+		LinkLoop:
+			getLink link i
+			jump NextLink equal link switch
+			jump Found equal link core
+			jump Found equal link @container
+			jump Found equal link @vault
+		NextLink:
+			op add l l 1
+			jump LinkLoop lessThan l @links
+		NotFound:
+			jump GetDropTarget always
+		Found:
+			set dropTarget link
+	
+	GetDropCoords:
+		sensor dropX dropTarget @x
+		sensor dropY dropTarget @y
 
 	GetId:
 		op shl procId @thisx 10
@@ -24,37 +51,8 @@ Initialize:
 	
 		UseUnflagged:
 			set usedFlag 0
-	
-	GetStartInfo:
-		ubind unitType
-		jump GetStartInfo equal @unit null
-		sensor cap @unit @itemCapacity
-		ulocate building core false 0 coreX coreY coreFound core
-		
-		jump GetDropCoords equal dropToCore false
-		set dropTarget core
 
-		GetDropCoords:
-			sensor dropX dropTarget @x
-			sensor dropY dropTarget @y
-		
-		# Use this unit to find the nearest ore source
-		GoToDrop:
-			ucontrol within dropX dropY 1 isNearDrop
-			jump LocateMine equal isNearDrop true
-			ucontrol approach dropX dropY 1
-			jump GoToDrop always
-
-		LocateMine:
-			ulocate ore core true minedOre oreX oreY oreFound oreMine
-			jump Start equal oreFound true
-
-		NoOre:
-			print "No "
-			print minedOre
-			print " was found on the map"
-			printflush message1
-			stop
+	set oreFound false
 	
 Start:
 	printflush message1
@@ -72,6 +70,7 @@ BindUnit:
 	jump Start notEqual flag usedFlag
 
 SelectAction:
+	jump LocateMine equal oreFound false
 	sensor isMining @unit @mining
 	sensor carried @unit @totalItems
 	sensor carriedItem @unit @firstItem
@@ -119,6 +118,24 @@ Mine:
 		ucontrol mine oreX oreY
 		jump Start always
 
+LocateMine:
+	# Use this unit to find the nearest ore source
+	GoToDrop:
+		ucontrol within dropX dropY 1 isNearDrop
+		jump LocateMine equal isNearDrop true
+		ucontrol approach dropX dropY 1
+		jump GoToDrop always
+
+		ulocate ore core true minedOre oreX oreY oreFound oreMine
+		jump Start equal oreFound true
+
+	NoOre:
+		print "No "
+		print minedOre
+		print " was found on the map"
+		printflush message1
+		stop
+
 Reset:
 	jump Start equal isStopped true
 
@@ -140,5 +157,6 @@ Reset:
 	AllStopped:
 		set isStopped true
 		set firstUnit null
+		set oreFound false
 		jump Start always
 	
