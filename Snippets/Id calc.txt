@@ -1,12 +1,20 @@
-set procIdSize 20
-set extraBits 4
-op shl procId @thisx 10
-op add procId procId @thisy
+Initialize:
+	set extraBits 4
 
-op shl infoMask 1 extraBits
-op sub infoMask infoMask 1
+GetFlag:
+	op shl procId @thisx 10
+	op add procId procId @thisy
+	op shl flag procId extraBits
 
-op shl flag procId extraBits
-op add flag flag 7
-op shr unitProcId flag extraBits
-op and info flag infoMask
+GetInfoMask:
+	op shl infoMask 1 extraBits
+	op sub infoMask infoMask 1
+
+Test:
+	op add flag flag 7
+
+GetProcIdFromFlag:
+	op shr unitProcId flag extraBits
+
+GetInfoFromFlag:
+	op and info flag infoMask
