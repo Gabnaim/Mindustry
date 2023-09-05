@@ -1,9 +1,12 @@
-Initialize:
-	op shl procId @thisx 10
-	op add procId procId @thisy
+set procIdSize 20
+set extraBits 4
+op shl procId @thisx 10
+op add procId procId @thisy
 
-	op shr procX procId 10
-	op shl mask 1 10
-	op sub mask mask 1
-	op and procY procId mask
-	
+op shl infoMask 1 extraBits
+op sub infoMask infoMask 1
+
+op shl flag procId extraBits
+op add flag flag 7
+op shr unitProcId flag extraBits
+op and info flag infoMask
