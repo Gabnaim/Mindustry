@@ -1,0 +1,52 @@
+Initialize:
+	set unitType @poly
+
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		sensor cap @unit @itemCapacity
+		ulocate building core false 0 coreX coreY coreFound core
+
+	GetLinks:
+		set requiredLinks 2
+		jump GetLinks lessThan @links requiredLinks
+
+		set i 0
+		set found 0
+		LinkLoop:
+			getlink link i
+			sensor type link @type
+
+			#switch
+			jump FoundSwitch equal type @switch
+
+			#container
+			jump FoundContainer equal link core
+			jump FoundContainer equal type @container
+			jump FoundContainer equal type @vault
+			jump NextLink always
+
+			FoundSwitch:
+				set switch link
+				op add found found 1
+				jump NextLink always
+	
+			FoundContainer:
+				set container link
+				op add found found 1
+				jump NextLink always
+	
+			NextLink:
+				jump EndGetLinks equal found requiredLinks
+				op add i i 1
+				jump LinkLoop lessThan i @links
+	
+		NotFound:
+			jump GetLinks always
+
+		EndGetLinks:
+
+Start:
+	sensor active switch @enabled
+	jump Start always
+		
