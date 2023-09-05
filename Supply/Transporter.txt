@@ -2,14 +2,14 @@ Initialize:
 	set unitType @poly
 
 	GetMaterials:
-		set takeAll true
-		set material @titanium
+		set takeAll false
+		set material @sand
 
 	GetTargetParams:
-		set dropToCore true
+		set dropToCore false
 		set pickupFromCore false
-		set targetX 0
-		set targetY 0
+		set targetX 132
+		set targetY 111
 		op equal areSame dropToCore pickupFromCore
 		op and bothCore areSame dropToCore
 		jump GetTargetParams equal bothCore true
@@ -83,9 +83,9 @@ Initialize:
 		BetweenContainers:
 			set source container
 			FindTarget: 
-				ucontrol within targetX targetY 6 isNear
+				ucontrol within targetX targetY 1 isNear
 				jump SetTarget equal isNear true
-				ucontrol approach targetX targetY 6
+				ucontrol move targetX targetY
 				jump FindTarget always
 			SetTarget:
 				ulocate building storage false 0 dropX dropY dropFound dropTarget
