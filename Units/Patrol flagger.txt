@@ -1,6 +1,7 @@
 Initialize:
 	set unitType @zenith
 	set maxUnits 4
+	set extraBits 1 #extra information stored in flag
 	
 	GetLinks:
 		set switch switch1
@@ -15,8 +16,6 @@ GetId:
 	sensor procY targetProc @y
 	op shl procId procX 10 # first 10 bits for x
 	op add procId procId procY # second 10 bits for y
-	op shl startFlag procId 1 	#set bit after id to 0
-	op add endFlag startFlag 1 	#set bit after id to 1
 
 	# statuses
 	set NONE 0
@@ -53,9 +52,8 @@ Count:
 	
 	CountProcess:
 		sensor flag @unit @flag
-		jump CountFlagged equal flag procId
-		jump CountFlagged equal flag startFlag
-		jump CountFlagged equal flag endFlag
+		op shr unitProcId flag extraBits
+		jump CountFlagged equal unitProcId procId
 		jump CountFree equal flag 0
 		jump NextCount always
 		
@@ -98,9 +96,8 @@ Flag:
 	
 	FlagProcess:
 		sensor flag @unit @flag
-		jump FlagLoop equal flag procId
-		jump FlagLoop equal flag startFlag
-		jump FlagLoop equal flag endFlag
+		op shr unitProcId flag extraBits
+		jump FlagLoop equal unitProcId procId
 		jump FlagLoop notEqual flag 0
 
 		ucontrol flag procId
@@ -127,9 +124,8 @@ Unflag:
 	
 	UnflagProcess:
 		sensor flag @unit @flag
-		jump RemoveFlag equal flag procId
-		jump RemoveFlag equal flag startFlag
-		jump RemoveFlag equal flag endFlag
+		op shr unitProcId flag extraBits
+		jump RemoveFlag equal unitProcId procId
 		jump UnflagLoop always
 
 		RemoveFlag:
