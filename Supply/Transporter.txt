@@ -1,30 +1,109 @@
 Initialize:
 	set unitType @poly
-	set takeAll true
-	set material @titanium
-	set dropRange 3
-	set maxTick 360 #break loop after 6 seconds idle
+
+	GetMaterials:
+		set takeAll true
+		set material @titanium
+
+	GetTargetParams:
+		set dropToCore true
+		set pickupFromCore false
+		set targetX 0
+		set targetY 0
+		op equal areSame dropToCore pickupFromCore
+		op and bothCore areSame dropToCore
+		jump GetTargetParams equal bothCore true
+		jump SetConstants notEqual areSame true
+
+		NotCoreTransport:
+			jump GetTargetParams equal targetX 0
+			jump GetTargetParams equal targetY 0
+		
+	SetConstants:
+		set dropRange 3
+		set maxTick 360 #break loop after 6 seconds idle
 
 	op shl procId @thisx 10
 	op add procId procId @thisy
-	
-	GetLinks:
-		set switch switch1
-		set source container2
-		jump GetLinks equal source null
-		jump GetLinks equal switch null
-	
-	sensor sourceX source @x
-	sensor sourceY source @y
-	
+
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
+		sensor isDead @unit @dead
+		jump GetStartInfo equal isDead true
+		sensor flag @unit @flag
+		jump GetStartInfo notEqual flag procId
+
 		sensor cap @unit @itemCapacity
 		ulocate building core false 0 coreX coreY coreFound core
-	set dropTarget core
-	sensor dropX dropTarget @x
-	sensor dropY dropTarget @y
+	
+	GetLinks:
+		set requiredLinks 2
+		jump GetLinks lessThan @links requiredLinks
+
+		set i 0
+		set found 0
+		LinkLoop:
+			getlink link i
+			sensor type link @type
+
+			#switch
+			jump FoundSwitch equal type @switch
+
+			#container
+			jump FoundContainer equal link core
+			jump FoundContainer equal type @container
+			jump FoundContainer equal type @vault
+			jump NextLink always
+
+			FoundSwitch:
+				set switch link
+				op add found found 1
+				jump NextLink always
+	
+			FoundContainer:
+				set container link
+				op add found found 1
+				jump NextLink always
+	
+			NextLink:
+				jump EndGetLinks equal found requiredLinks
+				op add i i 1
+				jump LinkLoop lessThan i @links
+	
+		NotFound:
+			jump GetLinks always
+
+		EndGetLinks:
+
+	SelectEndPoints:
+		jump DropToCore equal dropToCore true
+		jump PickupFromCore equal pickupFromCore true
+
+		BetweenContainers:
+			set source container
+			FindTarget: 
+				ucontrol within targetX targetY 6 isNear
+				jump SetTarget equal isNear true
+				ucontrol approach targetX targetY 6
+				jump FindTarget always
+			SetTarget:
+				ulocate building storage false 0 dropX dropY dropFound dropTarget
+				jump GetTargetParams equal dropFound false
+				jump GetCoords always
+		DropToCore:
+			set source container
+			set dropTarget core
+			jump GetCoords always
+		PickupFromCore:
+			set source core
+			set dropTarget container
+			
+	GetCoords:
+		sensor sourceX source @x
+		sensor sourceY source @y
+		sensor dropX dropTarget @x
+		sensor dropY dropTarget @y
 
 Start:
 CheckActive:
@@ -61,7 +140,7 @@ DropItems:
 		ucontrol boost false
 		sensor carried @unit @totalItems
 		LoopUntilEmpty:
-			ucontrol itemDrop core carried
+			ucontrol itemDrop dropTarget carried
 			sensor carried @unit @totalItems
 			jump Pickup equal carried 0
 
