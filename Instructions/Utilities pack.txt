@@ -1,0 +1,14 @@
+Unit Utilities 
+
+
+Select unit type using the two sorters. Left: base unit, Right: tier
+
+Top: unflag all units of the selected type
+
+Rightmost top: print unit info (flag, health, items - each can be turned off)
+
+Rightmost underneath: count all unit types
+
+Leftmost: move units to here (edit offsets if needed)
+
+Bottom: dump items from unflagged units
