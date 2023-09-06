@@ -1,3 +1,8 @@
+set sourceFile "Unit Info.txt"
+
+print "Prints flag, health, and carried item type and quantity of each unit of that type"
+printflush message1
+
 Initialize:
 	printflush message1
 	set useMemory true

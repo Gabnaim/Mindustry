@@ -1,6 +1,8 @@
 Initialize:
 	set unitType @poly
 	set maxUnits 4
+	set extraBits 0 #extra information stored in flag
+
 	set waitTicks 1200 # wait 20 secs before releasing when idle
 	
 	GetLinks:
@@ -52,7 +54,8 @@ Count:
 	
 	CountProcess:
 		sensor flag @unit @flag
-		jump CountFlagged equal flag procId
+		op shr unitProcId flag extraBits
+		jump CountFlagged equal unitProcId procId
 		jump CountFree equal flag 0
 		jump NextCount always
 		
@@ -115,6 +118,8 @@ RunFlagLoop:
 	FlagProcess:
 		sensor flag @unit @flag
 		jump FlagLoop equal flag usedFlag
+		op shr unitProcId flag extraBits
+		jump FlagLoop equal unitProcId usedFlag
 		jump FlagLoop notEqual flag grabbedFlag
 
 		ucontrol flag usedFlag
