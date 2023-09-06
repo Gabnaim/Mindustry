@@ -16,21 +16,6 @@ Initialize:
 		sensor cap @unit @itemCapacity
 		sensor range @unit @range
 		op sub range range 1
-
-		# Use this unit to find the nearest ore sources
-		# this way they are always the same
-		GoToCore:
-			ucontrol within coreX coreY 1 isAtCore
-			jump LocateMines equal isAtCore true
-			ucontrol move coreX coreY
-			jump GoToCore always
-
-		# There are no maps that can use a processor
-		# and have no copper, lead and coal
-		LocateMines:
-			ulocate ore core true @copper copperX copperY copperFound oreMine
-			ulocate ore core true @lead leadX leadY leadFound oreMine
-			ulocate ore core true @coal coalX coalY coalFound oreMine
 			
 	# use a flip to alternate units between repair and rebuild
 	set flip false
@@ -165,19 +150,14 @@ MineCoal:
 		MinCopper:
 			jump MinCoal lessThan coal copper
 			set minedOre @copper
-			set oreX copperX
-			set oreY copperY
 			jump EndCheckStock always
 		MinLead:
 			set minedOre @lead
-			set oreX leadX
-			set oreY leadY
 			jump EndCheckStock always
 		MinCoal:
 			set minedOre @coal
-			set oreX coalX
-			set oreY coalY
 	EndCheckStock:
+		ulocate ore core true minedOre oreX oreY oreFound oreMine
 
 FindOre:
 	jump MoveToOre equal carried 0
