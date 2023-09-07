@@ -116,20 +116,7 @@ StartRun:
 	jump Pickup equal carriedMat material
 	
 DumpUnneeded:
-	ucontrol within sourceX sourceY dropRange isNearSource
-	jump DumpLoop equal isNearSource true
-	ucontrol approach sourceX sourceY dropRange
-	jump DumpUnneeded always
-	
-	DumpLoop:
-		set dumpI 0
-		DumpUntilEmpty:
-			ucontrol itemDrop source carried
-			sensor carried mule @totalItems
-			jump Pickup equal carried 0
-			op add dumpI dumpI 1
-			jump DumpUntilEmpty lessThan dumpI 100
-			jump Start always
+	ucontrol itemDrop @air carried
 	
 Pickup:
 	ucontrol within sourceX sourceY dropRange isNearSource
