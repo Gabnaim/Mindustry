@@ -1,16 +1,28 @@
+set sourceFile "Stock Checker.txt"
+# Checks if the material in the cire is within limits.
+# If not, it disables anything linked to it
 Initialize:
-	set material @copper
+	set material @surge-alloy
+	set material2 null
 	
 	GetLimits:
 		set sourceMin 0
-		set sourceMax 999999
+		set sourceMax 12999 # set one less than max capacity
+							# to disable when it hits max
 		jump GetLimits greaterThan sourceMin sourceMax
 
 	GetLinks:
-		set source nucleus1
-		jump GetLinks equal source null
-		set numLinks @links
-		jump GetLinks lessThan numLinks 2
+		jump GetLinks lessThan @links 1
+
+	BindUnit:
+		ubind @flare
+		jump LocateCore notEqual @unit null
+		ubind @poly
+		jump BindUnit equal @unit null
+
+	LocateCore:
+		ulocate building core false 0 coreX coreY coreFound core
+		set source core
 
 Start:
 	sensor stock source material
@@ -18,15 +30,24 @@ Start:
 	op greaterThanEq withinMin stock sourceMin
 	op and isOpen withinMin withinMax 
 
-	set i 0
-	LoopThroughLinks:
-		getlink link i
-		jump Next equal link source
-		control enabled link isOpen
-		
-		Next:
-			op add i i 1
-			jump LoopThroughLinks lessThan i numLinks
+	jump LinkLoop equal material2 null
+
+	sensor stock2 source material2
+	op lessThanEq withinMax stock2 sourceMax 
+	op greaterThanEq withinMin stock2 sourceMin
+	op and isOpen2 withinMin withinMax 
+	op or isOpen isOpen isOpen2
+	
+	LinkLoop:
+		set i 0
+		LoopThroughLinks:
+			getlink link i
+			jump Next equal link source
+			control enabled link isOpen
+			
+			Next:
+				op add i i 1
+				jump LoopThroughLinks lessThan i @links
 
 	jump Start always
 			
