@@ -1,10 +1,12 @@
+set sourceFile "Ground Feeder.txt"
+
 Initialize:
 	set unitType @flare
 	op shl procId @thisx 10
 	op add procId procId @thisy
 	set maxTick 600 #release mule after 10 seconds idle
 	set sourceMin 500
-	set dropRange 1
+	set dropRange 7
 
 	GetLinks:
 		set factory factory1
@@ -26,8 +28,10 @@ Start:
 CheckFactory:
 ###########################################
 	sensor buildType factory @config
+	jump CheckDagger equal buildType @dagger
 	jump CheckCrawler equal buildType @crawler
 	jump CheckNova equal buildType @nova
+	jump Start always
 	
 CheckDagger:	
 	set stockLevel 20
@@ -65,24 +69,24 @@ CheckNova:
 CheckSilicon:
 	op sub needed stockLevel facSil
 	set material @silicon
-	jump CheckStock greaterThan needed 0
+	jump CheckStock always
 	
 CheckLead:
 	op sub needed stockLevel facLead
 	set material @lead
-	jump CheckStock greaterThan needed 0
+	jump CheckStock always
 
 CheckCoal:
 	op sub needed stockLevel facCoal
 	set material @coal 
-	jump CheckStock greaterThan needed 0
+	jump CheckStock always
 
 CheckTitanium:
 	op sub needed stockLevel facTit
 	set material @titanium
-	jump NothingToDo equal needed 0
 
 CheckStock:
+	jump NothingToDo equal needed 0
 	sensor sourceStock source material
 	op sub available sourceStock sourceMin
 	jump NothingToDo lessThanEq available 0
@@ -107,64 +111,69 @@ FindMule:
 	jump Start equal @unit null
 	sensor unitDead @unit @dead
 	jump FindMule equal unitDead true
+
 	sensor unitFlag @unit @flag
-	jump GrabMule equal unitFlag procId
+	jump UseMule equal unitFlag procId
+
+FlagMule:
 	jump FindMule notEqual unitFlag 0
 	ucontrol flag procId
 
-GrabMule:
+UseMule:
 	set mule @unit
 	
 StartRun:
-	ucontrol approach sourceX sourceY dropRange
-	
-DropUnneeded:
 	sensor carried mule @totalItems
 	jump Pickup equal carried 0
-	jump Pickup equal carried null
 	sensor carriedMat mule @firstItem
 	jump Pickup equal carriedMat material
-	set unneededI 0
-
-	DropUnneededTilEmpty:
-		ucontrol itemDrop source carried
-		sensor carried mule @totalItems
-		jump Pickup equal carried 0
-		op add unneededI unneededI 1
-		jump DropUnneededTilEmpty lessThan unneededI 100
-
-Pickup:
-	set startTick @tick
-	op min amount amount cap
-	set pickupI 0
-	LoopUntilFull:
-		ucontrol itemTake source material amount
-		op add pickupI pickupI 1
-		sensor carried mule @totalItems 
-		jump FinishRun greaterThanEq pickupI 100
-		jump LoopUntilFull lessThan carried amount
 	
-Deliver:
-	ucontrol approach factoryX factoryY dropRange
-	set deliverI 0
-	LoopUntilEmpty:
-		ucontrol itemDrop factory carried
-		sensor carried mule @totalItems
-		jump FinishRun equal carried 0
-		op add deliverI deliverI 1
-		jump LoopUntilEmpty lessThan deliverI 100
+DumpUnneeded:
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump DumpLoop equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	jump DumpUnneeded always
+	
+	DumpLoop:
+		set dumpI 0
+		DumpUntilEmpty:
+			ucontrol itemDrop source carried
+			sensor carried mule @totalItems
+			jump Pickup equal carried 0
+			op add dumpI dumpI 1
+			jump DumpUntilEmpty lessThan dumpI 100
+			jump Start always
+	
+Pickup:
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump PickupLoop equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	jump Pickup always
 
+	PickupLoop:
+		op min amount amount cap
+		set pickupI 0
+		LoopUntilFull:
+			ucontrol itemTake source material amount
+			op add pickupI pickupI 1
+			sensor carried mule @totalItems 
+			jump FinishRun greaterThanEq pickupI 100
+			jump LoopUntilFull lessThan carried amount
+
+Deliver:
+	ucontrol within factoryX factoryY dropRange isNearFactory
+	jump DeliverLoop equal isNearFactory true
+	ucontrol approach factoryX factoryY dropRange
+	jump Deliver always
+
+	DeliverLoop:
+		set deliverI 0
+		LoopUntilEmpty:
+			ucontrol itemDrop factory carried
+			sensor carried mule @totalItems
+			jump FinishRun equal carried 0
+			op add deliverI deliverI 1
+			jump LoopUntilEmpty lessThan deliverI 100
+	
 FinishRun:
 	jump Start always
-	#jump Start equal mule null
-	op sub elapsed @tick startTick
-	jump Start lessThan elapsed maxTick
-
-ReleaseMule:
-	ucontrol flag 0
-	ucontrol approach sourceX sourceY 5
-	set mule null
-	jump Start always
-	
-
-
