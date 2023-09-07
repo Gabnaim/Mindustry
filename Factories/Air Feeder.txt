@@ -2,9 +2,8 @@ Initialize:
 	set unitType @flare
 	op shl procId @thisx 10
 	op add procId procId @thisy
-	set maxTick 600 #release mule after 10 seconds idle
 	set sourceMin 500
-	set dropRange 1
+	set dropRange 7
 
 	GetLinks:
 		set factory factory1
@@ -50,9 +49,9 @@ CheckSilicon:
 CheckLead:
 	op sub needed stockLevel facLead
 	set material @lead
-	jump NothingToDo equal needed 0
 
 CheckStock:
+	jump NothingToDo equal needed 0
 	sensor sourceStock source material
 	op sub available sourceStock sourceMin
 	jump NothingToDo lessThanEq available 0
@@ -86,55 +85,47 @@ GrabMule:
 	set mule @unit
 	
 StartRun:
-	ucontrol approach sourceX sourceY dropRange
-	
-DropUnneeded:
 	sensor carried mule @totalItems
 	jump Pickup equal carried 0
-	jump Pickup equal carried null
 	sensor carriedMat mule @firstItem
 	jump Pickup equal carriedMat material
-	set unneededI 0
-
-	DropUnneededTilEmpty:
-		ucontrol itemDrop source carried
-		sensor carried mule @totalItems
-		jump Pickup equal carried 0
-		op add unneededI unneededI 1
-		jump DropUnneededTilEmpty lessThan unneededI 100
-
+	
+DumpUnneeded:
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump DumpLoop equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	jump DumpUnneeded always
+	
+	DumpLoop:
+		DumpUntilEmpty:
+			ucontrol itemDrop source carried
+			sensor carried mule @totalItems
+			jump DumpUntilEmpty greaterThan carried 0
+	
 Pickup:
-	set startTick @tick
-	op min amount amount cap
-	set pickupI 0
-	LoopUntilFull:
-		ucontrol itemTake source material amount
-		op add pickupI pickupI 1
-		sensor carried mule @totalItems 
-		jump FinishRun greaterThanEq pickupI 100
-		jump LoopUntilFull lessThan carried amount
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump PickupLoop equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	jump Pickup always
+
+	PickupLoop:
+		op min amount amount cap
+		LoopUntilFull:
+			ucontrol itemTake source material amount
+			sensor carried mule @totalItems 
+			jump LoopUntilFull lessThan carried amount
 	
 Deliver:
+	ucontrol within factoryX factoryY dropRange isNearFactory
+	jump DeliverLoop equal isNearFactory true
 	ucontrol approach factoryX factoryY dropRange
-	set deliverI 0
-	LoopUntilEmpty:
-		ucontrol itemDrop factory carried
-		sensor carried mule @totalItems
-		jump FinishRun equal carried 0
-		op add deliverI deliverI 1
-		jump LoopUntilEmpty lessThan deliverI 100
+	jump Deliver always
+
+	DeliverLoop:
+		LoopUntilEmpty:
+			ucontrol itemDrop factory carried
+			sensor carried mule @totalItems
+			jump LoopUntilEmpty greaterThan carried 0
 
 FinishRun:
 	jump Start always
-	#jump Start equal mule null
-	op sub elapsed @tick startTick
-	jump Start lessThan elapsed maxTick
-
-ReleaseMule:
-	ucontrol flag 0
-	ucontrol approach sourceX sourceY 5
-	set mule null
-	jump Start always
-	
-
-
