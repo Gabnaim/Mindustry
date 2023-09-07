@@ -79,12 +79,15 @@ FindMule:
 	jump Start equal @unit null
 	sensor unitDead @unit @dead
 	jump FindMule equal unitDead true
+
 	sensor unitFlag @unit @flag
-	jump GrabMule equal unitFlag procId
+	jump UseMule equal unitFlag procId
+
+FlagMule:
 	jump FindMule notEqual unitFlag 0
 	ucontrol flag procId
 
-GrabMule:
+UseMule:
 	set mule @unit
 	
 StartRun:
