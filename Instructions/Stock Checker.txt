@@ -1,0 +1,3 @@
+Disables linked buildings if the material in the core is below min or above max. Can be used to disable unloaders below a minimum or factories when the core is full.               
+
+INSTRUCTIONS: Needs one unit. Edit unit type, material and min and max amounts. Note you need it one below max if you want to disable building when max. (sorry, no line breaks on iOS)

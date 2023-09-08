@@ -2,7 +2,6 @@ Initialize:
 	set useMemory true
 	set unitType @mono
 	set UNIT_TYPE_ADDR 0
-	set dropRange 7
 
 	GetLinks:
 		set switch switch1
@@ -32,16 +31,5 @@ BindUnit:
 	jump Start equal carried 0
 
 DumpUnneeded:
-	ulocate building core false 0 coreX coreY coreFound core
-	ucontrol within coreX coreY dropRange isNearCore
-	jump DumpLoop equal isNearCore true
-	ucontrol pathfind coreX coreY
-	jump Start always
-
-	DumpLoop:
-		sensor carried @unit @totalItems
-		LoopUntilEmpty:
-			ucontrol itemDrop core carried
-			sensor carried @unit @totalItems
-			jump LoopUntilEmpty greaterThan carried 0 
+	ucontrol itemDrop @air carried
 	jump Start always
