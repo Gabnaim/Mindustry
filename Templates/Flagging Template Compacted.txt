@@ -18,17 +18,16 @@ Initialize:
 	set COUNTING 1
 	set FLAGGING 2
 	set PROCESSING 3
-	set RELEASING 4
+	set STOPPING 4
+	set RELEASING 5
 
 #################################################################
 # Flagging 
-# 
-# Do only once at the beginning
 #################################################################
 
 FlagStart:
 	sensor active switch @enabled
-	jump FlagStart equal active false
+	jump Reset equal active false
 	set lastActive active
 	
 Count:
@@ -69,9 +68,9 @@ Count:
 		set totalFlagged flaggedCount
 		set totalFree freeCount
 		set totalUnits i
-		set countDone true
 
 SelectFlagAction:
+	set status FLAGGING
 	jump Flag lessThan totalFlagged maxUnits
 	jump Unflag greaterThan totalFlagged maxUnits
 	jump DoneFlagging always
@@ -92,7 +91,6 @@ Unflag:
 	set grabbedFlag procId
 
 RunFlagLoop:
-	set status FLAGGING
 	set flagged 0
 	set firstUnit null
 	FlagLoop:
@@ -127,9 +125,12 @@ DoneFlagging:
 Start:
 CheckActive:
 	sensor active switch @enabled
-	jump Reset equal active false
-	jump Count notEqual lastActive active
+	jump StartOver notEqual lastActive active
+	jump BindUnit equal active true
+
+StartOver:
 	set lastActive active
+	jump FlagStart always
 	
 BindUnit:
 	ubind unitType
@@ -179,7 +180,6 @@ FinishGroup:
 	set i 0
 	set flagged 0
 	set free 0
-	set countDone true
 	set firstUnit null
 	jump SelectFlagAction notEqual maxUnits totalFlagged
 	jump Start always
@@ -190,11 +190,34 @@ Reset:
 	jump ReleaseAll equal status RELEASING
 	set startTick @tick
 
+StopAll:
+	set status STOPPING
+
+	set firstUnit null
+	StopLoop:
+		ubind unitType
+		jump AllStopped equal @unit firstUnit
+		sensor flag @unit @flag
+		op shr unitProcId flag extraBits
+		jump StopLoop notEqual unitProcId procId
+
+		jump StopUnit notEqual firstUnit null
+		set firstUnit @unit
+		
+		StopUnit:
+			ucontrol stop
+			ucontrol unbind
+		jump StopLoop always
+		
+	AllStopped:
+		set status RELEASING
+		jump FlagStart always
+	
 ReleaseAll:
 	# loop until release wait 
 	set status RELEASING
 	op sub elapsed @tick startTick
-	jump Start lessThan elapsed waitTicks
+	jump FlagStart lessThan elapsed waitTicks
 
 	set firstUnit null
 
@@ -207,11 +230,11 @@ ReleaseAll:
 	
 		ReleaseUnit:
 			sensor flag @unit @flag
-			jump ReleaseLoop notEqual flag procId
+			op shr unitProcId flag extraBits
+			jump ReleaseLoop notEqual unitProcId procId
 			ucontrol flag 0
 			jump ReleaseLoop always
 
 	FinishRelease:
-		set countDone false
 		set status NONE
 		jump FlagStart always
