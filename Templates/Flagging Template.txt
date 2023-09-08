@@ -139,6 +139,11 @@ BindUnit:
 
 	jump FinishGroup equal firstUnit @unit
 	jump Process notEqual firstUnit null
+
+StartGroup:
+	set i 0
+	set flagged 0
+	set free 0
 	set firstUnit @unit
 
 Process:

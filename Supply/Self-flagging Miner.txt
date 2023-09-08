@@ -1,13 +1,15 @@
 Initialize:
+Configuration:
 	set unitType @poly
 	set maxUnits 4
 	set minedOre @scrap
 	set dropToCore false
-
+	set releaseSecs 60 # wait secs before releasing when idle
+	
+	set status "INITIALIZING"
+	set error "No error"
 	set miningRange 7
 
-	set releaseSecs 20 # wait secs before releasing when idle
-	set error ""
 	GetSwitch:
 		set switch switch1
 		jump GetSwitch equal switch null
@@ -38,6 +40,7 @@ Initialize:
 			jump Found equal link core
 			jump Found equal type @container
 			jump Found equal type @vault
+			jump Found equal type @mass-driver
 		NextLink:
 			op add l l 1
 			jump LinkLoop lessThan l @links
@@ -87,11 +90,11 @@ Count:
 		jump NextCount always
 		
 	CountFlagged:
-		op add flaggedCount flaggedCount 1
+		op add flagged flagged 1
 		jump NextCount always
 
 	CountFree:
-		op add freeCount freeCount 1
+		op add free free 1
 	
 	NextCount:
 		op add i i 1
@@ -172,6 +175,11 @@ BindUnit:
 
 	jump FinishGroup equal firstUnit @unit
 	jump Process notEqual firstUnit null
+
+StartGroup:
+	set i 0
+	set flagged 0
+	set free 0
 	set firstUnit @unit
 
 Process:
@@ -198,7 +206,7 @@ DropItems:
 	jump DropLoop equal isNearDrop true
 	ucontrol boost true
 	ucontrol approach dropX dropY miningRange
-	jump Next always
+	jump NextFlagged always
 
 	DropLoop:
 		set dropI 0
@@ -211,7 +219,7 @@ DropItems:
 			op add dropI dropI 1
 			jump LoopUntilEmpty lessThan dropI 100
 
-		jump Next always
+		jump NextFlagged always
 
 Mine:
 	MoveToOre:
@@ -286,7 +294,8 @@ StopAll:
 		
 		StopUnit:
 			ucontrol stop
-			ucontrol unbind
+			ucontrol itemDrop @air 100
+			ucontrol unbind 
 		jump StopLoop always
 		
 	AllStopped:
@@ -312,6 +321,9 @@ ReleaseAll:
 			sensor flag @unit @flag
 			jump ReleaseLoop notEqual flag procId
 			ucontrol flag 0
+			ucontrol within coreX coreY 20 isNearCore
+			jump ReleaseLoop equal isNearCore true
+			ucontrol approach coreX coreY 20
 			jump ReleaseLoop always
 
 	FinishRelease:
