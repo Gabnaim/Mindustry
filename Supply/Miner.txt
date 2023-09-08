@@ -1,16 +1,28 @@
 Initialize:
 	set unitType @poly
-	set miningRange 7
-	set minedOre @scrap
-
+	set minedOre @sand
 	set dropToCore false
 	set useFlagger true
 
-	set maxTick 360 #break loop after 6 seconds idle
+	set miningRange 7
+	set status "INITIALIZING"
+	set error " "
 
 	GetSwitch:
 		set switch switch1
 		jump GetSwitch equal switch null
+
+	GetId:
+		op shl procId @thisx 10
+		op add procId procId @thisy
+	
+		jump UseUnflagged equal useFlagger false
+		UseFlagged:
+			set usedFlag procId
+			jump GetStartInfo always
+	
+		UseUnflagged:
+			set usedFlag 0
 
 	GetStartInfo:
 		ubind unitType
@@ -30,10 +42,13 @@ Initialize:
 			jump Found equal link core
 			jump Found equal type @container
 			jump Found equal type @vault
+			jump Found equal type @mass-driver
 		NextLink:
 			op add l l 1
 			jump LinkLoop lessThan l @links
 		NotFound:
+			set error "No drop target is linked"
+			set status "ERROR"
 			jump GetDropTarget always
 		Found:
 			set dropTarget link
@@ -42,24 +57,14 @@ Initialize:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y
 
-	GetId:
-		op shl procId @thisx 10
-		op add procId procId @thisy
-	
-		jump UseUnflagged equal useFlagger false
-		UseFlagged:
-			set usedFlag procId
-			jump Start always
-	
-		UseUnflagged:
-			set usedFlag 0
+	set status "IDLE"
+	set error " "
 	
 Start:
-	printflush message1
 CheckActive:
 	sensor active switch @enabled
 	jump Reset equal active false
-	set isStopped false
+	set status "MINING"
 
 BindUnit:
 	ubind unitType
@@ -92,24 +97,22 @@ DropItems:
 	jump Start always
 
 	DropLoop:
-		set startTick @tick
+		set dropI 0
 		ucontrol boost false
 		sensor carried @unit @totalItems
 		LoopUntilEmpty:
 			ucontrol itemDrop dropTarget carried
 			sensor carried @unit @totalItems
 			jump Mine equal carried 0
-
-			# break loop if idling too long
-			op sub elapsed @tick startTick
-			jump Start greaterThan elapsed maxTick
-			jump LoopUntilEmpty greaterThan carried 0 
+			op add dropI dropI 1
+			jump LoopUntilEmpty lessThan dropI 100
 	jump Start always
 
 Mine:
 	MoveToOre:
 		ucontrol within oreX oreY miningRange isNearMine
 		jump MineOre equal isNearMine true
+		ucontrol boost true
 		ucontrol approach oreX oreY miningRange
 	
 	MineOre:
@@ -129,14 +132,17 @@ FindOre:
 		jump Start equal oreFound true
 
 	NoOre:
-		print "No "
-		print minedOre
-		print " was found on the map"
-		printflush message1
-		stop
+		set error "No ore found"
+		
+Error:
+	set status "ERROR"
+	control enabled switch false
+	jump Start always
 
 Reset:
-	jump Start equal isStopped true
+	jump Start equal status "IDLE"
+	jump Start equal status "ERROR"
+	set status "STOPPING"
 
 	set firstUnit null
 	StopLoop:
@@ -150,12 +156,11 @@ Reset:
 		
 		ReleaseUnit:
 			ucontrol stop
+			ucontrol itemDrop @air cap
 			ucontrol unbind
 		jump StopLoop always
 		
 	AllStopped:
-		set isStopped true
-		set firstUnit null
-		set oreFound false
+		set status "IDLE"
 		jump Start always
 	

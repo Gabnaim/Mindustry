@@ -55,7 +55,7 @@ Configuration:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y
 
-	set status "NONE"
+	set status "IDLE"
 	set error ""
 
 #################################################################
@@ -273,7 +273,7 @@ Error:
 	jump FlagStart always
 
 Reset:
-	jump FlagStart equal status "NONE"
+	jump FlagStart equal status "IDLE"
 	jump FlagStart equal status "ERROR"
 	set lastActive active
 	jump ReleaseAll equal status "RELEASING"
@@ -327,5 +327,5 @@ ReleaseAll:
 			jump ReleaseLoop always
 
 	FinishRelease:
-		set status "NONE"
+		set status "IDLE"
 		jump FlagStart always
