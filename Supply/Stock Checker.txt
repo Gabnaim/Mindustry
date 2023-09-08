@@ -3,7 +3,6 @@ set sourceFile "Stock Checker.txt"
 # If not, it disables anything linked to it
 Initialize:
 	set material @surge-alloy
-	set material2 null
 	
 	GetLimits:
 		set sourceMin 0
@@ -30,14 +29,6 @@ Start:
 	op greaterThanEq withinMin stock sourceMin
 	op and isOpen withinMin withinMax 
 
-	jump LinkLoop equal material2 null
-
-	sensor stock2 source material2
-	op lessThanEq withinMax stock2 sourceMax 
-	op greaterThanEq withinMin stock2 sourceMin
-	op and isOpen2 withinMin withinMax 
-	op or isOpen isOpen isOpen2
-	
 	LinkLoop:
 		set i 0
 		LoopThroughLinks:
