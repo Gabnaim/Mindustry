@@ -1,0 +1,189 @@
+Initialize:
+	set unitType @poly
+	set maxUnits 4
+	set extraBits 0 #extra information stored in flag
+	set releaseSecs 20 # wait secs before releasing when idle
+	
+	GetLinks:
+		set switch switch1
+		jump GetLinks equal switch null
+
+	op shl procId @thisx 10 # first 10 bits for x
+	op add procId procId @thisy # second 10 bits for y
+
+	op mul waitTicks releaseSecs 60
+
+	# statuses
+	set NONE 0
+	set COUNTING 1
+	set FLAGGING 2
+	set PROCESSING 3
+	set RELEASING 4
+
+#################################################################
+# Flagging 
+# 
+# Do only once at the beginning
+#################################################################
+
+FlagStart:
+	sensor active switch @enabled
+	jump FlagStart equal active false
+	set lastActive active
+	
+Count:
+	set status COUNTING
+	set i 0
+	set flaggedCount 0
+	set freeCount 0
+	set firstUnit null
+	CountLoop:
+		ubind unitType
+		jump Start equal @unit null
+		sensor isDead @unit @dead
+		jump Start equal isDead true
+	
+		jump FinishCount equal firstUnit @unit
+		jump CountProcess notEqual firstUnit null
+		set firstUnit @unit
+	
+	CountProcess:
+		sensor flag @unit @flag
+		op shr unitProcId flag extraBits
+		jump CountFlagged equal unitProcId procId
+		jump CountFree equal flag 0
+		jump NextCount always
+		
+	CountFlagged:
+		op add flaggedCount flaggedCount 1
+		jump NextCount always
+
+	CountFree:
+		op add freeCount freeCount 1
+	
+	NextCount:
+		op add i i 1
+		jump CountLoop always
+
+	FinishCount:
+		set totalFlagged flaggedCount
+		set totalFree freeCount
+		set totalUnits i
+		set countDone true
+
+	SelectFlagAction:
+		jump Flag lessThan totalFlagged maxUnits
+		jump Unflag greaterThan totalFlagged maxUnits
+		jump DoneFlagging always
+
+Flag:
+	op sub neededFlags maxUnits totalFlagged
+	op min neededFlags neededFlags totalFree
+	jump DoneFlagging lessThanEq neededFlags 0
+	
+	set usedFlag procId
+	set grabbedFlag 0
+	jump RunFlagLoop always
+
+Unflag:
+	op sub neededFlags totalFlagged maxUnits
+	jump DoneFlagging lessThanEq neededFlags 0
+	set usedFlag 0
+	set grabbedFlag procId
+
+RunFlagLoop:
+	set status FLAGGING
+	set flagged 0
+	set firstUnit null
+	FlagLoop:
+		ubind unitType
+		jump Start equal @unit null
+		sensor isDead @unit @dead
+		jump FlagLoop equal isDead true
+	
+		jump DoneFlagging equal firstUnit @unit
+		jump DoneFlagging greaterThanEq flagged neededFlags
+		jump FlagProcess notEqual firstUnit null
+		set firstUnit @unit
+	
+	FlagProcess:
+		sensor flag @unit @flag
+		jump FlagLoop equal flag usedFlag
+		op shr unitProcId flag extraBits
+		jump FlagLoop equal unitProcId usedFlag
+		jump FlagLoop notEqual flag grabbedFlag
+
+		ucontrol flag usedFlag
+		op add flagged flagged 1
+		jump FlagLoop always
+	
+DoneFlagging:
+	set status PROCESSING
+
+#################################################################
+# Start Processing
+#################################################################
+
+Start:
+CheckActive:
+	sensor active switch @enabled
+	jump Reset equal active false
+	jump Count notEqual lastActive active
+	set lastActive active
+	
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	sensor isDead @unit @dead
+	jump Start equal isDead true
+
+	sensor flag @unit @flag
+	op shr unitProcId flag extraBits
+	jump BindUnit notEqual unitProcId procId
+
+Process:
+	ucontrol within @thisx @thisy 10 isNear
+	jump Move equal isNear true
+	ucontrol approach @thisx @thisy 5
+	jump Start always
+
+	Move:
+		sensor x @unit @x
+		sensor y @unit @y
+		op add moveX x 12
+		op add moveY y 12
+		ucontrol move moveX moveY
+
+	jump Start always
+	
+Reset:
+	jump FlagStart equal status NONE
+	set lastActive active
+	jump ReleaseAll equal status RELEASING
+	set startTick @tick
+
+ReleaseAll:
+	# loop until release wait 
+	set status RELEASING
+	op sub elapsed @tick startTick
+	jump Start lessThan elapsed waitTicks
+
+	set firstUnit null
+
+	ReleaseLoop:
+		ubind unitType
+		jump FinishRelease equal @unit null
+		jump FinishRelease equal firstUnit @unit
+		jump ReleaseUnit notEqual firstUnit null
+		set firstUnit @unit
+	
+		ReleaseUnit:
+			sensor flag @unit @flag
+			jump ReleaseLoop notEqual flag procId
+			ucontrol flag 0
+			jump ReleaseLoop always
+
+	FinishRelease:
+		set countDone false
+		set status NONE
+		jump FlagStart always
