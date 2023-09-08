@@ -17,9 +17,10 @@ Initialize:
 	set NONE 0
 	set COUNTING 1
 	set FLAGGING 2
-	set PROCESSING 3
-	set STOPPING 4
-	set RELEASING 5
+	set UNFLAGGING 3
+	set PROCESSING 4
+	set STOPPING 5
+	set RELEASING 6
 
 #################################################################
 # Flagging 
@@ -33,8 +34,8 @@ FlagStart:
 Count:
 	set status COUNTING
 	set i 0
-	set flaggedCount 0
-	set freeCount 0
+	set flagged 0
+	set free 0
 	set firstUnit null
 	CountLoop:
 		ubind unitType
@@ -54,23 +55,22 @@ Count:
 		jump NextCount always
 		
 	CountFlagged:
-		op add flaggedCount flaggedCount 1
+		op add flagged flagged 1
 		jump NextCount always
 
 	CountFree:
-		op add freeCount freeCount 1
+		op add free free 1
 	
 	NextCount:
 		op add i i 1
 		jump CountLoop always
 
 	FinishCount:
-		set totalFlagged flaggedCount
-		set totalFree freeCount
+		set totalFlagged flagged
+		set totalFree free
 		set totalUnits i
 
 SelectFlagAction:
-	set status FLAGGING
 	jump Flag lessThan totalFlagged maxUnits
 	jump Unflag greaterThan totalFlagged maxUnits
 	jump DoneFlagging always
@@ -79,7 +79,8 @@ Flag:
 	op sub neededFlags maxUnits totalFlagged
 	op min neededFlags neededFlags totalFree
 	jump DoneFlagging lessThanEq neededFlags 0
-	
+
+	set status FLAGGING
 	set usedFlag procId
 	set grabbedFlag 0
 	jump RunFlagLoop always
@@ -87,6 +88,7 @@ Flag:
 Unflag:
 	op sub neededFlags totalFlagged maxUnits
 	jump DoneFlagging lessThanEq neededFlags 0
+	set status UNFLAGGING
 	set usedFlag 0
 	set grabbedFlag procId
 
