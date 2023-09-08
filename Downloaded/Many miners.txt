@@ -1,0 +1,264 @@
+print "many miner"
+Initialize:
+	set unitType @pulsar
+	set maxUnits 15
+	set quickSearch true
+	set maxWaitS 20
+	set maxDist 500
+	op mul maxWait maxWaitS 1000
+	sensor tx @this @x
+	sensor ty @this @y
+
+Start:
+	op add F_flagMul @counter 1
+	jump SetHardness always 
+
+Flagging:
+	set unitCount 0
+	set unitFlags 0
+	set unitFlags0 0
+	set diff null
+	set firstUnit null
+
+FlagBind:
+	ubind unitType
+	jump GetUnit equal @unit null
+
+	jump CheckEnd notEqual firstUnit null
+	set firstUnit @unit
+	jump Count always
+
+CheckEnd:
+	jump FinishCount equal @unit firstUnit
+
+Count:
+	op add unitCount unitCount 1
+	sensor uF @unit @flag
+CalcDistance:
+	sensor uX @unit @x
+	sensor uY @unit @y
+	op sub dy uY ty
+	op pow dy2 dy 2
+	op sub dx uX tx
+	op pow dx dx 2
+	op add dist dy2 dx2
+	op sqrt dist dist dx2
+	jump CheckAvailable notEqual uF setFlag
+	jump Unflag greaterThan dist maxDist
+	op add unitFlags unitFlags 1
+	jump FlagBind equal diff null
+	jump Start equal diff 0
+	jump FlagBind lessThan diff 0
+Unflag:
+	ucontrol flag 0 
+	jump FlagBind equal diff null
+	op sub diff diff 1
+	set debug "deflag"
+	jump Start equal diff 0
+	jump FlagBind always
+
+CheckAvailable:
+	jump FlagBind notEqual uF 0
+	jump FlagBind greaterThan dist maxDist
+	op add unitFlags0 unitFlags0 1
+	jump FlagBind equal diff null
+	jump Start equal diff 0
+	jump FlagBind greaterThan diff 0
+	ucontrol flag setFlag 
+	op add diff diff 1
+	jump Start equal diff 0
+	jump FlagBind always
+
+FinishCount:
+op min minUnits unitCount maxUnits
+op sub diff unitFlags minUnits
+jump CheckFlagDone greaterThan diff 0
+op abs diffAbs diff unitFlags0
+op greaterThanEq diffSig diff 0
+jump 61 notEqual diffSig 0
+set diffSig -1
+op min diff diffAbs unitFlags0
+op mul diff diff diffSig
+set diffCopy diff
+
+CheckFlagDone:
+	jump CheckEnd notEqual diff 0
+	set debug "diff always 0"
+	set @counter callBack
+
+SetHardness:
+	set hardness 1
+	jump 70 notEqual unitType @poly
+	set hardness 2
+	jump 72 notEqual unitType @pulsar
+	set hardness 2
+	jump 74 notEqual unitType @mega
+	set hardness 3
+	jump 76 notEqual unitType @quasar
+	set hardness 3
+jump 79 notEqual matX null
+set matX 0
+set matY 0
+op mul setFlag tx 1000
+op add setFlag setFlag ty
+set links @links
+jump 86 lessThanEq @links 1
+getlink core 1
+sensor cx core @x
+sensor cy core @y
+set lastMineMat mineMat
+sensor mineMat sorter1 @config
+jump 99 strictEqual mineMat null
+jump 99 strictEqual mineMat @copper
+jump 99 strictEqual mineMat @lead
+jump 99 strictEqual mineMat @sand
+jump 99 strictEqual mineMat @scrap
+jump 96 notEqual mineMat @coal
+jump 99 greaterThanEq hardness 2
+control config sorter1 @copper 0 0 0
+jump 98 notEqual mineMat @titanium
+jump 99 greaterThanEq hardness 3
+control config sorter1 @copper 0 0 0
+jump 101 notEqual lastMineMat null
+set lastMineMat mineMat
+jump 225 equal mineMat null
+jump 105 equal lastMineMat mineMat
+set matX 0
+set matY 0
+jump 107 notEqual mineMat @copper
+set floorOre @ore-copper
+jump 109 notEqual mineMat @sand
+set floorOre @darksand
+jump 111 notEqual mineMat @scrap
+set floorOre @ore-scrap
+jump 113 notEqual mineMat @lead
+set floorOre @ore-lead
+jump 115 notEqual mineMat @titanium
+set floorOre @ore-titanium
+jump 117 notEqual mineMat @coal
+set floorOre @ore-coal
+jump 193 notEqual matX 0
+op add callBack @counter 1
+set @counter F_flagMul
+
+StartMiningStuff:
+	set startT @time
+	jump 125 always 
+
+BindMiner:
+	ubind unitType
+	op sub dur @time startT
+	jump Start greaterThanEq dur maxWait
+	jump Start equal @unit null
+	sensor uF @unit @flag
+	jump BindMiner notEqual uF setFlag
+	jump ApproachCore greaterThanEq @links 2
+	ulocate building core false @copper cx cy found core
+
+ApproachThis:
+	set startT @time
+	MoveToThis:
+		ucontrol boost 1 ty 0 0 0
+		ucontrol move tx ty 0 0 0
+		ucontrol within tx ty 4 within 0
+		op sub dur @time startT
+		jump Start greaterThanEq dur maxWait
+		jump MoveToThis notEqual within 1
+
+	jump QuickSearch notEqual mineMat @sand
+	set quickSearch false
+QuickSearch:
+	jump 142 equal quickSearch false
+	ulocate ore core true mineMat matX matY found building
+	jump Start always
+
+SlowSearch:
+	set ring 1
+	op mul side ring 1
+	op mul side-1 side -1
+	set quad 1
+	op lessThanEq quadx quad 2
+	jump 149 notEqual quadx 0
+	set quadx -1
+	op strictEqual quady1 quad 1
+	op strictEqual quady2 quad 4
+	op or quady quady1 quady2
+	jump 154 notEqual quady 0
+set quady -1
+op mul dx ring quadx
+op mul dy ring quady
+op add searchX tx dx
+op add searchY ty dy
+ucontrol getBlock searchX searchY t b f
+jump 165 notEqual f floorOre
+jump 167 notEqual b null
+jump 167 equal t @solid
+set matX searchX
+set matY searchY
+jump 230 always mineMat @scrap
+jump 167 notEqual floorOre @darksand
+jump 160 equal f @sand-floor
+jump 172 notEqual quad 1
+op sub dy dy 1
+jump 156 greaterThanEq dy side-1
+op add quad quad 1
+jump 146 always dx side-1
+jump 177 notEqual quad 2
+op sub dx dx 1
+jump 156 greaterThanEq dx side-1
+op add quad quad 1
+jump 146 always dx side-1
+jump 182 notEqual quad 3
+op add dy dy 1
+jump 156 lessThanEq dy side
+op add quad quad 1
+jump 146 always dx side-1
+jump 230 notEqual quad 4
+op add dx dx 1
+jump 156 lessThanEq dx side
+op add ring ring 1
+sensor mineMat sorter1 @config
+jump 191 equal lastMineMat mineMat
+set matX 0
+set lastMineMat mineMat
+end
+jump 143 lessThanEq ring 18
+jump 230 strictEqual matX 0
+set startT @time
+ubind unitType
+jump 230 equal @unit null
+op sub dur @time startT
+jump 230 greaterThanEq dur maxWait
+sensor uFlag @unit @flag
+jump 194 notEqual uFlag setFlag
+sensor matHold @unit @firstItem
+jump 204 strictEqual mineMat matHold
+ucontrol itemDrop @air 100 0 0 0
+jump 207 always mineMat matHold
+sensor holdCount @unit @totalItems
+sensor holdMax @unit @itemCapacity
+jump 213 equal holdCount holdMax
+ucontrol within matX matY 8.75 within 0
+jump 211 equal within 1
+ucontrol boost 1 ty 0 0 0
+ucontrol approach matX matY 8.5 0 0
+ucontrol mine matX matY 0 0 0
+jump 230 always x false
+ucontrol within cx cy 5.6 within 0
+jump 217 equal within 1
+ucontrol boost 1 ty 0 0 0
+ucontrol approach cx cy 5.5 within 0
+ucontrol itemDrop core 100 0 0 0
+sensor held @unit @totalItems
+jump 224 notEqual held 0
+ucontrol within matX matY 8.75 within 0
+jump 211 equal within 1
+ucontrol boost 1 ty 0 0 0
+ucontrol approach matX matY 8.5 0 0
+jump 230 always x false
+set maxUnitsTemp maxUnits
+set maxUnits 0
+op add callBack @counter 1
+set @counter F_flagMul
+set maxUnits maxUnitsTemp
+end
