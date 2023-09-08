@@ -81,24 +81,7 @@ SelectAction:
 	jump Mine always
 
 DumpUnneeded:
-	ucontrol within coreX coreY miningRange isNearCore
-	jump DumpLoop equal isNearCore true
-	ucontrol approach coreX coreY miningRange
-	jump Start always
-
-	DumpLoop:
-		set startTick @tick
-		sensor carried @unit @totalItems
-		LoopUntilEmpty:
-			ucontrol itemDrop core carried
-			sensor carried @unit @totalItems
-			jump Start equal carried 0
-
-			# break loop if idling too long
-			op sub elapsed @tick startTick
-			jump Start greaterThan elapsed maxTick
-			jump LoopUntilEmpty greaterThan carried 0 
-	jump Start always
+	ucontrol itemDrop @air carried
 
 DropItems:
 	ucontrol within dropX dropY miningRange isNearDrop
