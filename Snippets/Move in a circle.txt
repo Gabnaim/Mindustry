@@ -1,0 +1,32 @@
+Initialize:
+	set radius 10
+	set originX @thisx
+	set originY @thisy
+
+	op add moveX originX radius
+	op add moveY originY radius
+
+Start:
+BindUnit:
+	ubind @poly
+	jump Start equal @unit null
+	
+CalcNext:
+	sensor unitX @unit @x
+	sensor unitY @unit @y
+	op sub diffX unitX originX
+	op sub diffY unitY originY
+	op angle angle diffX diffY
+	op add newAngle angle 30
+	op cos cosX newAngle
+	op sin sinY newAngle
+	op mul dX cosX radius
+	op mul dY sinY radius
+	op add moveX originX dX
+	op add moveY originY dY
+Move:
+	ucontrol move moveX moveY
+	jump Start always
+
+
+	
