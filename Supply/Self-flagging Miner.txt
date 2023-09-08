@@ -43,6 +43,7 @@ Initialize:
 			jump LinkLoop lessThan l @links
 		NotFound:
 			set error "No drop target is linked"
+			set status "ERROR"
 			jump GetDropTarget always
 		Found:
 			set dropTarget link
@@ -51,33 +52,23 @@ Initialize:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y
 
-
-	# statuses
-	set NONE 0
-	set COUNTING 1
-	set FLAGGING 2
-	set PROCESSING 3
-	set RELEASING 4
-	set ORENOTFOUND 5
+	set status "NONE"
+	set error ""
 
 #################################################################
 # Flagging 
-# 
-# Do only once at the beginning
 #################################################################
 
 FlagStart:
 	sensor active switch @enabled
 	jump Reset equal active false
-	jump FlagStart notEqual lastActive active
 	set lastActive active
 	
-	
 Count:
-	set status COUNTING
+	set status "COUNTING"
 	set i 0
-	set flaggedCount 0
-	set freeCount 0
+	set flagged 0
+	set free 0
 	set firstUnit null
 	CountLoop:
 		ubind unitType
@@ -107,10 +98,9 @@ Count:
 		jump CountLoop always
 
 	FinishCount:
-		set totalFlagged flaggedCount
-		set totalFree freeCount
+		set totalFlagged flagged
+		set totalFree free
 		set totalUnits i
-		set countDone true
 
 SelectFlagAction:
 	jump Flag lessThan totalFlagged maxUnits
@@ -121,7 +111,8 @@ Flag:
 	op sub neededFlags maxUnits totalFlagged
 	op min neededFlags neededFlags totalFree
 	jump DoneFlagging lessThanEq neededFlags 0
-	
+
+	set status "FLAGGING"
 	set usedFlag procId
 	set grabbedFlag 0
 	jump RunFlagLoop always
@@ -129,11 +120,11 @@ Flag:
 Unflag:
 	op sub neededFlags totalFlagged maxUnits
 	jump DoneFlagging lessThanEq neededFlags 0
+	set status "UNFLAGGING"
 	set usedFlag 0
 	set grabbedFlag procId
 
 RunFlagLoop:
-	set status FLAGGING
 	set flagged 0
 	set firstUnit null
 	FlagLoop:
@@ -157,7 +148,7 @@ RunFlagLoop:
 		jump FlagLoop always
 	
 DoneFlagging:
-	set status PROCESSING
+	set status "PROCESSING"
 
 #################################################################
 # Start Processing
@@ -166,9 +157,12 @@ DoneFlagging:
 Start:
 CheckActive:
 	sensor active switch @enabled
-	jump Reset equal active false
-	jump FlagStart notEqual lastActive active
+	jump StartOver notEqual lastActive active
+	jump BindUnit equal active true
+
+StartOver:
 	set lastActive active
+	jump FlagStart always
 	
 BindUnit:
 	ubind unitType
@@ -247,7 +241,7 @@ FinishGroup:
 	set i 0
 	set flagged 0
 	set free 0
-	set countDone true
+	set firstUnit null
 	jump SelectFlagAction notEqual maxUnits totalFlagged
 	jump Start always
 
@@ -264,19 +258,46 @@ FindOre:
 
 	NoOre:
 		set error "No ore found near the drop target"
-		set status ORENOTFOUND
+		
+Error:
+	set status "ERROR"
+	control enabled switch false
+	jump FlagStart always
 
 Reset:
-	jump FlagStart equal status NONE
+	jump FlagStart equal status "NONE"
+	jump FlagStart equal status "ERROR"
 	set lastActive active
-	jump ReleaseAll equal status RELEASING
+	jump ReleaseAll equal status "RELEASING"
 	set startTick @tick
+
+StopAll:
+	set status "STOPPING"
+
+	set firstUnit null
+	StopLoop:
+		ubind unitType
+		jump AllStopped equal @unit firstUnit
+		sensor flag @unit @flag
+		jump StopLoop notEqual flag procId
+
+		jump StopUnit notEqual firstUnit null
+		set firstUnit @unit
+		
+		StopUnit:
+			ucontrol stop
+			ucontrol unbind
+		jump StopLoop always
+		
+	AllStopped:
+		set status "RELEASING"
+		jump FlagStart always
 
 ReleaseAll:
 	# loop until release wait 
-	set status RELEASING
+	set status "RELEASING"
 	op sub elapsed @tick startTick
-	jump Start lessThan elapsed releaseTicks
+	jump FlagStart lessThan elapsed releaseTicks
 
 	set firstUnit null
 
@@ -294,6 +315,5 @@ ReleaseAll:
 			jump ReleaseLoop always
 
 	FinishRelease:
-		set countDone false
-		set status NONE
+		set status "NONE"
 		jump FlagStart always

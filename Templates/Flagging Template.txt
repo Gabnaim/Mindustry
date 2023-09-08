@@ -13,14 +13,8 @@ Initialize:
 
 	op mul waitTicks releaseSecs 60
 
-	# statuses
-	set NONE 0
-	set COUNTING 1
-	set FLAGGING 2
-	set UNFLAGGING 3
-	set PROCESSING 4
-	set STOPPING 5
-	set RELEASING 6
+	set status "NONE"
+	set error ""
 
 #################################################################
 # Flagging 
@@ -32,7 +26,7 @@ FlagStart:
 	set lastActive active
 	
 Count:
-	set status COUNTING
+	set status "COUNTING"
 	set i 0
 	set flagged 0
 	set free 0
@@ -80,7 +74,7 @@ Flag:
 	op min neededFlags neededFlags totalFree
 	jump DoneFlagging lessThanEq neededFlags 0
 
-	set status FLAGGING
+	set status "FLAGGING"
 	set usedFlag procId
 	set grabbedFlag 0
 	jump RunFlagLoop always
@@ -88,7 +82,7 @@ Flag:
 Unflag:
 	op sub neededFlags totalFlagged maxUnits
 	jump DoneFlagging lessThanEq neededFlags 0
-	set status UNFLAGGING
+	set status "UNFLAGGING"
 	set usedFlag 0
 	set grabbedFlag procId
 
@@ -118,7 +112,7 @@ RunFlagLoop:
 		jump FlagLoop always
 	
 DoneFlagging:
-	set status PROCESSING
+	set status "PROCESSING"
 
 #################################################################
 # Start Processing
@@ -185,15 +179,25 @@ FinishGroup:
 	set firstUnit null
 	jump SelectFlagAction notEqual maxUnits totalFlagged
 	jump Start always
+
+# example error handler, for example if no ore is found
+ErrorHandler:
+	set error "your error message"
+	jump Error always
+
+Error:
+	set status "ERROR"
+	control enabled switch false
+	jump FlagStart always
 	
 Reset:
-	jump FlagStart equal status NONE
+	jump FlagStart equal status "NONE"
 	set lastActive active
-	jump ReleaseAll equal status RELEASING
+	jump ReleaseAll equal status "RELEASING"
 	set startTick @tick
 
 StopAll:
-	set status STOPPING
+	set status "STOPPING"
 
 	set firstUnit null
 	StopLoop:
@@ -212,12 +216,12 @@ StopAll:
 		jump StopLoop always
 		
 	AllStopped:
-		set status RELEASING
+		set status "RELEASING"
 		jump FlagStart always
 	
 ReleaseAll:
 	# loop until release wait 
-	set status RELEASING
+	set status "RELEASING"
 	op sub elapsed @tick startTick
 	jump FlagStart lessThan elapsed waitTicks
 
@@ -238,5 +242,5 @@ ReleaseAll:
 			jump ReleaseLoop always
 
 	FinishRelease:
-		set status NONE
+		set status "NONE"
 		jump FlagStart always
