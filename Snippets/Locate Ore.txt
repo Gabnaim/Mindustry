@@ -1,6 +1,6 @@
 Initialize:
 	set unitType @poly
-	set minedOre @scrap
+	set minedOre @sand
 
 GetSwitch:
 		set switch switch1
@@ -9,35 +9,19 @@ GetSwitch:
 GetStartInfo:
 	ubind unitType
 	jump GetStartInfo equal @unit null
+	sensor flag @unit @flag
+	jump GetStartInfo notEqual flag 0
 
-GetDropTarget:
-		set l 0
-		LinkLoop:
-			getlink link l
-			sensor type link @type
-			jump Found equal type @container
-			jump Found equal type @vault
-		NextLink:
-			op add l l 1
-			jump LinkLoop lessThan l @links
-		NotFound:
-			set error "No drop target is linked"
-			jump GetDropTarget always
-		Found:
-			set error ""
-			set dropTarget link
-	
-	GetDropCoords:
-		sensor dropX dropTarget @x
-		sensor dropY dropTarget @y
+	set originX @thisx
+	set originY @thisy
 
 Start:
 	jump End equal oreFound true
 	
 FindOre:
-	ucontrol within dropX dropY 1 isNearDrop
+	ucontrol within originX originY 1 isNearDrop
 	jump LocateOre equal isNearDrop true
-	ucontrol approach dropX dropY 1
+	ucontrol approach originX originY 1
 	jump FindOre always
 
 	LocateOre:
@@ -45,8 +29,9 @@ FindOre:
 		jump End equal oreFound true
 
 	NoOre:
-		set error "No ore found near the drop target"
+		set error "No ore found"
 
 End:
+	ucontrol move oreX oreY
 	set finished true
 	jump End always
