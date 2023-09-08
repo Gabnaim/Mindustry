@@ -82,6 +82,7 @@ SelectAction:
 
 DumpUnneeded:
 	ucontrol itemDrop @air carried
+	jump Start always
 
 DropItems:
 	ucontrol within dropX dropY miningRange isNearDrop
