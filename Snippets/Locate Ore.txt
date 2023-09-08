@@ -1,15 +1,18 @@
 Initialize:
 	set unitType @poly
 	set minedOre @sand
+	set miningDistance 7
+	op mul nearDistance miningDistance 2
 
 GetSwitch:
-		set switch switch1
-		jump GetSwitch equal switch null
+	set switch switch1
+	jump GetSwitch equal switch null
 
 GetStartInfo:
 	ubind unitType
 	jump GetStartInfo equal @unit null
 	sensor flag @unit @flag
+	sensor range @unit @range
 	jump GetStartInfo notEqual flag 0
 
 	set originX @thisx
@@ -25,12 +28,25 @@ FindOre:
 	jump FindOre always
 
 	LocateOre:
+		ucontrol getBlock @thisx @thisy type building floor
 		ulocate ore core true minedOre oreX oreY oreFound oreMine
-		jump End equal oreFound true
+		jump NoOre equal oreFound false
 
-	NoOre:
-		set error "No ore found"
+CheckDistance:
+	op sub diffX oreX originX
+	op sub diffY oreY originY
+	op len distance diffX diffY
+	jump End lessThanEq distance nearDistance
+	# if too far, we won't get much better results with a manual search
+	jump End greaterThanEq distance 30
 
+	set error "ore outside of desirable range"
+	jump Error always
+
+NoOre:
+	set error "No ore found"
+Error:
+	set status "ERROR"
 End:
 	ucontrol move oreX oreY
 	set finished true
