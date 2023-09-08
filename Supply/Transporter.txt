@@ -124,8 +124,12 @@ SelectAction:
 	sensor carriedItem @unit firstItem
 	jump DropItems equal carried cap
 	jump Pickup equal carried 0
-	jump DropItems notEqual carriedItem material
+	jump DumpItems notEqual carriedItem material
 	jump Pickup always 
+
+DumpItems:
+	ucontrol itemDrop @air carried
+	jump Pickup always
 	
 DropItems:
 	ucontrol within dropX dropY dropRange isNearDrop
