@@ -1,20 +1,20 @@
 Initialize:
 	set maxUnits 8
 	set unitType @mono
-	set baseType @mono
-	set t2Type @poly
-	set t3type @mega
 
 GetStaticLinks:
 	set factory factory1
 	jump GetStaticLinks equal factory null
 
-	# We should also count units in the conveyors and
-	# reconstructors. Take off 1 for the factory
+	sensor id unitType @id
+	op mod tier id 5
+	op sub baseId id tier
+	lookup unit baseType baseId
+
+Start:	
 	op sub unitHolders @links 1
 	op sub checkLinksAt maxUnits unitHolders
 
-Start:	
 Bind:
 	ubind unitType
 	jump Start equal @unit null
@@ -35,18 +35,17 @@ CheckLinks:
 
 	LinkLoop:
 		getlink building i
-		sensor unitsBuilt building @payloadCount
-		jump NextLink equal unitsBuilt 0
+		sensor payloadCount building @payloadCount
+		jump NextLink equal payloadCount 0
 		sensor payloadType building @payloadType
+		sensor payloadId payloadType @id
 		
 		CheckType:
-			jump AddBuiltUnit equal payloadType baseType
-			jump AddBuiltUnit equal payloadType t2Type
-			jump AddBuiltUnit equal payloadType t3Type
-			jump NextLink always
+			jump NextLink greaterThan payloadId id
+			jump NextLink lessThan payloadId baseId
 
 		AddBuiltUnit:
-			op add builtUnits builtUnits unitsBuilt
+			op add builtUnits builtUnits payloadCount
 
 		NextLink:
 			op add i i 1
@@ -59,7 +58,7 @@ CheckLinks:
 MaxReached:
 	# Setting the config to null or 0 does not clear it,
 	# but using a t2 unit does
-	control config factory t2Type
+	control config factory @poly
 
 FinishCount:
 	op add totalCount unitCount builtUnits
