@@ -64,6 +64,7 @@ Start:
 CheckActive:
 	sensor active switch @enabled
 	jump Reset equal active false
+	jump SelectAction equal status "IDLE"
 	set status "MINING"
 
 BindUnit:
@@ -87,7 +88,7 @@ SelectAction:
 
 DumpUnneeded:
 	ucontrol itemDrop @air carried
-	jump Start always
+	jump Mine always
 
 DropItems:
 	ucontrol within dropX dropY miningRange isNearDrop
@@ -124,6 +125,7 @@ FindOre:
 	GoToDrop:
 		ucontrol within dropX dropY 1 isNearDrop
 		jump LocateOre equal isNearDrop true
+		ucontrol boost true
 		ucontrol approach dropX dropY 1
 		jump GoToDrop always
 	
