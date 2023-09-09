@@ -1,13 +1,13 @@
 Initialize:
+	set status "INITIALIZE"
 	set unitType @poly
-	set minedOre @sand
 	set miningDistance 7
-	op mul nearDistance miningDistance 2
+	set maxSearchDistance 40
 
-GetSwitch:
-	set switch switch1
-	jump GetSwitch equal switch null
-
+GetSorter:
+	set sorter sorter1
+	jump GetSorter equal sorter null
+	
 GetStartInfo:
 	ubind unitType
 	jump GetStartInfo equal @unit null
@@ -15,39 +15,192 @@ GetStartInfo:
 	sensor range @unit @range
 	jump GetStartInfo notEqual flag 0
 
+	op mul nearDistance miningDistance 2
+
 	set originX @thisx
 	set originY @thisy
 
+	set status "START"
+	ser error " "
+
 Start:
-	jump End equal oreFound true
+	print status
+	print " "
+	print error
+	printflush message1
+
+ReadOre:
+	sensor minedOre sorter @config
+	jump Reset notEqual minedOre lastOre
+	jump Reset equal minedOre null
+	sensor id minedOre @id
+	jump CannotMine greaterThan id 9
+	jump Start equal status "ERROR"
+	jump Start equal status "FOUND"
 	
-FindOre:
+QuickSearch:
+	set status "QUICKSEARCH"
+GoToDrop:
 	ucontrol within originX originY 1 isNearDrop
 	jump LocateOre equal isNearDrop true
 	ucontrol approach originX originY 1
-	jump FindOre always
+	jump GoToDrop always
 
 	LocateOre:
 		ucontrol getBlock @thisx @thisy type building floor
 		ulocate ore core true minedOre oreX oreY oreFound oreMine
 		jump NoOre equal oreFound false
 
-CheckDistance:
-	op sub diffX oreX originX
-	op sub diffY oreY originY
-	op len distance diffX diffY
-	jump End lessThanEq distance nearDistance
-	# if too far, we won't get much better results with a manual search
-	jump End greaterThanEq distance 30
+	CheckDistance:
+		op sub diffX oreX originX
+		op sub diffY oreY originY
+		op len distance diffX diffY
+		jump FoundOre lessThanEq distance nearDistance
+		# if too far, we won't get much better results with a manual search
+		jump FoundOre greaterThanEq distance maxSearchDistance
+		op min maxDistance maxSearchDistance distance
+	
+GetMinedFloor:
+	set status "GETMINEDFLOOR"
+	op mul offset id 2
+	op add offset offset 1
+	op add jump @counter offset
+	set @counter jump
 
-	set error "ore outside of desirable range"
+	set minedFloor @ore-copper
+	jump SlowSearch always
+	set minedFloor @ore-lead
+	jump SlowSearch always
+	set error "Cannot mine ore"
 	jump Error always
+	set error "Cannot mine ore"
+	jump Error always
+	set minedFloor @sand-floor
+	jump SlowSearch always
+	set minedFloor @ore-coal
+	jump SlowSearch always
+	set minedFloor @ore-titanium
+	jump SlowSearch always
+	set error "Cannot mine ore"
+	jump Error always
+	set minedFloor @ore-scrap
+	jump SlowSearch always
+
+	CannotMine:
+		set error "Cannot mine ore"
+		jump Error always
+	
+# Searches in rings (really squares) outward. 
+# Searches each side from middle to the corners.
+# search order: 0: bottom, 1: top, 2: left, 3: right
+
+
+SlowSearch:
+	set status "SLOWSEARCH"
+	set ring 1
+	RingLoop:
+		SearchSide:
+			set step 0
+			SelectSide:
+				jump Bottom equal side 0
+				jump Top equal side 1
+				jump Left equal side 2
+				jump Right equal side 3
+
+				set error "Square should have four sides"
+				set errorData side
+				jump Error akways
+
+			Bottom:
+				set moveY false
+				set moveX true
+				set x originX
+				op sub y originY ring
+				jump SideLoop always
+
+			Top:
+				set moveY false
+				set moveX true
+				set x originX
+				op add y originY ring
+				jump SideLoop always
+
+			Left:
+				set moveX false
+				set moveY true
+				op sub x originX ring
+				set y originY
+				jump SideLoop always
+
+			Right:
+				set moveX false
+				set moveY true
+				op add x originX ring
+				set y originY
+				jump SideLoop always
+				
+			SideLoop:
+				CheckBlock:
+					ucontrol move x y
+					ucontrol getBlock x y type building floor
+					jump NextStep notEqual type @air
+					jump FoundSlow equal minedFloor floor
+					jump NextStep notEqual minedOre @sand
+					CheckSand:
+						jump FoundSlow equal floor @darksand
+
+				NextStep:
+					jump FlipStep lessThan step 0
+					op add step step 1
+					jump NextRing greaterThan step ring
+					jump SideLoop always
+					
+				FlipStep:
+					jump GoBack equal step 0
+					op mul step step -1
+					jump AddStep always
+					GoBack:
+						set step -1
+				AddStep:
+					jump AddY equal moveX false
+					AddX:
+						op add x x step 
+					jump SideLoop equal moveY false
+					AddY:
+						op add y y step
+					jump SideLoop always
+					
+			NextSide:
+				op add side side 1
+				jump SearchSide lessThan side 4
+
+	NextRing:
+		op add ring ring 1
+		jump RingLoop lessThan ring maxDistance
+	
+	jump FoundOre equal oreFound true
 
 NoOre:
 	set error "No ore found"
+
 Error:
 	set status "ERROR"
-End:
+	jump Start always
+
+FoundSlow:
+	set oreX x
+	set oreY y
+
+FoundOre:
 	ucontrol move oreX oreY
+	set status "FOUND"
 	set finished true
-	jump End always
+	jump Start always
+
+Reset:
+	set lastOre minedOre
+	set oreFound false
+	set status "IDLE"
+	jump Start always
+
+
