@@ -101,9 +101,9 @@ SlowSearch:
 	set status "SLOWSEARCH"
 	set ring 1
 	RingLoop:
-		SearchSide:
-			set step 0
+		SearchSquare:
 			SelectSide:
+				set step 0
 				jump Bottom equal side 0
 				jump Top equal side 1
 				jump Left equal side 2
@@ -114,65 +114,56 @@ SlowSearch:
 				jump Error akways
 
 			Bottom:
-				set moveY false
-				set moveX true
 				set x originX
 				op sub y originY ring
-				jump SideLoop always
+				jump SearchHorizontalSide always
 
 			Top:
-				set moveY false
-				set moveX true
 				set x originX
 				op add y originY ring
-				jump SideLoop always
+				jump SearchHorizontalSide always
 
 			Left:
-				set moveX false
-				set moveY true
 				op sub x originX ring
 				set y originY
-				jump SideLoop always
+				jump SearchVerticalSide always
 
 			Right:
-				set moveX false
-				set moveY true
 				op add x originX ring
 				set y originY
-				jump SideLoop always
-				
-			SideLoop:
-				AddStep:
-					jump AddY equal moveX false
-					AddX:
-						op add x originX step 
-					jump CheckBlock equal moveY false
-					AddY:
-						op add y originY step
-				CheckBlock:
-					#ucontrol move x y
-					#wait 0.1
-					ucontrol getBlock x y type building floor
-					jump NextStep notEqual type @air
-					jump FoundSlow equal minedFloor floor
-					jump NextStep notEqual minedOre @sand
-					CheckSand:
-						jump FoundSlow equal floor @darksand
+				jump SearchVerticalSide always
 
-				NextStep:
-					jump GoBack equal step 0
-					jump FlipStep lessThan step 0
-					op add step step 1
+			SearchHorizontalSide:
+				HSideLoop:
 					jump NextSide greaterThan step ring
-				FlipStep:
-					op mul step step -1
-					jump SideLoop always
-				GoBack:
-					set step -1
-					jump SideLoop always
+
+					op add x originX step 
+					op add searchSideReturn @counter 1
+					jump SearchSide always
+
+					op sub x originX step 
+					op add searchSideReturn @counter 1
+					jump SearchSide always
+
+					jump HSideLoop always
+
+			SearchVerticalSide:
+				VSideLoop:
+					jump NextSide greaterThan step ring
+
+					op add y originY step 
+					op add searchSideReturn @counter 1
+					jump SearchSide always
+
+					op sub y originY step 
+					op add searchSideReturn @counter 1
+					jump SearchSide always
+
+					jump VSideLoop always
+			
 			NextSide:
 				op add side side 1
-				jump SearchSide lessThan side 4
+				jump SearchSquare lessThan side 4
 
 	NextRing:
 		op add ring ring 1
@@ -205,4 +196,25 @@ Reset:
 	set status "IDLE"
 	jump Start always
 
+SearchSide:
+	op add checkBlockReturn @counter 1
+	jump CheckBlock always
+
+	NextStep:
+		op add step step 1
+
+	SearchSideEnd:
+		set @counter searchSideReturn
+
+CheckBlock:
+	ucontrol move x y
+	ucontrol getBlock x y type building floor
+	jump CheckBlockEnd notEqual type @air
+	jump FoundSlow equal minedFloor floor
+	jump CheckBlockEnd notEqual minedOre @sand
+	CheckSand:
+		jump FoundSlow equal floor @darksand
+	CheckBlockEnd:
+		set @counter checkBlockReturn
+	
 
