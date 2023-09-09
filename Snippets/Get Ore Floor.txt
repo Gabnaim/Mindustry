@@ -1,0 +1,46 @@
+Initialize:
+	set sorter sorter1
+	sensor minedOre sorter @config
+	jump CannotMine equal minedOre null
+
+GetMinedFloor:
+	sensor id minedOre @id
+	jump CannotMine greaterThan id 9
+	op mul offset id 2
+	op add offset offset 1
+	op add jump @counter offset
+	set @counter jump
+
+	set minedFloor @ore-copper
+	jump SlowSearch always
+	set minedFloor @ore-lead
+	jump SlowSearch always
+	set error "Cannot mine ore"
+	jump Error always
+	set error "Cannot mine ore"
+	jump Error always
+	set minedFloor @sand-floor
+	jump SlowSearch always
+	set minedFloor @ore-coal
+	jump SlowSearch always
+	set minedFloor @ore-titanium
+	jump SlowSearch always
+	set error "Cannot mine ore"
+	jump Error always
+	set minedFloor @ore-scrap
+	jump SlowSearch always
+
+CannotMine:
+	set error "Cannot mine ore"
+	jump Error always
+	
+SlowSearch:
+	print minedFloor
+	printflush message1
+	end
+
+Error:
+	set status "ERROR"
+	print error
+	printflush message1
+	end
