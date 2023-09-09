@@ -19,6 +19,8 @@ GetStartInfo:
 
 	set originX @thisx
 	set originY @thisy
+	set x originX
+	set y originY
 
 	set status "START"
 	ser error " "
@@ -140,8 +142,16 @@ SlowSearch:
 				jump SideLoop always
 				
 			SideLoop:
+				AddStep:
+					jump AddY equal moveX false
+					AddX:
+						op add x originX step 
+					jump CheckBlock equal moveY false
+					AddY:
+						op add y originY step
 				CheckBlock:
-					ucontrol move x y
+					#ucontrol move x y
+					#wait 0.1
 					ucontrol getBlock x y type building floor
 					jump NextStep notEqual type @air
 					jump FoundSlow equal minedFloor floor
@@ -150,32 +160,24 @@ SlowSearch:
 						jump FoundSlow equal floor @darksand
 
 				NextStep:
+					jump GoBack equal step 0
 					jump FlipStep lessThan step 0
 					op add step step 1
-					jump NextRing greaterThan step ring
-					jump SideLoop always
-					
+					jump NextSide greaterThan step ring
 				FlipStep:
-					jump GoBack equal step 0
 					op mul step step -1
-					jump AddStep always
-					GoBack:
-						set step -1
-				AddStep:
-					jump AddY equal moveX false
-					AddX:
-						op add x x step 
-					jump SideLoop equal moveY false
-					AddY:
-						op add y y step
 					jump SideLoop always
-					
+				GoBack:
+					set step -1
+					jump SideLoop always
 			NextSide:
 				op add side side 1
 				jump SearchSide lessThan side 4
 
 	NextRing:
 		op add ring ring 1
+		set side 0
+		set step 0
 		jump RingLoop lessThan ring maxDistance
 	
 	jump FoundOre equal oreFound true
