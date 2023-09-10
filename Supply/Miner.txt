@@ -1,5 +1,5 @@
 Initialize:
-	set unitType @poly
+	set unitType @pulsar
 	set useFlagger true
 
 	set miningRange 8.75
@@ -29,7 +29,12 @@ Initialize:
 		jump GetStartInfo equal @unit null
 		sensor flag @unit @flag
 		jump GetStartInfo notEqual flag usedFlag
+
 		sensor cap @unit @itemCapacity
+		sensor range @unit @range
+		op sub range range 1
+		op min dropRange dropRange range
+
 		ulocate building core false 0 coreX coreY coreFound core
 
 	GetDropTarget:
