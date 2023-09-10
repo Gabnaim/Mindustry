@@ -1,0 +1,15 @@
+# in initialize section:
+# set to null to skip debugging
+	set debugSorter sorter1
+
+# turn on switch and wait until user turns it off
+# in code you want the breakpoint:
+BreakPoint:
+	sensor choice debugSorter @config
+	jump BreakPointEnd notEqual choice @plastanium
+	control config debugSorter @blast-compound
+	WaitUntilTurnedOff:
+		sensor choice debugSorter @config
+		jump WaitUntilTurnedOff equal choice @blast-compound
+	
+BreakPointEnd:

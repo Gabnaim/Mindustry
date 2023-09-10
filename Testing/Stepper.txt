@@ -1,0 +1,24 @@
+Initialize:
+	set waitSecs 3
+	GetLinks:
+		set switch switch1
+		jump GetLinks equal switch null
+		set proc processor1
+		jump GetLinks equal proc null
+
+Start:
+CheckActive:
+	sensor active switch @enabled
+	jump Step equal active true
+
+LetRun:
+	control enabled proc true
+	jump Start always	
+
+Step:
+	control enabled proc true
+	control enabled proc false
+	wait waitSecs
+	jump Start always
+
+	
