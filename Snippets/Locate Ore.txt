@@ -3,8 +3,9 @@ Initialize:
 	set unitType @poly
 	set miningDistance 7
 	set maxSearchDistance 40
+	set alwaysSlow true
 
-GetSorter:
+GetSorter: 
 	set sorter sorter1
 	jump GetSorter equal sorter null
 	
@@ -16,6 +17,7 @@ GetStartInfo:
 	jump GetStartInfo notEqual flag 0
 
 	op mul nearDistance miningDistance 2
+	set maxDistance maxSearchDistance
 
 	set originX @thisx
 	set originY @thisy
@@ -30,6 +32,7 @@ Start:
 	print " "
 	print error
 	printflush message1
+	set debugSorter sorter2
 
 ReadOre:
 	sensor minedOre sorter @config
@@ -49,9 +52,12 @@ GoToDrop:
 	jump GoToDrop always
 
 	LocateOre:
-		ucontrol getBlock @thisx @thisy type building floor
+		ucontrol getBlock @thisx @thisy type building procFloor
 		ulocate ore core true minedOre oreX oreY oreFound oreMine
+		set locateX oreX
+		set locateY oreY
 		jump NoOre equal oreFound false
+		jump GetMinedFloor equal alwaysSlow true
 
 	CheckDistance:
 		op sub diffX oreX originX
@@ -61,7 +67,7 @@ GoToDrop:
 		# if too far, we won't get much better results with a manual search
 		jump FoundOre greaterThanEq distance maxSearchDistance
 		op min maxDistance maxSearchDistance distance
-	
+
 GetMinedFloor:
 	set status "GETMINEDFLOOR"
 	op mul offset id 2
@@ -91,17 +97,20 @@ GetMinedFloor:
 	CannotMine:
 		set error "Cannot mine ore"
 		jump Error always
-	
+
 # Searches in rings (really squares) outward. 
 # Searches each side from middle to the corners.
 # search order: 0: bottom, 1: top, 2: left, 3: right
-
-
 SlowSearch:
+	set startTime @time
 	set status "SLOWSEARCH"
 	set ring 1
 	RingLoop:
 		SearchSquare:
+		ReadOre:
+			sensor minedOre sorter @config
+			jump Reset notEqual minedOre lastOre
+
 			SelectSide:
 				set step 0
 				jump Bottom equal side 0
@@ -111,7 +120,7 @@ SlowSearch:
 
 				set error "Square should have four sides"
 				set errorData side
-				jump Error akways
+				jump Error always
 
 			Bottom:
 				set x originX
@@ -145,6 +154,7 @@ SlowSearch:
 					op add searchSideReturn @counter 1
 					jump SearchSide always
 
+					op add step step 1
 					jump HSideLoop always
 
 			SearchVerticalSide:
@@ -159,6 +169,7 @@ SlowSearch:
 					op add searchSideReturn @counter 1
 					jump SearchSide always
 
+					op add step step 1
 					jump VSideLoop always
 			
 			NextSide:
@@ -168,7 +179,6 @@ SlowSearch:
 	NextRing:
 		op add ring ring 1
 		set side 0
-		set step 0
 		jump RingLoop lessThan ring maxDistance
 	
 	jump FoundOre equal oreFound true
@@ -187,7 +197,8 @@ FoundSlow:
 FoundOre:
 	ucontrol move oreX oreY
 	set status "FOUND"
-	set finished true
+	set endTime @time
+	op sub elapsed endTime startTime
 	jump Start always
 
 Reset:
@@ -197,24 +208,17 @@ Reset:
 	jump Start always
 
 SearchSide:
-	op add checkBlockReturn @counter 1
-	jump CheckBlock always
-
-	NextStep:
-		op add step step 1
+	CheckBlock:
+		ucontrol getBlock x y type building floor
+		jump CheckBlockEnd notEqual type @air
+		jump FoundSlow equal minedFloor floor
+		jump CheckBlockEnd notEqual minedOre @sand
+		CheckSand:
+			jump FoundSlow equal floor @darksand
+		CheckBlockEnd:
 
 	SearchSideEnd:
 		set @counter searchSideReturn
 
-CheckBlock:
-	ucontrol move x y
-	ucontrol getBlock x y type building floor
-	jump CheckBlockEnd notEqual type @air
-	jump FoundSlow equal minedFloor floor
-	jump CheckBlockEnd notEqual minedOre @sand
-	CheckSand:
-		jump FoundSlow equal floor @darksand
-	CheckBlockEnd:
-		set @counter checkBlockReturn
-	
+
 

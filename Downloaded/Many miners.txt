@@ -101,13 +101,15 @@ set matX 0
 set matY 0
 op mul setFlag tx 1000
 op add setFlag setFlag ty
-set links @links
-jump 86 lessThanEq @links 1
-getlink core 1
-sensor cx core @x
-sensor cy core @y
-set lastMineMat mineMat
-sensor mineMat sorter1 @config
+
+GetInputs:
+	set links @links
+	jump 86 lessThanEq @links 1
+	getlink core 1
+	sensor cx core @x
+	sensor cy core @y
+	set lastMineMat mineMat
+	sensor mineMat sorter1 @config
 jump 99 strictEqual mineMat null
 jump 99 strictEqual mineMat @copper
 jump 99 strictEqual mineMat @lead
@@ -125,22 +127,23 @@ jump 225 equal mineMat null
 jump 105 equal lastMineMat mineMat
 set matX 0
 set matY 0
-jump 107 notEqual mineMat @copper
-set floorOre @ore-copper
-jump 109 notEqual mineMat @sand
-set floorOre @darksand
-jump 111 notEqual mineMat @scrap
-set floorOre @ore-scrap
-jump 113 notEqual mineMat @lead
-set floorOre @ore-lead
-jump 115 notEqual mineMat @titanium
-set floorOre @ore-titanium
-jump 117 notEqual mineMat @coal
-set floorOre @ore-coal
-jump 193 notEqual matX 0
-op add callBack @counter 1
-set @counter F_flagMul
-
+GetFloorOre:
+	jump 107 notEqual mineMat @copper
+	set floorOre @ore-copper
+	jump 109 notEqual mineMat @sand
+	set floorOre @darksand
+	jump 111 notEqual mineMat @scrap
+	set floorOre @ore-scrap
+	jump 113 notEqual mineMat @lead
+	set floorOre @ore-lead
+	jump 115 notEqual mineMat @titanium
+	set floorOre @ore-titanium
+	jump 117 notEqual mineMat @coal
+	set floorOre @ore-coal
+	jump 193 notEqual matX 0
+	op add callBack @counter 1
+	set @counter F_flagMul
+	
 StartMiningStuff:
 	set startT @time
 	jump 125 always 
@@ -189,15 +192,17 @@ op mul dx ring quadx
 op mul dy ring quady
 op add searchX tx dx
 op add searchY ty dy
-ucontrol getBlock searchX searchY t b f
-jump 165 notEqual f floorOre
-jump 167 notEqual b null
-jump 167 equal t @solid
-set matX searchX
-set matY searchY
-jump 230 always mineMat @scrap
-jump 167 notEqual floorOre @darksand
-jump 160 equal f @sand-floor
+CheckBlock:
+	ucontrol getBlock searchX searchY t b f
+	jump 165 notEqual f floorOre
+	jump 167 notEqual b null
+	jump 167 equal t @solid
+	set matX searchX
+	set matY searchY
+	jump Start always
+	jump 167 notEqual floorOre @darksand
+	jump 160 equal f @sand-floor
+
 jump 172 notEqual quad 1
 op sub dy dy 1
 jump 156 greaterThanEq dy side-1
@@ -213,7 +218,7 @@ op add dy dy 1
 jump 156 lessThanEq dy side
 op add quad quad 1
 jump 146 always dx side-1
-jump 230 notEqual quad 4
+jump Start notEqual quad 4
 op add dx dx 1
 jump 156 lessThanEq dx side
 op add ring ring 1
@@ -223,42 +228,55 @@ set matX 0
 set lastMineMat mineMat
 end
 jump 143 lessThanEq ring 18
-jump 230 strictEqual matX 0
+
+jump End strictEqual matX 0
+
 set startT @time
-ubind unitType
-jump 230 equal @unit null
-op sub dur @time startT
-jump 230 greaterThanEq dur maxWait
-sensor uFlag @unit @flag
-jump 194 notEqual uFlag setFlag
-sensor matHold @unit @firstItem
-jump 204 strictEqual mineMat matHold
-ucontrol itemDrop @air 100 0 0 0
-jump 207 always mineMat matHold
-sensor holdCount @unit @totalItems
-sensor holdMax @unit @itemCapacity
-jump 213 equal holdCount holdMax
-ucontrol within matX matY 8.75 within 0
-jump 211 equal within 1
-ucontrol boost 1 ty 0 0 0
-ucontrol approach matX matY 8.5 0 0
-ucontrol mine matX matY 0 0 0
-jump 230 always x false
-ucontrol within cx cy 5.6 within 0
-jump 217 equal within 1
-ucontrol boost 1 ty 0 0 0
-ucontrol approach cx cy 5.5 within 0
-ucontrol itemDrop core 100 0 0 0
-sensor held @unit @totalItems
-jump 224 notEqual held 0
-ucontrol within matX matY 8.75 within 0
-jump 211 equal within 1
-ucontrol boost 1 ty 0 0 0
-ucontrol approach matX matY 8.5 0 0
-jump 230 always x false
-set maxUnitsTemp maxUnits
-set maxUnits 0
-op add callBack @counter 1
-set @counter F_flagMul
-set maxUnits maxUnitsTemp
-end
+BindUnit:
+	ubind unitType
+	jump 230 equal @unit null
+	op sub dur @time startT
+	jump End greaterThanEq dur maxWait
+	sensor uFlag @unit @flag
+	jump 194 notEqual uFlag setFlag
+
+Dump:
+	sensor matHold @unit @firstItem
+	jump 204 strictEqual mineMat matHold
+	ucontrol itemDrop @air 100 0 0 0
+	jump 207 always mineMat matHold
+	sensor holdCount @unit @totalItems
+	sensor holdMax @unit @itemCapacity
+	jump 213 equal holdCount holdMax
+GoToMine:
+	ucontrol within matX matY 8.75 within
+	jump MineOre equal within 1
+	ucontrol boost 1 ty 0 0 0
+	ucontrol approach matX matY 8.5 0 0
+MineOre:
+	ucontrol mine matX matY 0 0 0
+	jump Start always
+GoToDrop:
+	ucontrol within cx cy 5.6 within 0
+	jump 217 equal within 1
+	ucontrol boost 1 ty 0 0 0
+	ucontrol approach cx cy 5.5 within 0
+	ucontrol itemDrop core 100
+	sensor held @unit @totalItems
+	jump 224 notEqual held 0
+Mine:
+	ucontrol within matX matY 8.75 within
+	jump 211 equal within 1
+	ucontrol boost 1 ty 0 0 0
+	ucontrol approach matX matY 8.5 0 0
+	jump Start always
+
+Finish:
+	set maxUnitsTemp maxUnits
+	set maxUnits 0
+	op add callBack @counter 1
+	set @counter F_flagMul
+	set maxUnits maxUnitsTemp
+
+End:
+	end
