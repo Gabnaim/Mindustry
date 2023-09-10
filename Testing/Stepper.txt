@@ -1,5 +1,5 @@
 Initialize:
-	set waitSecs 3
+	set waitSecs 10
 	GetLinks:
 		set switch switch1
 		jump GetLinks equal switch null

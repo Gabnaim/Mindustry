@@ -1,6 +1,6 @@
 # in initialize section:
 # set to null to skip debugging
-	set debugSorter sorter1
+	set debugSorter sorter2
 
 # turn on switch and wait until user turns it off
 # in code you want the breakpoint:
