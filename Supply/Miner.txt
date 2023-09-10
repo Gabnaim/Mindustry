@@ -27,6 +27,8 @@ Initialize:
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
+		sensor flag @unit @flag
+		jump GetStartInfo notEqual flag usedFlag
 		sensor cap @unit @itemCapacity
 		ulocate building core false 0 coreX coreY coreFound core
 
@@ -53,11 +55,13 @@ Initialize:
 		sensor dropY dropTarget @y
 
 	set status "IDLE"
+	set lastOre null
 	
 Start:
 CheckActive:
 	sensor oreChoice sorter @config
 	jump ChangeOre notEqual oreChoice lastOre
+	jump Reset equal oreChoice null
 	jump Start equal status "ERROR"
 	jump SelectAction equal status "IDLE"
 	jump SelectAction equal status "LOCATEORE"
@@ -135,32 +139,54 @@ FindOre:
 		jump Error always
 
 ChangeOre:
-	set status "CHANGEORE"
 	jump Reset equal oreChoice null
 	jump Start equal oreChoice errorIcon
+
+	set status "CHANGEORE"
 	set oreFound false
 
 	ValidateOre:
 		sensor id oreChoice @id
 		jump CannotMine greaterThan id 9
 		jump CannotMine equal oreChoice @metaglass
-		jump CannotMine equal oreChoice @grahite
+		jump CannotMine equal oreChoice @graphite
+		jump CannotMine equal oreChoice @silicon
 		jump CannotMine equal oreChoice @thorium
+
+		jump CheckCoal equal oreChoice @coal
+		jump CheckTitanium equal oreChoice @titanium
+		jump ValidOre always
+		
+		CheckCoal:
+			jump CannotMine equal unitType @mono
+			jump ValidOre always 
+
+		CheckTitanium:
+			jump ValidOre equal unitType @mega
+			jump ValidOre equal unitType @quasar
+			jump CannotMine always 
+
+	ValidOre:
 		set lastOre minedOre
 		set minedOre oreChoice
+		set error ""
+		set status "IDLE"
 		jump Start always
 
-CannotMine:
-	set error "Cannot mine ore"
+	CannotMine:
+		set error "Cannot mine ore"
 		
 Error:
 	set status "ERROR"
+	set choiceBeforeError oreChoice
 	control config sorter errorIcon
 	jump Start always
 
 Reset:
 	set oreFound false
+	set lastOre minedOre
 	set minedOre null
+	set error ""
 	jump GetDropTarget equal status "IDLE"
 	jump GetDropTarget equal status "ERROR"
 	set status "STOPPING"
