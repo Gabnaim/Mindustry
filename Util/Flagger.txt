@@ -22,12 +22,7 @@ GetId:
 	sensor procY targetProc @y
 	op shl procId procX 10 # first 10 bits for x
 	op add procId procId procY # second 10 bits for y
-
-	# statuses
-	set NONE 0
-	set COUNTING 1
-	set FLAGGING 2
-	set RELEASING 3
+	set status "IDLE"
 	
 Start:
 
@@ -48,7 +43,7 @@ SelectAction:
 	jump FinishRun always
 	
 Count:
-	set status COUNTING
+	set status "COUNTING"
 	set i 0
 	set flaggedCount 0
 	set freeCount 0
@@ -112,7 +107,7 @@ UnflagAll:
 	jump RunFlagLoop always
 
 RunFlagLoop:
-	set status FLAGGING
+	set status "FLAGGING"
 	set flagged 0
 	set firstUnit null
 	FlagLoop:
@@ -142,18 +137,18 @@ FinishRun:
 	jump Start always
 	
 Reset:
-	jump Start equal status NONE
-	jump ReleaseAll equal status RELEASING
-	set startTicks @tick
+	jump Start equal status "IDLE"
+	jump ReleaseAll equal status "RELEASING"
+	set startTick @tick
 	set totalFlagged 0
 	set totalFree 0
 	set totalUnits 0
 
 ReleaseAll:
 	# loop until release wait 
-	set status RELEASING
+	set status "RELEASING"
 	op sub elapsed @tick startTick
-	jump Start lessThan elapsed maxTick
+	jump Start lessThan elapsed waitTicks
 
 	set firstUnit null
 
@@ -172,5 +167,5 @@ ReleaseAll:
 
 	FinishRelease:
 		set countDone false
-		set status NONE
+		set status "IDLE"
 		jump Start always
