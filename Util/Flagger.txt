@@ -6,8 +6,12 @@ Initialize:
 	set waitTicks 1200 # wait 20 secs before releasing when idle
 	
 	GetLinks:
-		set switch switch2
-		jump GetLinks equal switch null
+		set switch switch1
+		set sorter sorter1
+		op notEqual hasSwitch switch null
+		op notEqual hasSorter sorter null
+		op or hasInput hasSwitch hasSorter
+		jump GetLinks equal hasInput false
 
 		# if flagging without a proc, set it to @this
 		set targetProc processor1
@@ -26,9 +30,16 @@ GetId:
 	set RELEASING 3
 	
 Start:
+
 CheckActive:
-	sensor active switch @enabled
-	jump Reset equal active false
+	jump CheckSorter equal hasSwitch false
+	CheckSwitch:
+		sensor active switch @enabled
+		jump Reset equal active false
+		jump SelectAction always
+	CheckSorter:
+		sensor choice sorter @config
+		jump Reset equal choice null
 	
 SelectAction:
 	jump Count equal countDone false

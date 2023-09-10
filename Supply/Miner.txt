@@ -1,16 +1,16 @@
 Initialize:
 	set unitType @poly
-	set minedOre @sand
-	set dropToCore false
 	set useFlagger true
 
-	set miningRange 7
-	set status "INITIALIZING"
+	set miningRange 8.75
+	set dropRange 7
+	set status "INITIALIZE"
 	set error " "
+	set errorIcon @blast-compound
 
 	GetSwitch:
-		set switch switch1
-		jump GetSwitch equal switch null
+		set sorter sorter1
+		jump GetSwitch equal sorter null
 
 	GetId:
 		op shl procId @thisx 10
@@ -30,10 +30,6 @@ Initialize:
 		sensor cap @unit @itemCapacity
 		ulocate building core false 0 coreX coreY coreFound core
 
-	jump GetDropTarget equal dropToCore false
-	set dropTarget core
-	jump GetDropCoords always
-
 	GetDropTarget:
 		set l 0
 		LinkLoop:
@@ -47,9 +43,8 @@ Initialize:
 			op add l l 1
 			jump LinkLoop lessThan l @links
 		NotFound:
-			set error "No drop target is linked"
-			set status "ERROR"
-			jump GetDropTarget always
+			set dropTarget core
+			jump GetDropCoords always
 		Found:
 			set dropTarget link
 	
@@ -58,15 +53,14 @@ Initialize:
 		sensor dropY dropTarget @y
 
 	set status "IDLE"
-	set error " "
-	set lastActive false
 	
 Start:
 CheckActive:
-	sensor active switch @enabled
-	jump Reset equal active false
+	sensor oreChoice sorter @config
+	jump ChangeOre notEqual oreChoice lastOre
+	jump Start equal status "ERROR"
 	jump SelectAction equal status "IDLE"
-	jump SelectAction equal status "OREFINDING"
+	jump SelectAction equal status "LOCATEORE"
 
 BindUnit:
 	ubind unitType
@@ -93,10 +87,10 @@ DumpUnneeded:
 	jump Mine always
 
 DropItems:
-	ucontrol within dropX dropY miningRange isNearDrop
+	ucontrol within dropX dropY dropRange isNearDrop
 	jump DropLoop equal isNearDrop true
 	ucontrol boost true
-	ucontrol approach dropX dropY miningRange
+	ucontrol approach dropX dropY dropRange
 	jump Start always
 
 	DropLoop:
@@ -124,7 +118,7 @@ Mine:
 
 FindOre:
 	# Use this unit to find the nearest ore source
-	set status "OREFINDING"
+	set status "LOCATEORE"
 	GoToDrop:
 		ucontrol within dropX dropY 1 isNearDrop
 		jump LocateOre equal isNearDrop true
@@ -134,23 +128,41 @@ FindOre:
 	
 	LocateOre:
 		ulocate ore core true minedOre oreX oreY oreFound oreMine
-		jump FoundOre equal oreFound true
+		jump Start equal oreFound true
 
 	NoOre:
 		set error "No ore found"
 		jump Error always
 
-	FoundOre:
+ChangeOre:
+	set status "CHANGEORE"
+	jump Reset equal oreChoice null
+	jump Start equal oreChoice errorIcon
+	set oreFound false
+
+	ValidateOre:
+		sensor id oreChoice @id
+		jump CannotMine greaterThan id 9
+		jump CannotMine equal oreChoice @metaglass
+		jump CannotMine equal oreChoice @grahite
+		jump CannotMine equal oreChoice @thorium
+		set lastOre minedOre
+		set minedOre oreChoice
 		jump Start always
+
+CannotMine:
+	set error "Cannot mine ore"
 		
 Error:
 	set status "ERROR"
-	control enabled switch false
+	control config sorter errorIcon
 	jump Start always
 
 Reset:
-	jump Start equal status "IDLE"
-	jump Start equal status "ERROR"
+	set oreFound false
+	set minedOre null
+	jump GetDropTarget equal status "IDLE"
+	jump GetDropTarget equal status "ERROR"
 	set status "STOPPING"
 
 	set firstUnit null
@@ -159,11 +171,10 @@ Reset:
 		jump AllStopped equal @unit firstUnit
 		sensor flag @unit @flag
 		jump StopLoop notEqual flag usedFlag
-
-		jump ReleaseUnit notEqual firstUnit null
+		jump StopUnit notEqual firstUnit null
 		set firstUnit @unit
 		
-		ReleaseUnit:
+		StopUnit:
 			ucontrol stop
 			ucontrol itemDrop @air cap
 			ucontrol unbind
