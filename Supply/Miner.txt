@@ -1,5 +1,5 @@
 Initialize:
-	set unitType @pulsar
+	set unitType @poly
 	set useFlagger true
 
 	set miningRange 8.75
