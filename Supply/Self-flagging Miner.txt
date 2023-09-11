@@ -248,6 +248,7 @@ Reset:
 	set firstUnit null
 	StopLoop:
 		ubind unitType
+		jump AllStopped equal @unit null
 		jump AllStopped equal @unit firstUnit
 		sensor flag @unit @flag
 		jump StopLoop notEqual flag procId
@@ -256,11 +257,15 @@ Reset:
 		
 		StopUnit:
 			ucontrol stop
+			ucontrol flag 0
 			ucontrol itemDrop @air cap
-			ucontrol unbind
 		jump StopLoop always
 		
 	AllStopped:
+		set status "RESETALL"
+		op add resetAllReturn @counter 1
+		jump ResetAll always
+	
 		set status "IDLE"
 		jump Start always
 
@@ -307,5 +312,18 @@ SetCurrent:
 	set minion8 @unit
 	EndSetCurrent:
 		set @counter setCurrentReturn
+
+ResetAll:
+	set minion1 null
+	set minion2 null
+	set minion3 null
+	set minion4 null
+	set minion5 null
+	set minion6 null
+	set minion7 null
+	set minion8 null
+
+	set @counter resetAllReturn
+		
 
 	
