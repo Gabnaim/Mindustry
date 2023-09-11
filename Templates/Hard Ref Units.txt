@@ -1,7 +1,12 @@
 Initialize:
+	set status "INITIALIZE"
 	set unitType @poly
 	set maxUnits 4 # store upto 8
 
+	GetSorter:
+		set sorter sorter1
+		jump GetSorter equal sorter null
+	
 	GetId:
 		op shl procId @thisx 10
 		op add procId procId @thisy
@@ -11,20 +16,47 @@ Initialize:
 		jump GetStartUnit equal @unit null
 		set firstUnit @unit
 
-	UnflagAll:
-		UnflagUnit:
-			sensor flag @unit @flag
-			jump UnflagBind notEqual flag procId
-			ucontrol flag 0
-			ucontrol itemDrop @air 200
-		UnflagBind:
-			ubind unitType
-			jump UnflagAll notEqual firstUnit @unit
+	PreFillSpots:
+		set status "PREFILL"
+		set prefilled 0
+		PrefillLoop:
+			op mul offset prefilled 2
+			op add offset offset 1
 
-		FinishUnflag:
-			set firstUnit null
+			sensor flag @unit @flag
+			jump Unflag greaterThanEq prefilled maxUnits
+			jump Prefill equal flag procId
+			jump PrefillBind notEqual flag 0
+			ucontrol flag procId
 			
+			Prefill:
+				set setUnit @unit
+				op add setCurrentReturn @counter 1
+				jump SetCurrent always
+				ucontrol itemDrop @air 200
+				op add prefilled prefilled 1
+				jump PrefillBind always
+			Unflag:
+				jump PrefillBind notEqual flag procId
+				ucontrol flag 0
+				ucontrol itemDrop @air 200
+			PrefillBind:
+				ubind unitType
+				jump PrefillLoop notEqual firstUnit @unit
+
+		FinishPrefill:
+			set firstUnit null
+
+	set status "IDLE"
+
 Start:
+CheckActive:
+	sensor oreChoice sorter @config
+	jump ChangeOre notEqual oreChoice lastOre
+	jump Start equal oreChoice null
+
+	jump FinishGroup greaterThanEq used maxUnits
+
 GetUnitOffset:
 	op mul offset used 2
 	op add offset offset 1
@@ -32,11 +64,6 @@ GetUnitOffset:
 GetCurrentUnit:
 	op add getCurrentReturn @counter 1
 	jump GetCurrent always
-
-CheckUnit:
-	sensor isDead currentUnit @dead
-	jump BindUnit equal isDead false
-	set currentUnit null
 
 BindUnit:
 	ubind unitType
@@ -48,28 +75,43 @@ BindUnit:
 ProcessUnit:
 	sensor isDead @unit @dead
 	jump BindUnit equal isDead true
-	
+
 	sensor flag @unit flag
+	jump UseCached strictEqual currentUnit @unit
 	jump FillSpot equal currentUnit null
-	jump DoStuff strictEqual currentUnit @unit
 	jump Next always
+
+UseCached:
+	jump DoStuff equal flag procId 
+	jump GrabUnit equal flag 0
+
+	# release this unit
+	set currentUnit null
+	set setUnit null
+	op add setCurrentReturn @counter 1
+	jump SetCurrent always
+	jump BindUnit always
 
 FillSpot:
 	jump SetCurrentUnit equal flag procId
+	jump BindUnit notEqual flag 0
 
 GrabUnit:
-	jump BindUnit notEqual flag 0
 	ucontrol flag procId
 
 SetCurrentUnit:
+	set setUnit @unit
 	op add setCurrentReturn @counter 1
 	jump SetCurrent always
+	set currentUnit @unit
 
 DoStuff:
+	set status "PROCESSING"
+	op add used used 1
 	ucontrol within @thisx @thisy 10 isNear
 	jump Move equal isNear true
 	ucontrol approach @thisx @thisy 5
-	jump NextUsed always
+	jump Next always
 
 	Move:
 		sensor x @unit @x
@@ -77,10 +119,6 @@ DoStuff:
 		op add moveX x 12
 		op add moveY y 12
 		ucontrol move moveX moveY
-
-NextUsed:
-	op add used used 1
-	jump FinishGroup greaterThanEq used maxUnits
 
 Next:
 	jump Start always
@@ -117,37 +155,52 @@ SetCurrent:
 	op add jumpSetCurrent @counter offset
 	set @counter jumpSetCurrent
 
-	set minion1 @unit
+	set minion1 setUnit
 	jump EndSetCurrent always
-	set minion2 @unit
+	set minion2 setUnit
 	jump EndSetCurrent always
-	set minion3 @unit
+	set minion3 setUnit
 	jump EndSetCurrent always
-	set minion4 @unit
+	set minion4 setUnit
 	jump EndSetCurrent always
-	set minion5 @unit
+	set minion5 setUnit
 	jump EndSetCurrent always
-	set minion6 @unit
+	set minion6 setUnit
 	jump EndSetCurrent always
-	set minion7 @unit
+	set minion7 setUnit
 	jump EndSetCurrent always
-	set minion8 @unit
+	set minion8 setUnit
 	EndSetCurrent:
 		set @counter setCurrentReturn
 
-ResetAll:
-	set minion1 null
-	set minion2 null
-	set minion3 null
-	set minion4 null
-	set minion5 null
-	set minion6 null
-	set minion7 null
-	set minion8 null
+ChangeOre:
+	jump Reset equal oreChoice null
+	set lastOre oreChoice
+	jump Start always
 
-	set @counter resetAllReturn
+Reset:
+	jump Initialize equal status "IDLE"
+	set status "STOPPING"
+
+	set firstUnit null
+	StopLoop:
+		ubind unitType
+		jump AllStopped equal @unit firstUnit
+		sensor flag @unit @flag
+		jump StopLoop notEqual flag usedFlag
+		jump StopUnit notEqual firstUnit null
+		set firstUnit @unit
 		
-
+		StopUnit:
+			ucontrol stop
+			ucontrol itemDrop @air cap
+			ucontrol unbind
+		jump StopLoop always
+		
+	AllStopped:
+		set status "IDLE"
+		jump Start always
+	
 
 
 

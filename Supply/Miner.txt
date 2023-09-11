@@ -8,9 +8,9 @@ Initialize:
 	set error " "
 	set errorIcon @blast-compound
 
-	GetSwitch:
+	GetSorter:
 		set sorter sorter1
-		jump GetSwitch equal sorter null
+		jump GetSorter equal sorter null
 
 	GetId:
 		op shl procId @thisx 10

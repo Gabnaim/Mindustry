@@ -8,9 +8,9 @@ Initialize:
 	set error " "
 	set errorIcon @blast-compound
 
-	GetSwitch:
+	GetSorter:
 		set sorter sorter1
-		jump GetSwitch equal sorter null
+		jump GetSorter equal sorter null
 
 	GetId:
 		op shl procId @thisx 10
@@ -19,27 +19,14 @@ Initialize:
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
+		set firstUnit @unit
 
 		sensor cap @unit @itemCapacity
 		sensor range @unit @range
 		op sub range range 1
 		op min dropRange dropRange range
-		set firstUnit @unit
-
+		
 		ulocate building core false 0 coreX coreY coreFound core
-	
-	UnflagAll:
-		UnflagUnit:
-			sensor flag @unit @flag
-			jump UnflagBind notEqual flag procId
-			ucontrol flag 0
-			ucontrol itemDrop @air 200
-		UnflagBind:
-			ubind unitType
-			jump UnflagAll notEqual firstUnit @unit
-
-		FinishUnflag:
-			set firstUnit null
 
 	GetDropTarget:
 		set l 0
@@ -63,8 +50,40 @@ Initialize:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y
 
+	PreFillSpots:
+		set status "PREFILL"
+		set used 0
+		PrefillLoop:
+			op mul offset used 2
+			op add offset offset 1
+
+			sensor flag @unit @flag
+			jump Unflag greaterThanEq used maxUnits
+			jump Prefill equal flag procId
+			jump PrefillBind notEqual flag 0
+			ucontrol flag procId
+			
+			Prefill:
+				set setUnit @unit
+				op add setCurrentReturn @counter 1
+				jump SetCurrent always
+				op add used used 1
+				jump PrefillBind always
+			Unflag:
+				jump PrefillBind notEqual flag procId
+				ucontrol flag 0
+				ucontrol itemDrop @air 200
+			PrefillBind:
+				ubind unitType
+				jump PrefillLoop notEqual firstUnit @unit
+
+		FinishPrefill:
+			set firstUnit null
+			set used 0
+
 	set status "IDLE"
 	set lastOre null
+
 	
 Start:
 CheckActive:
@@ -82,6 +101,7 @@ GetCurrentUnit:
 	jump GetCurrent always
 
 CheckUnit:
+	jump BindUnit equal currentUnit null
 	sensor isDead currentUnit @dead
 	jump BindUnit equal isDead false
 	set currentUnit null
@@ -89,6 +109,11 @@ CheckUnit:
 BindUnit:
 	ubind unitType
 	jump Start equal @unit null
+
+	# debug checks
+	op equal isFirst firstUnit @unit
+	op equal isCurrent currentUnit @unit
+
 	jump FinishGroup equal firstUnit @unit
 	jump ProcessUnit notEqual firstUnit null
 	set firstUnit @unit
@@ -99,7 +124,7 @@ ProcessUnit:
 
 	sensor flag @unit flag
 	jump FillSpot equal currentUnit null
-	jump SelectAction strictEqual currentUnit @unit
+	jump UseCached strictEqual currentUnit @unit
 	jump Next always
 
 FillSpot:
@@ -110,9 +135,13 @@ GrabUnit:
 	ucontrol flag procId
 
 SetCurrentUnit:
+	set setUnit @unit
 	op add setCurrentReturn @counter 1
 	jump SetCurrent always
+	set currentUnit setUnit
+	jump SelectAction always
 
+UseCached:
 SelectAction:
 	jump FindOre equal oreFound false
 	set status "MINING"
