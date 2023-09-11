@@ -23,6 +23,7 @@ Start:
 CheckActive:
 	sensor active switch @enabled
 	jump Reset notEqual active lastActive
+	jump Start equal active false
 	jump Start equal finished true
 	jump BindUnit equal useMemory false
 
@@ -37,14 +38,12 @@ BindUnit:
 	ubind unitType
 	jump Start equal @unit null
 	jump Finished equal firstUnit @unit
-
-	sensor flag @unit @flag
-	jump Start notEqual flag flagId
-
   	jump Move notEqual firstUnit null
 	set firstUnit @unit
 	
 Move:
+	sensor flag @unit @flag
+	jump Start notEqual flag flagId
 	ucontrol within moveX moveY range isNear
 	jump Arrived equal isNear true
 	ucontrol boost true
@@ -54,18 +53,19 @@ Move:
 Arrived:
 	ucontrol boost false
 	ucontrol stop
-	jump Start notEqual flag 0
+	jump Unbind notEqual flag 0
 	ucontrol itemDrop @air 200
+Unbind:
+	ucontrol unbind
 	jump Start always
 	
 Finished:
 	set finished true
-	set enabled switch false
+	control enabled switch false
 	jump Start always
 
 Reset:
 	set lastActive active
-	jump Start equal active true
 	set finished false
 	set firstUnit null
 	jump Start always
