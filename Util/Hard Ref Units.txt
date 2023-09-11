@@ -6,23 +6,20 @@ Initialize:
 		op shl procId @thisx 10
 		op add procId procId @thisy
 
-#First unflag so if we had a processor here before, we
-# don't have unused flagged units. We will flag whatever we need
-	UnflagAll:
+	GetStartUnit:
 		ubind unitType
-		jump UnflagAll equal @unit null
-
-		jump FinishUnflag equal firstUnit @unit
-		jump UnflagUnit notEqual firstUnit null
+		jump GetStartUnit equal @unit null
 		set firstUnit @unit
 
+	UnflagAll:
 		UnflagUnit:
 			sensor flag @unit @flag
-			jump UnflagAll notEqual flag procId
+			jump UnflagBind notEqual flag procId
 			ucontrol flag 0
 			ucontrol itemDrop @air 200
-
-		jump UnflagAll always
+		UnflagBind:
+			ubind unitType
+			jump UnflagAll notEqual firstUnit @unit
 
 		FinishUnflag:
 			set firstUnit null
@@ -81,9 +78,9 @@ DoStuff:
 		op add moveY y 12
 		ucontrol move moveX moveY
 
-	NextUsed:
-		op add used used 1
-		jump FinishGroup greaterThanEq used maxUnits
+NextUsed:
+	op add used used 1
+	jump FinishGroup greaterThanEq used maxUnits
 
 Next:
 	jump Start always
