@@ -1,0 +1,89 @@
+Initialize:
+	set unitType @flare
+	set maxUnits 2 # store upto 4
+
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+
+	GetId:
+		op shl procId @thisx 10
+		op add procId procId @thisy
+
+	set i 0
+
+Start:
+GetCurrentUnit:
+	op mul offset i 2
+	op add offset i 1
+	op add jumpGetCurrent @counter offset
+	set @counter jumpGetCurrent
+	
+	set currentUnit minion1
+	jump CheckUnit always
+	set currentUnit minion2
+	jump CheckUnit always
+	set currentUnit minion3
+	jump CheckUnit always
+	set currentUnit minion4
+
+CheckUnit:
+	jump BindUnit equal currentUnit null
+	sensor isDead currentUnit @dead 
+	jump DoStuff equal isDead false
+	
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	sensor isDead @unit @dead
+	jump BindUnit equal isDead true
+
+	jump FinishGroup equal firstUnit @unit
+	jump ProcessUnit notEqual firstUnit null
+	set firstUnit @unit
+
+ProcessUnit:
+	sensor flag @unit flag
+	jump DoStuff equal flag procId
+	jump NextUnit notEqual flag 0
+
+GrabUnit:
+	ucontrol flag procId
+
+
+	op add jumpSetNew @counter offset
+	set @counter jumpSetNew
+
+SetNew:
+	set minion1 @unit
+	jump EndSetNew always
+	set minion2 @unit
+	jump EndSetNew always
+	set minion3 @unit
+	jump EndSetNew always
+	set minion4 @unit
+	EndSetNew:
+
+DoStuff:
+	ucontrol within @thisx @thisy 10 isNear
+	jump Move equal isNear true
+	ucontrol approach @thisx @thisy 5
+	jump NextUnit always
+
+	Move:
+		sensor x @unit @x
+		sensor y @unit @y
+		op add moveX x 12
+		op add moveY y 12
+		ucontrol move moveX moveY
+
+NextUnit:
+	op add i i 1
+	jump Start lessThan i maxUnits
+
+FinishGroup:
+	set i 0
+	set firstUnit null
+	jump Start always
+
+	
