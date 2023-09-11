@@ -1,6 +1,6 @@
 Initialize:
-	set unitType @flare
-	set maxUnits 2 # store upto 4
+	set unitType @poly
+	set maxUnits 4 # store upto 8
 
 	GetStartInfo:
 		ubind unitType
@@ -10,12 +10,52 @@ Initialize:
 		op shl procId @thisx 10
 		op add procId procId @thisy
 
+Count:
+	set status "COUNTING"
 	set i 0
+	set flagged 0
+	set free 0
+	set firstUnit null
+	CountLoop:
+		ubind unitType
+		jump Start equal @unit null
+		sensor isDead @unit @dead
+		jump Start equal isDead true
+	
+		jump FinishCount equal firstUnit @unit
+		jump CountProcess notEqual firstUnit null
+		set firstUnit @unit
+	
+	CountProcess:
+		sensor flag @unit @flag
+		jump CountFlagged equal flag procId
+		jump CountFree equal flag 0
+		jump NextCount always
+		
+	CountFlagged:
+		op add flagged flagged 1
+		jump NextCount always
+
+	CountFree:
+		op add free free 1
+	
+	NextCount:
+		op add i i 1
+		jump CountLoop always
+
+	FinishCount:
+		set totalUnits i
+		set totalFlagged flagged
+		set totalFree free
+		set i 0
+		set firstUnit null
 
 Start:
+	set status "GRABBING"
+
 GetCurrentUnit:
 	op mul offset i 2
-	op add offset i 1
+	op add offset offset 1
 	op add jumpGetCurrent @counter offset
 	set @counter jumpGetCurrent
 	
@@ -26,35 +66,54 @@ GetCurrentUnit:
 	set currentUnit minion3
 	jump CheckUnit always
 	set currentUnit minion4
+	jump CheckUnit always
+	set currentUnit minion5
+	jump CheckUnit always
+	set currentUnit minion6
+	jump CheckUnit always
+	set currentUnit minion7
+	jump CheckUnit always
+	set currentUnit minion8
+
+op strictEqual current=1 currentUnit minion1
 
 CheckUnit:
-	jump BindUnit equal currentUnit null
-	sensor isDead currentUnit @dead 
-	jump DoStuff equal isDead false
-	
+	sensor isDead currentUnit @dead
+	jump BindUnit equal isDead false
+	set currentUnit null
+
 BindUnit:
 	ubind unitType
-	jump Start equal @unit null
+	jump Count equal @unit null
+	jump FinishGroup strictEqual firstUnit @unit
+	jump ProcessUnit notEqual firstUnit null
+	set firstUnit @unit
+	
+ProcessUnit:
 	sensor isDead @unit @dead
 	jump BindUnit equal isDead true
 
-	jump FinishGroup equal firstUnit @unit
-	jump ProcessUnit notEqual firstUnit null
-	set firstUnit @unit
-
-ProcessUnit:
 	sensor flag @unit flag
-	jump DoStuff equal flag procId
-	jump NextUnit notEqual flag 0
+	jump ProcessFlagged equal flag procId
+	jump GrabUnit lessThan flagged maxUnits
+	jump BindUnit always
+
+ProcessFlagged:
+	jump DoStuff strictEqual @unit currentUnit
+	jump SetNew equal currentUnit null
+	jump UnflagUnit greaterThan flagged maxUnits
 
 GrabUnit:
+	jump BindUnit notEqual flag 0
 	ucontrol flag procId
+	op add flagged flagged 1
+	op sub free free 1
 
-
+SetNew:
+	set currentUnit @unit
 	op add jumpSetNew @counter offset
 	set @counter jumpSetNew
 
-SetNew:
 	set minion1 @unit
 	jump EndSetNew always
 	set minion2 @unit
@@ -62,7 +121,22 @@ SetNew:
 	set minion3 @unit
 	jump EndSetNew always
 	set minion4 @unit
+	jump EndSetNew always
+	set minion5 @unit
+	jump EndSetNew always
+	set minion6 @unit
+	jump EndSetNew always
+	set minion7 @unit
+	jump EndSetNew always
+	set minion8 @unit
 	EndSetNew:
+		jump DoStuff always
+
+UnflagUnit:
+	ucontrol flag 0
+	op sub flagged flagged 1
+	op add free free 1
+	jump BindUnit always
 
 DoStuff:
 	ucontrol within @thisx @thisy 10 isNear
@@ -84,6 +158,14 @@ NextUnit:
 FinishGroup:
 	set i 0
 	set firstUnit null
+
+Test:
+	op strictEqual 1=2 minion1 minion2
+	op strictEqual 1=3 minion1 minion3
+	op strictEqual 1=4 minion1 minion4
+	op strictEqual 2=3 minion2 minion3
+	op strictEqual 2=4 minion2 minion4
+	op strictEqual 3=4 minion3 minion4
 	jump Start always
 
 	
