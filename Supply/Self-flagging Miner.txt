@@ -248,17 +248,16 @@ Reset:
 	set firstUnit null
 	StopLoop:
 		ubind unitType
-		jump AllStopped equal @unit null
 		jump AllStopped equal @unit firstUnit
-		sensor flag @unit @flag
-		jump StopLoop notEqual flag procId
 		jump StopUnit notEqual firstUnit null
 		set firstUnit @unit
 		
 		StopUnit:
+			sensor flag @unit @flag
+			jump StopLoop notEqual flag procId
 			ucontrol stop
 			ucontrol flag 0
-			ucontrol itemDrop @air cap
+			ucontrol itemDrop @air 200
 		jump StopLoop always
 		
 	AllStopped:
