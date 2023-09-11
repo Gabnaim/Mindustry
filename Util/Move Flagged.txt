@@ -7,8 +7,9 @@ Initialize:
 	
 
 	op add moveX @thisx 0
-	op add moveY @thisy 10
+	op add moveY @thisy -10
 	set finished false
+	set lastActive false
 
 	GetLinks:
 		set switch switch1
@@ -16,12 +17,12 @@ Initialize:
 		set memory cell1
 		jump Start equal useMemory false
 		jump GetLinks equal memory null
-	
+
 Start:
 	set lastUnitType unitType
 CheckActive:
 	sensor active switch @enabled
-	jump Reset equal active false
+	jump Reset notEqual active lastActive
 	jump Start equal finished true
 	jump BindUnit equal useMemory false
 
@@ -53,6 +54,8 @@ Move:
 Arrived:
 	ucontrol boost false
 	ucontrol stop
+	jump Start notEqual flag 0
+	ucontrol itemDrop @air 200
 	jump Start always
 	
 Finished:
@@ -61,6 +64,8 @@ Finished:
 	jump Start always
 
 Reset:
+	set lastActive active
+	jump Start equal active true
 	set finished false
 	set firstUnit null
 	jump Start always
