@@ -135,6 +135,18 @@ SetCurrent:
 	EndSetCurrent:
 		set @counter setCurrentReturn
 
+ResetAll:
+	set minion1 null
+	set minion2 null
+	set minion3 null
+	set minion4 null
+	set minion5 null
+	set minion6 null
+	set minion7 null
+	set minion8 null
+
+	set @counter resetAllReturn
+		
 
 
 
