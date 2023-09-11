@@ -1,10 +1,10 @@
-# in initialize section:
-# set to null to skip debugging
-	set debugSorter sorter2
+# Stop if the sorter is green. 
+# The sorter will turn red when stopped, 
+# and stays red until something else is selected (including nothing). 
+# Ignore breakpoint of selection is not green.
 
-# turn on switch and wait until user turns it off
-# in code you want the breakpoint:
 BreakPoint:
+	set debugSorter sorter1
 	sensor choice debugSorter @config
 	jump BreakPointEnd notEqual choice @plastanium
 	control config debugSorter @blast-compound
