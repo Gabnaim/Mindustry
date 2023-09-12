@@ -1,104 +1,99 @@
 Initialize:
-	set unitType @poly
-
-	GetMaterials:
-		set takeAll false
-		set material @sand
-
-	GetTargetParams:
-		set dropToCore false
-		set pickupFromCore false
-		set targetX 132
-		set targetY 111
-		op equal areSame dropToCore pickupFromCore
-		op and bothCore areSame dropToCore
-		jump GetTargetParams equal bothCore true
-		jump SetConstants notEqual areSame true
-
-		NotCoreTransport:
-			jump GetTargetParams equal targetX 0
-			jump GetTargetParams equal targetY 0
-		
-	SetConstants:
-		set dropRange 3
-		set maxTick 360 #break loop after 6 seconds idle
-
+	set unitType @pulsar
+	set dropRange 7
+	set pickupHere true # pickup from the linkedStorage nearby
+	
 	op shl procId @thisx 10
 	op add procId procId @thisy
+
+	GetTargetParams:
+		set coreTransport true # other side is core
+
+		# if coreTransport is false, coordinates of other target
+	    # are required
+		set otherEndX 132
+		set otherEndY 111
+
+		jump GetStartInfo equal coreTransport true
+
+		NotCoreTransport:
+			jump GetTargetParams equal otherEndX 0
+			jump GetTargetParams equal otherEndY 0
 
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
 		sensor isDead @unit @dead
 		jump GetStartInfo equal isDead true
-		sensor flag @unit @flag
-		jump GetStartInfo notEqual flag procId
 
 		sensor cap @unit @itemCapacity
+		sensor range @unit range 
+		op sub range range 1
+		op min dropRange dropRange range
+
 		ulocate building core false 0 coreX coreY coreFound core
 	
+	GetInput:
+		# if a sorter, we transport one item
+		# if a switch, we take all
+		set switch switch1
+		set sorter sorter1
+		jump GetInput equal switch sorter # one is required
+		jump SetSwitch notEqual switch null
+
+		SetSorter:
+			set chooser sorter
+			jump GetLinks always
+	
+		SetSwitch:
+			set chooser switch
+			set takeAll true
+
 	GetLinks:
-		set requiredLinks 2
-		jump GetLinks lessThan @links requiredLinks
+		jump GetLinks lessThan @links 2
 
 		set i 0
 		set found 0
 		LinkLoop:
 			getlink link i
 			sensor type link @type
-
-			#switch
-			jump FoundSwitch equal type @switch
-
-			#container
 			jump FoundContainer equal link core
-			jump FoundContainer equal type @container
+			jump FoundContainer equal type @linkedStorage 
 			jump FoundContainer equal type @vault
-			jump NextLink always
-
-			FoundSwitch:
-				set switch link
-				op add found found 1
-				jump NextLink always
-	
-			FoundContainer:
-				set container link
-				op add found found 1
-				jump NextLink always
-	
+			jump FoundContainer equal type @mass-driver
 			NextLink:
-				jump EndGetLinks equal found requiredLinks
 				op add i i 1
 				jump LinkLoop lessThan i @links
-	
-		NotFound:
-			jump GetLinks always
+			NotFound:
+				jump GetLinks always
+			FoundContainer:
+				set linkedStorage link
 
-		EndGetLinks:
+	FindOtherEndPoint:
+		jump FindOtherEnd equal coreTransport false
+		set otherEnd Core
 
-	SelectEndPoints:
-		jump DropToCore equal dropToCore true
-		jump PickupFromCore equal pickupFromCore true
+	FindOtherEnd:
+		ucontrol within otherEndX otherEndY 1 isNear
+		jump AtOtherEnd equal isNear true
+		ucontrol move otherEndX otherEndY
+		jump FindTarget always
 
-		BetweenContainers:
-			set source container
-			FindTarget: 
-				ucontrol within targetX targetY 1 isNear
-				jump SetTarget equal isNear true
-				ucontrol move targetX targetY
-				jump FindTarget always
-			SetTarget:
-				ulocate building storage false 0 dropX dropY dropFound dropTarget
-				jump GetTargetParams equal dropFound false
-				jump GetCoords always
-		DropToCore:
-			set source container
-			set dropTarget core
+	AtOtherEnd:
+		ulocate building storage false 0 endX endY endFound otherEnd
+		jump GetTargetParams equal endFound false
+		
+	SetEndPoints:
+		jump PickupHere equal pickupHere true
+		DropHere:
+			set source otherEnd
+			set dropTarget linkedStorage
 			jump GetCoords always
-		PickupFromCore:
-			set source core
-			set dropTarget container
-			
+
+		PickupHere:
+			set source linkedStorage
+			set dropTarget otherEnd
+		
 	GetCoords:
 		sensor sourceX source @x
 		sensor sourceY source @y
@@ -134,29 +129,24 @@ DumpItems:
 DropItems:
 	ucontrol within dropX dropY dropRange isNearDrop
 	jump DropLoop equal isNearDrop true
-	print "Approaching drop\n"
 	ucontrol boost true
 	ucontrol approach dropX dropY dropRange
 	jump Start always
 
 	DropLoop:
-		set startTick @tick
+		set dropI 0
 		ucontrol boost false
 		sensor carried @unit @totalItems
 		LoopUntilEmpty:
 			ucontrol itemDrop dropTarget carried
 			sensor carried @unit @totalItems
 			jump Pickup equal carried 0
-
-			# break loop if idling too long
-			op sub elapsed @tick startTick
-			jump Start greaterThan elapsed maxTick
-			jump LoopUntilEmpty greaterThan carried 0 
+			op add dropI dropI 1
+			jump LoopUntilEmpty lessThan dropI 100 
 
 Pickup:
 	ucontrol within sourceX sourceY dropRange isNearPickup
 	jump SelectItem equal isNearPickup true
-	print "Approaching pickup\n"
 	ucontrol boost true
 	ucontrol approach sourceX sourceY dropRange
 	jump Start always
@@ -180,7 +170,7 @@ Pickup:
 		set material maxMaterial
 	
 	PickupLoop:
-		set startTick @tick
+		set pickupI true
 		ucontrol boost false
 		sensor carried @unit @totalItems
 		LoopUntilFull:
@@ -188,9 +178,7 @@ Pickup:
 			sensor carried @unit @totalItems
 			jump DropItems equal carried cap
 
-			# break loop if idling too long
-			op sub elapsed @tick startTick
-			jump Start greaterThan elapsed maxTick
-			jump LoopUntilFull lessThan carried cap
+			op add pickupI pickupI 1
+			jump LoopUntilFull lessThan pickupI 100 
 
 		jump Start always
