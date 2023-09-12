@@ -1,0 +1,54 @@
+Initialize:
+	set useMemory true
+	set maxUnitIndex 37 #Serpulo
+	set TOTAL_ADDR 38
+	printflush message1
+	GetMemory:
+		set memory cell1
+		jump Start equal useMemory false
+		jump GetMemory equal memory null
+
+	set unitTypes 0
+	set unitIndex 0
+
+Start:
+GetUnitType:
+	lookup unit unitType unitIndex
+	set firstUnit null
+	set units 0
+
+GetNextUnit:
+BindUnit:
+	ubind unitType
+	jump NextUnitType equal @unit null
+	sensor isDead @unit @dead
+	jump GetNextUnit equal isDead true
+	jump FinishGroup equal firstUnit @unit
+  	jump ProcessUnit notEqual firstUnit null
+
+StartGroup:
+	set firstUnit @unit
+
+ProcessUnit:
+	op add units units 1
+	jump GetNextUnit always
+
+FinishGroup:
+	print unitType
+	print ": "
+	print units
+	print "\n"
+	write units memory unitIndex
+	op add unitTypes unitTypes 1
+
+NextUnitType:
+	op add unitIndex unitIndex 1
+	jump GetUnitType lessThanEq unitIndex maxUnitIndex
+	
+Finish:
+	set totalTypes unitTypes
+	write totalTypes memory TOTAL_ADDR
+	set unitTypes 0
+	set unitIndex 0
+	printflush message1
+	jump Start always

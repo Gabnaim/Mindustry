@@ -1,0 +1,83 @@
+Initialize:
+	set useMemory true
+	set maxUnitIndex 37 #Serpulo
+	set TOTAL_ADDR 38
+	set spacing 10
+	set offsetX -10
+	set offsetY -10
+	GetMemory:
+		set memory cell1
+		jump NoMemory equal useMemory false
+		jump GetMemory equal memory null
+
+	read totalTypes memory TOTAL_ADDR
+	op sub gaps totalTypes 2 #ignore player unit
+	op mul width gaps spacing
+	op div offsetX width -2
+	
+	NoMemory:
+	GetCoords:
+		op add baseX @thisx offsetX
+		op add baseY @thisy offsetY
+		set moveX baseX
+		set moveY baseY
+
+	GetLinks:
+		set switch switch1
+		jump GetLinks equal switch null
+	
+Start:
+GetUnitType:
+
+	jump StartUnitType equal useMemory false
+	read units memory unitIndex
+	jump NextUnitType equal units 0
+
+StartUnitType:
+	lookup unit unitType unitIndex
+	set firstUnit null
+	set unitCount 0
+
+	op mul offset spacing foundTypeI
+	op add moveX baseX offset
+
+GetNextUnit:
+CheckActive:
+	sensor active switch @enabled
+	jump BindUnit equal active true
+	
+	Disabled:
+		set unitIndex 0
+		set firstUnit null
+		jump Start always
+
+BindUnit:
+	ubind unitType
+	jump NextUnitType equal @unit null
+	sensor isDead @unit @dead
+	jump GetNextUnit equal isDead true
+	jump FinishGroup equal firstUnit @unit
+  	jump ProcessUnit notEqual firstUnit null
+
+StartGroup:
+	set firstUnit @unit
+
+ProcessUnit:
+	ucontrol boost true
+	ucontrol pathfind moveX moveY
+	
+FinishUnit:
+	jump GetNextUnit always
+
+FinishGroup:
+	op add foundTypeI foundTypeI 1
+
+NextUnitType:
+	op add unitIndex unitIndex 1
+	jump GetUnitType lessThanEq unitIndex maxUnitIndex
+	
+Finish:
+	set unitIndex 0
+	set foundTypeI 0
+	control enabled switch false
+	jump Start always
