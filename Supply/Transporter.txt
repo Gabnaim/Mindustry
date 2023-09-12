@@ -1,34 +1,35 @@
 Initialize:
-	set status "INITIALIZE"
-	set unitType @pulsar
-	set maxUnits 2
+	set unitType @poly
+	set maxUnits 3
 	set material @silicon
-	set dropRange 7
-	set pickupHere true
+	set takeAll false
+	set pickupHere true # if false, drop here
+
+	set coreTransport true # other side is core
+
+	# if coreTransport is false, coordinates of other target
+    # are required
+	set otherEndX 0
+	set otherEndY 0
+
+	set status "INITIALIZE"
 	set error " "
-	set errorIcon @blast-compound
 	
+	set dropRange 7
 	op shl procId @thisx 10
 	op add procId procId @thisy
 
 	GetTargetParams:
-		set coreTransport true # other side is core
-
-		# if coreTransport is false, coordinates of other target
-	    # are required
-		set otherEndX 132
-		set otherEndY 111
-
 		jump GetStartInfo equal coreTransport true
 
 		NotCoreTransport:
 			jump NeedTargetCoords equal otherEndX 0
 			jump NeedTargetCoords equal otherEndY 0
-			jump GetStartInfo always
+			jump GetStartInfo always 0 0
 
 		NeedTargetCoords:
-			set error "need other end coordinates if coreTransport is false"
-			jump Error always
+			set error "need end coords if not core"
+			jump GetTargetParams always
 
 	GetStartInfo:
 		ubind unitType
@@ -45,14 +46,12 @@ Initialize:
 		ulocate building core false 0 coreX coreY coreFound core
 	
 	GetInput:
-		set actionSorter sorter2
-		set materialSorter sorter1
-		jump GetInput equal actionSorter null
-		jump GetInput equal materialSorter null
+		set switch switch1
+		jump GetLinks notEqual switch null
+		set error "no switch"
+		jump GetInput always
 
 	GetLinks:
-		jump GetLinks lessThan @links 2
-
 		set i 0
 		set found 0
 		LinkLoop:
@@ -68,27 +67,28 @@ Initialize:
 				jump EndGetLinks notEqual linkedStorage null
 			NoStorage:
 				set error "No storage is linked"
-				jump Error always
+				jump GetLinks always 0 0 
 			FoundContainer:
 				set linkedStorage link
 
 		EndGetLinks:
 
-
 	FindOtherEndPoint:
 		jump FindOtherEnd equal coreTransport false
 		set otherEnd core
-		jump SetEndPoints always
+		jump SetEndPoints always 0 0
 
-	FindOtherEnd:
-		ucontrol within otherEndX otherEndY 1 isNear
-		jump AtOtherEnd equal isNear true
-		ucontrol move otherEndX otherEndY
-		jump FindOtherEnd always
-
-	AtOtherEnd:
-		ulocate building storage false 0 endX endY endFound otherEnd
-		jump GetTargetParams equal endFound false
+		FindOtherEnd:
+			ucontrol within otherEndX otherEndY 1 isNear
+			jump AtOtherEnd equal isNear true
+			ucontrol move otherEndX otherEndY
+			jump FindOtherEnd always
+	
+		AtOtherEnd:
+			ulocate building storage false 0 endX endY endFound otherEnd
+			jump SetEndPoints equal endFound true
+			set error "Other end not found"
+			jump AtOtherEnd always 0 0
 		
 	SetEndPoints:
 		jump PickupHere equal pickupHere true
@@ -136,16 +136,12 @@ Initialize:
 			set firstUnit null
 
 	set status "IDLE"
+	set error " "
 
 Start:
 CheckActive:
-	sensor actionChoice actionSorter @config
-	jump ChangeAction notEqual actionChoice lastAction
-	jump Reset equal actionChoice null
-	jump Start equal status "ERROR"
-
-	sensor materialChoice materialSorter @config
-	jump ChangeMaterial notEqual materialChoice lastMaterial
+	sensor active switch @enabled
+	jump ActiveChanged notEqual active lastActive
 
 BindUnit:
 	ubind unitType
@@ -231,16 +227,9 @@ Pickup:
 
 		jump Start always
 
-ChangeAction:
-	jump Reset equal actionChoice null
-	jump Start equal actionChoice errorIcon
-	set lastAction actionChoice
-	jump Initialize always
-
-ChangeMaterial:
-	op equal takeAll materialChoice null
-	set lastMaterial materialChoice
-	set material materialChoice
+ActiveChanged:
+	jump Reset equal active false
+	set lastActive active
 	jump Initialize always
 
 FinishGroup:
@@ -249,14 +238,8 @@ FinishGroup:
 	set firstUnit null
 	jump Start always
 
-Error:
-	set status "ERROR"
-	control config actionSorter errorIcon
-	jump Start always
-
 Reset:
 	jump Start equal status "IDLE"
-	jump Start equal status "ERROR"
 	set status "STOPPING"
 
 	set firstUnit null
