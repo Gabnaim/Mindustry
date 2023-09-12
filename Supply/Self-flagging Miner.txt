@@ -78,9 +78,7 @@ Initialize:
 			set firstUnit null
 
 	set status "IDLE"
-	set lastOre null
 
-	
 Start:
 CheckActive:
 	sensor oreChoice sorter @config
