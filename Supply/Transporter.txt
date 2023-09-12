@@ -1,5 +1,6 @@
 Initialize:
 	set unitType @pulsar
+	set material @silicon
 	set dropRange 7
 	set pickupHere true # pickup from the linkedStorage nearby
 	
@@ -27,7 +28,7 @@ Initialize:
 		jump GetStartInfo equal isDead true
 
 		sensor cap @unit @itemCapacity
-		sensor range @unit range 
+		sensor range @unit @range 
 		op sub range range 1
 		op min dropRange dropRange range
 
@@ -65,19 +66,20 @@ Initialize:
 				op add i i 1
 				jump LinkLoop lessThan i @links
 			NotFound:
-				jump GetLinks always
+				jump GetLinks equal linkedStorage null
 			FoundContainer:
 				set linkedStorage link
 
 	FindOtherEndPoint:
 		jump FindOtherEnd equal coreTransport false
-		set otherEnd Core
+		set otherEnd core
+		jump SetEndPoints always
 
 	FindOtherEnd:
 		ucontrol within otherEndX otherEndY 1 isNear
 		jump AtOtherEnd equal isNear true
 		ucontrol move otherEndX otherEndY
-		jump FindTarget always
+		jump FindOtherEnd always
 
 	AtOtherEnd:
 		ulocate building storage false 0 endX endY endFound otherEnd
@@ -102,8 +104,15 @@ Initialize:
 
 Start:
 CheckActive:
+	jump CheckSorter notEqual sorter null
+
+CheckSwitch:
 	sensor active switch @enabled
 	jump Start equal active false
+
+CheckSorter:
+	sensor oreChoice sorter @config
+	jump Start equal oreChoice null
 
 BindUnit:
 	ubind unitType
@@ -111,8 +120,8 @@ BindUnit:
 	sensor isDead @unit @dead
 	jump Start equal isDead true
 
-	sensor flag @unit @flag
-	jump Start notEqual flag procId
+	#sensor flag @unit @flag
+	#jump Start notEqual flag procId
 
 SelectAction:
 	sensor carried @unit @totalItems
