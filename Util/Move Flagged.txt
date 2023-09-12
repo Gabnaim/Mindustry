@@ -44,6 +44,7 @@ BindUnit:
 Move:
 	sensor flag @unit @flag
 	jump Start notEqual flag flagId
+	ucontrol itemDrop @air 200
 	ucontrol within moveX moveY range isNear
 	jump Arrived equal isNear true
 	ucontrol boost true
@@ -53,10 +54,7 @@ Move:
 Arrived:
 	ucontrol boost false
 	ucontrol stop
-	jump Unbind notEqual flag 0
-	ucontrol itemDrop @air 200
-Unbind:
-	ucontrol unbind
+	sensor flag @unit @flag
 	jump Start always
 	
 Finished:

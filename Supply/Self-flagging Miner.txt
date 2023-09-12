@@ -1,10 +1,10 @@
 Initialize:
+	set status "INITIALIZE"
 	set unitType @poly
 	set maxUnits 4 # store upto 8
 
 	set miningRange 8.75
 	set dropRange 7
-	set status "INITIALIZE"
 	set error " "
 	set errorIcon @blast-compound
 
@@ -50,36 +50,32 @@ Initialize:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y
 
-	PreFillSpots:
-		set status "PREFILL"
-		set used 0
-		PrefillLoop:
-			op mul offset used 2
-			op add offset offset 1
+	Preflag:
+		set status "PREFLAG"
+		set preflagged 0
+		PreflagLoop:
 
 			sensor flag @unit @flag
-			jump Unflag greaterThanEq used maxUnits
-			jump Prefill equal flag procId
-			jump PrefillBind notEqual flag 0
+			jump Unflag greaterThanEq preflagged maxUnits
+			jump Preflag equal flag procId
+
+			jump PreflagBind notEqual flag 0
 			ucontrol flag procId
 			
-			Prefill:
-				set setUnit @unit
-				op add setCurrentReturn @counter 1
-				jump SetCurrent always
-				op add used used 1
-				jump PrefillBind always
+			Preflag:
+				ucontrol itemDrop @air 200
+				op add preflagged preflagged 1
+				jump PreflagBind always
 			Unflag:
-				jump PrefillBind notEqual flag procId
+				jump PreflagBind notEqual flag procId
 				ucontrol flag 0
 				ucontrol itemDrop @air 200
-			PrefillBind:
+			PreflagBind:
 				ubind unitType
-				jump PrefillLoop notEqual firstUnit @unit
+				jump PreflagLoop notEqual firstUnit @unit
 
-		FinishPrefill:
+		FinishPreflag:
 			set firstUnit null
-			set used 0
 
 	set status "IDLE"
 	set lastOre null
@@ -92,56 +88,20 @@ CheckActive:
 	jump Reset equal oreChoice null
 	jump Start equal status "ERROR"
 
-GetUnitOffset:
-	op mul offset used 2
-	op add offset offset 1
-
-GetCurrentUnit:
-	op add getCurrentReturn @counter 1
-	jump GetCurrent always
-
-CheckUnit:
-	jump BindUnit equal currentUnit null
-	sensor isDead currentUnit @dead
-	jump BindUnit equal isDead false
-	set currentUnit null
-
 BindUnit:
 	ubind unitType
 	jump Start equal @unit null
-
-	# debug checks
-	op equal isFirst firstUnit @unit
-	op equal isCurrent currentUnit @unit
-
 	jump FinishGroup equal firstUnit @unit
 	jump ProcessUnit notEqual firstUnit null
 	set firstUnit @unit
-
+	
 ProcessUnit:
 	sensor isDead @unit @dead
 	jump BindUnit equal isDead true
 
-	sensor flag @unit flag
-	jump FillSpot equal currentUnit null
-	jump UseCached strictEqual currentUnit @unit
-	jump Next always
+	sensor flag @unit @flag
+	jump BindUnit notEqual flag procId
 
-FillSpot:
-	jump SetCurrentUnit equal flag procId
-
-GrabUnit:
-	jump BindUnit notEqual flag 0
-	ucontrol flag procId
-
-SetCurrentUnit:
-	set setUnit @unit
-	op add setCurrentReturn @counter 1
-	jump SetCurrent always
-	set currentUnit setUnit
-	jump SelectAction always
-
-UseCached:
 SelectAction:
 	jump FindOre equal oreFound false
 	set status "MINING"
@@ -163,7 +123,7 @@ DropItems:
 	jump DropLoop equal isNearDrop true
 	ucontrol boost true
 	ucontrol approach dropX dropY dropRange
-	jump NextUsed always
+	jump Next always
 
 	DropLoop:
 		set dropI 0
@@ -175,7 +135,7 @@ DropItems:
 			jump Mine equal carried 0
 			op add dropI dropI 1
 			jump LoopUntilEmpty lessThan dropI 100
-	jump NextUsed always
+	jump Next always
 
 Mine:
 	MoveToOre:
@@ -186,7 +146,7 @@ Mine:
 	
 	MineOre:
 		ucontrol mine oreX oreY
-		jump NextUsed always
+		jump Next always
 
 FindOre:
 	# Use this unit to find the nearest ore source
@@ -200,7 +160,7 @@ FindOre:
 	
 	LocateOre:
 		ulocate ore core true minedOre oreX oreY oreFound oreMine
-		jump NextUsed equal oreFound true
+		jump Next equal oreFound true
 
 	NoOre:
 		set error "No ore found"
@@ -237,18 +197,11 @@ ChangeOre:
 	ValidOre:
 		set lastOre minedOre
 		set minedOre oreChoice
-		set error ""
-		set status "IDLE"
-		jump Start always
+		jump Initialize always
 
 	CannotMine:
 		set error "Cannot mine ore"
 		jump Error always
-
-
-NextUsed:
-	op add used used 1
-	jump FinishGroup greaterThanEq used maxUnits
 
 Next:
 	jump Start always
@@ -266,12 +219,8 @@ Error:
 	jump Start always
 
 Reset:
-	set oreFound false
-	set lastOre minedOre
-	set minedOre null
-	set error ""
-	jump GetDropTarget equal status "IDLE"
-	jump GetDropTarget equal status "ERROR"
+	jump Start equal status "IDLE"
+	jump Start equal status "ERROR"
 	set status "STOPPING"
 
 	set firstUnit null
@@ -290,68 +239,8 @@ Reset:
 		jump StopLoop always
 		
 	AllStopped:
-		set status "RESETALL"
-		op add resetAllReturn @counter 1
-		jump ResetAll always
-	
 		set status "IDLE"
 		jump Start always
 
-GetCurrent:
-	op add jumpGetCurrent @counter offset
-	set @counter jumpGetCurrent
-	
-	set currentUnit minion1
-	jump EndGetCurrent always
-	set currentUnit minion2
-	jump EndGetCurrent always
-	set currentUnit minion3
-	jump EndGetCurrent always
-	set currentUnit minion4
-	jump EndGetCurrent always
-	set currentUnit minion5
-	jump EndGetCurrent always
-	set currentUnit minion6
-	jump EndGetCurrent always
-	set currentUnit minion7
-	jump EndGetCurrent always
-	set currentUnit minion8
-	EndGetCurrent:
-		set @counter getCurrentReturn
-
-SetCurrent:
-	op add jumpSetCurrent @counter offset
-	set @counter jumpSetCurrent
-
-	set minion1 @unit
-	jump EndSetCurrent always
-	set minion2 @unit
-	jump EndSetCurrent always
-	set minion3 @unit
-	jump EndSetCurrent always
-	set minion4 @unit
-	jump EndSetCurrent always
-	set minion5 @unit
-	jump EndSetCurrent always
-	set minion6 @unit
-	jump EndSetCurrent always
-	set minion7 @unit
-	jump EndSetCurrent always
-	set minion8 @unit
-	EndSetCurrent:
-		set @counter setCurrentReturn
-
-ResetAll:
-	set minion1 null
-	set minion2 null
-	set minion3 null
-	set minion4 null
-	set minion5 null
-	set minion6 null
-	set minion7 null
-	set minion8 null
-
-	set @counter resetAllReturn
-		
 
 	

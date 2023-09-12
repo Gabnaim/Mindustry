@@ -16,32 +16,30 @@ Initialize:
 		jump GetStartUnit equal @unit null
 		set firstUnit @unit
 
-	PreFillSpots:
-		set status "PREFILL"
-		set prefilled 0
-		PrefillLoop:
-			op mul offset prefilled 2
-			op add offset offset 1
-
+	Preflag:
+		set status "PREFLAG"
+		set preflagged 0
+		PreflagLoop:
+		
 			sensor flag @unit @flag
-			jump Unflag greaterThanEq prefilled maxUnits
-			jump Prefill equal flag procId
-			jump PrefillBind notEqual flag 0
+			jump Unflag greaterThanEq preflagged maxUnits
+			jump Preflag equal flag procId
+			jump PreflagBind notEqual flag 0
 			ucontrol flag procId
 			
-			Prefill:
+			Preflag:
 				ucontrol itemDrop @air 200
-				op add prefilled prefilled 1
-				jump PrefillBind always
+				op add preflagged preflagged 1
+				jump PreflagBind always
 			Unflag:
-				jump PrefillBind notEqual flag procId
+				jump PreflagBind notEqual flag procId
 				ucontrol flag 0
 				ucontrol itemDrop @air 200
-			PrefillBind:
+			PreflagBind:
 				ubind unitType
-				jump PrefillLoop notEqual firstUnit @unit
+				jump PreflagLoop notEqual firstUnit @unit
 
-		FinishPrefill:
+		FinishPreflag:
 			set firstUnit null
 
 	set status "IDLE"
@@ -95,10 +93,10 @@ FinishGroup:
 ChangeOre:
 	jump Reset equal oreChoice null
 	set lastOre oreChoice
-	jump Start always
+	jump Initialize always
 
 Reset:
-	jump Initialize equal status "IDLE"
+	jump Start equal status "IDLE"
 	set status "STOPPING"
 
 	set firstUnit null
