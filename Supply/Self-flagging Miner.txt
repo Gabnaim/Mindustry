@@ -1,7 +1,7 @@
 Initialize:
 	set status "INITIALIZE"
 	set unitType @poly
-	set maxUnits 4 # store upto 8
+	set maxUnits 4
 
 	set miningRange 8.75
 	set dropRange 7
