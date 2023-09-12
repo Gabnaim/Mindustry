@@ -35,20 +35,10 @@ Initialize:
 		ulocate building core false 0 coreX coreY coreFound core
 	
 	GetInput:
-		# if a sorter, we transport one item
-		# if a switch, we take all
-		set switch switch1
-		set sorter sorter1
-		jump GetInput equal switch sorter # one is required
-		jump SetSwitch notEqual switch null
-
-		SetSorter:
-			set chooser sorter
-			jump GetLinks always
-	
-		SetSwitch:
-			set chooser switch
-			set takeAll true
+		set actionSorter sorter1
+		set materialSorter sorter2
+		jump GetInput equal actionSorter null
+		jump GetInput equal materialSorter null
 
 	GetLinks:
 		jump GetLinks lessThan @links 2
@@ -102,26 +92,59 @@ Initialize:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y
 
+	Preflag:
+		set status "PREFLAG"
+		set preflagged 0
+		PreflagLoop:
+
+			sensor flag @unit @flag
+			jump Unflag greaterThanEq preflagged maxUnits
+			jump Preflag equal flag procId
+
+			jump PreflagBind notEqual flag 0
+			ucontrol flag procId
+			
+			Preflag:
+				ucontrol itemDrop @air 200
+				op add preflagged preflagged 1
+				jump PreflagBind always
+			Unflag:
+				jump PreflagBind notEqual flag procId
+				ucontrol flag 0
+				ucontrol itemDrop @air 200
+			PreflagBind:
+				ubind unitType
+				jump PreflagLoop notEqual firstUnit @unit
+
+		FinishPreflag:
+			set firstUnit null
+
+	set status "IDLE"
+
 Start:
 CheckActive:
-	jump CheckSorter notEqual sorter null
+	sensor actionChoice actionSorter @config
+	jump ChangeAction notEqual actionChoice lastAction
+	jump Reset equal actionChoice null
+	jump Start equal status "ERROR"
 
-CheckSwitch:
-	sensor active switch @enabled
-	jump Start equal active false
-
-CheckSorter:
-	sensor oreChoice sorter @config
-	jump Start equal oreChoice null
+	sensor materialChoice materialSorter @config
+	jump ChangeMaterial notEqual materialChoice lastMaterial
 
 BindUnit:
 	ubind unitType
 	jump Start equal @unit null
-	sensor isDead @unit @dead
-	jump Start equal isDead true
 
-	#sensor flag @unit @flag
-	#jump Start notEqual flag procId
+	jump FinishGroup equal firstUnit @unit
+	jump ProcessUnit notEqual firstUnit null
+	set firstUnit @unit
+	
+ProcessUnit:
+	sensor isDead @unit @dead
+	jump BindUnit equal isDead true
+
+	sensor flag @unit @flag
+	jump BindUnit notEqual flag procId
 
 SelectAction:
 	sensor carried @unit @totalItems
@@ -190,4 +213,52 @@ Pickup:
 			op add pickupI pickupI 1
 			jump LoopUntilFull lessThan pickupI 100 
 
+		jump Start always
+
+ChangeAction:
+	jump Reset equal actionChoice null
+	jump Start equal actionChoice errorIcon
+	set lastAction actionChoice
+	jump Initialize always
+
+ChangeMaterial:
+	op equal takeAll materialChoice null
+	set lastMaterial materialChoice
+	set material materialChoice
+	jump Initialize always
+
+FinishGroup:
+	set totalUsed used
+	set used 0
+	set firstUnit null
+	jump Start always
+
+Error:
+	set status "ERROR"
+	set choiceBeforeError oreChoice
+	control config sorter errorIcon
+	jump Start always
+
+Reset:
+	jump Start equal status "IDLE"
+	jump Start equal status "ERROR"
+	set status "STOPPING"
+
+	set firstUnit null
+	StopLoop:
+		ubind unitType
+		jump AllStopped equal @unit firstUnit
+		jump StopUnit notEqual firstUnit null
+		set firstUnit @unit
+		
+		StopUnit:
+			sensor flag @unit @flag
+			jump StopLoop notEqual flag procId
+			ucontrol stop
+			ucontrol flag 0
+			ucontrol itemDrop @air 200
+		jump StopLoop always
+		
+	AllStopped:
+		set status "IDLE"
 		jump Start always
