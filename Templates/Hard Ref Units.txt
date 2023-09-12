@@ -30,9 +30,6 @@ Initialize:
 			ucontrol flag procId
 			
 			Prefill:
-				set setUnit @unit
-				op add setCurrentReturn @counter 1
-				jump SetCurrent always
 				ucontrol itemDrop @air 200
 				op add prefilled prefilled 1
 				jump PrefillBind always
@@ -57,14 +54,6 @@ CheckActive:
 
 	jump FinishGroup greaterThanEq used maxUnits
 
-GetUnitOffset:
-	op mul offset used 2
-	op add offset offset 1
-
-GetCurrentUnit:
-	op add getCurrentReturn @counter 1
-	jump GetCurrent always
-
 BindUnit:
 	ubind unitType
 	jump Start equal @unit null
@@ -76,34 +65,8 @@ ProcessUnit:
 	sensor isDead @unit @dead
 	jump BindUnit equal isDead true
 
-	sensor flag @unit flag
-	jump UseCached strictEqual currentUnit @unit
-	jump FillSpot equal currentUnit null
-	jump Next always
-
-UseCached:
-	jump DoStuff equal flag procId 
-	jump GrabUnit equal flag 0
-
-	# release this unit
-	set currentUnit null
-	set setUnit null
-	op add setCurrentReturn @counter 1
-	jump SetCurrent always
-	jump BindUnit always
-
-FillSpot:
-	jump SetCurrentUnit equal flag procId
-	jump BindUnit notEqual flag 0
-
-GrabUnit:
-	ucontrol flag procId
-
-SetCurrentUnit:
-	set setUnit @unit
-	op add setCurrentReturn @counter 1
-	jump SetCurrent always
-	set currentUnit @unit
+	sensor flag @unit @flag
+	jump BindUnit notEqual flag procId
 
 DoStuff:
 	set status "PROCESSING"
@@ -128,50 +91,6 @@ FinishGroup:
 	set used 0
 	set firstUnit null
 	jump Start always
-
-GetCurrent:
-	op add jumpGetCurrent @counter offset
-	set @counter jumpGetCurrent
-	
-	set currentUnit minion1
-	jump EndGetCurrent always
-	set currentUnit minion2
-	jump EndGetCurrent always
-	set currentUnit minion3
-	jump EndGetCurrent always
-	set currentUnit minion4
-	jump EndGetCurrent always
-	set currentUnit minion5
-	jump EndGetCurrent always
-	set currentUnit minion6
-	jump EndGetCurrent always
-	set currentUnit minion7
-	jump EndGetCurrent always
-	set currentUnit minion8
-	EndGetCurrent:
-		set @counter getCurrentReturn
-
-SetCurrent:
-	op add jumpSetCurrent @counter offset
-	set @counter jumpSetCurrent
-
-	set minion1 setUnit
-	jump EndSetCurrent always
-	set minion2 setUnit
-	jump EndSetCurrent always
-	set minion3 setUnit
-	jump EndSetCurrent always
-	set minion4 setUnit
-	jump EndSetCurrent always
-	set minion5 setUnit
-	jump EndSetCurrent always
-	set minion6 setUnit
-	jump EndSetCurrent always
-	set minion7 setUnit
-	jump EndSetCurrent always
-	set minion8 setUnit
-	EndSetCurrent:
-		set @counter setCurrentReturn
 
 ChangeOre:
 	jump Reset equal oreChoice null
