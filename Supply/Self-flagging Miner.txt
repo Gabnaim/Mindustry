@@ -19,14 +19,25 @@ Initialize:
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
-		set firstUnit @unit
+		sensor dead @unit @dead
+		jump GetStartInfo equal dead true
+		sensor flag @unit @flag
+		jump UseInfoUnit equal flag procId
+		jump UseInfoUnit equal flag 0
+		set error "no available units"
+		jump GetStartInfo always
 
-		sensor cap @unit @itemCapacity
-		sensor range @unit @range
-		op sub range range 1
-		op min dropRange dropRange range
+		UseInfoUnit:
+			set error " "
 		
-		ulocate building core false 0 coreX coreY coreFound core
+			set firstUnit @unit
+
+			sensor cap @unit @itemCapacity
+			sensor range @unit @range
+			op sub range range 1
+			op min dropRange dropRange range
+		
+			ulocate building core false 0 coreX coreY coreFound core
 
 	GetDropTarget:
 		set l 0
@@ -82,7 +93,7 @@ Initialize:
 Start:
 CheckActive:
 	sensor oreChoice sorter @config
-	jump ChangeOre notEqual oreChoice lastOre
+	jump ChangeOre notEqual oreChoice lastChoice
 	jump Reset equal oreChoice null
 	jump Start equal status "ERROR"
 
@@ -165,6 +176,7 @@ FindOre:
 		jump Error always
 
 ChangeOre:
+	set lastChoice oreChoice
 	jump Reset equal oreChoice null
 	jump Start equal oreChoice errorIcon
 
