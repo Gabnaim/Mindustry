@@ -5,6 +5,10 @@ Initialize:
 
 	set miningRange 8.75
 	set dropRange 7
+	set useCoords true
+	set oreX 58
+	set oreY 138
+
 	set error " "
 	set errorIcon @blast-compound
 
@@ -12,9 +16,15 @@ Initialize:
 		set sorter sorter1
 		jump GetSorter equal sorter null
 
-	GetId:
 		op shl procId @thisx 10
 		op add procId procId @thisy
+
+	CheckConfig:
+		jump Preflag equal useCoords false
+		op add oreCheck oreX oreY
+		jump Preflag greaterThan oreCheck 0
+		set error "need coords if using"
+		jump CheckConfig always
 
 Preflag:
 	set totalFlagged 0
@@ -27,11 +37,10 @@ Preflag:
 	set status "COUNT"
 
 	PreflagLoop:
-	BindUnit:
 		ubind unitType
-		jump Preflag equal @unit null
+		jump PreflagLoop equal @unit null
 		sensor isDead @unit @dead
-		jump BindUnit equal isDead true
+		jump PreflagLoop equal isDead true
 
 		jump FinishCount equal firstUnit @unit
 		jump FlagProcess notEqual firstUnit null
@@ -47,19 +56,17 @@ Preflag:
 	CountFlagged:
 		op add flagged flagged 1
 		jump NextCount notEqual status "UNFLAG"
-		Unflag:
-			ucontrol flag 0
-			op sub neededFlags neededFlags 1
-			jump FlagDone equal neededFlags 0
-			jump NextCount always
+		ucontrol flag 0
+		op sub neededFlags neededFlags 1
+		jump GetStartUnit equal neededFlags 0
+		jump NextCount always
 
 	CountFree:
 		op add free free 1
 		jump NextCount notEqual status "FLAG"
-		Flag:
-			ucontrol flag procId
-			op sub neededFlags neededFlags 1
-			jump FlagDone equal neededFlags 0
+		ucontrol flag procId
+		op sub neededFlags neededFlags 1
+		jump GetStartUnit equal neededFlags 0
 	
 	NextCount:
 		op add i i 1
@@ -72,35 +79,31 @@ Preflag:
 		set totalUnits i
 
 		GetNextAction:
-			jump FlagDone equal totalFlagged maxUnits
-			jump FlagDone equal status "FLAG"
-			jump FlagDone equal status "UNFLAG"
+			jump GetStartUnit equal totalFlagged maxUnits
+			jump GetStartUnit equal status "FLAG"
+			jump GetStartUnit equal status "UNFLAG"
 
 			set flagged 0
 			set free 0
 			set i 0
 
 			jump NeedFlags lessThan totalFlagged maxUnits
-			NeedUnflags: 
-				op sub neededFlags totalFlagged maxUnits
-				set status "UNFLAG"
-				jump PreflagLoop always
+			op sub neededFlags totalFlagged maxUnits
+			set status "UNFLAG"
+			jump PreflagLoop always
 
 			NeedFlags:
 				op sub neededFlags maxUnits totalFlagged
 				op min neededFlags neededFlags totalFree
-				jump FlagDone lessThanEq neededFlags 0
+				jump GetStartUnit lessThanEq neededFlags 0
 				set status "FLAG"
 				jump PreflagLoop always
 
-	FlagDone:
-
 	GetStartUnit:
+		set status "START"
 		# get an already flagged unit
 		ubind unitType
 		jump GetStartUnit equal @unit null
-		sensor isDead @unit @dead
-		jump GetStartUnit equal isDead true
 		sensor flag @unit @flag
 		jump GetStartUnit notEqual flag procId
 
@@ -123,7 +126,6 @@ Preflag:
 		NextLink:
 			op add l l 1
 			jump LinkLoop lessThan l @links
-		NotFound:
 			set dropTarget core
 			jump GetDropCoords always
 		Found:
@@ -132,8 +134,9 @@ Preflag:
 	GetDropCoords:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y
-
+		
 	set status "IDLE"
+	set oreFound false
 
 Start:
 CheckActive:
@@ -205,16 +208,42 @@ Mine:
 FindOre:
 	# Use this unit to find the nearest ore source
 	set status "LOCATEORE"
-	GoToDrop:
-		ucontrol within dropX dropY 1 isNearDrop
-		jump LocateOre equal isNearDrop true
+
+	jump SearchNearDrop equal useCoords false
+	SearchAtCoords:
+		ucontrol within oreX oreY 1 isNear
+		jump CheckBlock equal isNear true
 		ucontrol boost true
-		ucontrol approach dropX dropY 1
-		jump GoToDrop always
-	
-	LocateOre:
-		ulocate ore core true minedOre oreX oreY oreFound oreMine
-		jump Next equal oreFound true
+		ucontrol move oreX oreY 
+		jump SearchAtCoords always
+
+		CheckBlock:
+			ucontrol getBlock oreX oreY type building floor
+			jump NoOre notEqual type @air
+		
+			op add floorReturn @counter 1
+			jump GetMinedFloor always
+
+			jump FoundOre equal minedFloor floor
+			jump NoOre notEqual minedOre @sand
+		CheckSand:
+			jump NoOre notEqual floor @darksand
+
+		FoundOre:
+			set oreFound true
+			jump Next always
+		
+	SearchNearDrop:
+		GoToDrop:
+			ucontrol within dropX dropY 1 isNearDrop
+			jump LocateOre equal isNearDrop true
+			ucontrol boost true
+			ucontrol approach dropX dropY 1
+			jump GoToDrop always
+		
+		LocateOre:
+			ulocate ore core true minedOre oreX oreY oreFound oreMine
+			jump Next equal oreFound true
 
 	NoOre:
 		set error "No ore found"
@@ -226,6 +255,7 @@ ChangeOre:
 	jump Start equal oreChoice errorIcon
 
 	set status "CHANGEORE"
+	set error " "
 	set oreFound false
 
 	ValidateOre:
@@ -269,7 +299,6 @@ FinishGroup:
 		
 Error:
 	set status "ERROR"
-	set choiceBeforeError oreChoice
 	control config sorter errorIcon
 	jump Start always
 
@@ -297,5 +326,28 @@ Reset:
 		set status "IDLE"
 		jump Start always
 
-
+GetMinedFloor:
+	sensor id minedOre @id
+	op mul offset id 2
+	op add offset offset 1
+	op add floorJump @counter offset
+	set @counter floorJump
 	
+	set minedFloor @ore-copper
+	set @counter floorReturn
+	set minedFloor @ore-lead
+	set @counter floorReturn
+	set minedFloor null
+	set @counter floorReturn
+	set minedFloor null
+	set @counter floorReturn
+	set minedFloor @sand-floor
+	set @counter floorReturn
+	set minedFloor @ore-coal
+	set @counter floorReturn
+	set minedFloor @ore-titanium
+	set @counter floorReturn
+	set minedFloor null
+	set @counter floorReturn
+	set minedFloor @ore-scrap
+	set @counter floorReturn
