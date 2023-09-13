@@ -48,8 +48,7 @@ Preflag:
 
 	FlagProcess:
 		sensor flag @unit @flag
-		op shr unitProcId flag extraBits
-		jump CountFlagged equal unitProcId procId
+		jump CountFlagged equal flag procId
 		jump CountFree equal flag 0
 		jump NextCount always
 		
