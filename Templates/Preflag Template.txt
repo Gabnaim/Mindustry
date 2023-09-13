@@ -11,6 +11,7 @@ Initialize:
 		op shl procId @thisx 9
 		op add procId procId @thisy
 
+Preflag:
 	set totalFlagged 0
 	set totalFree 0
 	set totalUnits 0
@@ -18,8 +19,6 @@ Initialize:
 	set flagged 0
 	set free 0
 	set i 0
-	
-Preflag:
 	set status "COUNT"
 
 	PreflagLoop:
@@ -97,7 +96,6 @@ Preflag:
 		jump GetStartUnit equal @unit null
 		sensor isDead @unit @dead
 		jump GetStartUnit equal isDead true
-
 		sensor flag @unit @flag
 		jump GetStartUnit notEqual flag procId
 

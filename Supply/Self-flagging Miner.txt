@@ -16,28 +16,100 @@ Initialize:
 		op shl procId @thisx 10
 		op add procId procId @thisy
 
-	GetStartInfo:
+Preflag:
+	set totalFlagged 0
+	set totalFree 0
+	set totalUnits 0
+	set firstUnit null
+	set flagged 0
+	set free 0
+	set i 0
+	set status "COUNT"
+
+	PreflagLoop:
+	BindUnit:
 		ubind unitType
-		jump GetStartInfo equal @unit null
-		sensor dead @unit @dead
-		jump GetStartInfo equal dead true
+		jump Preflag equal @unit null
+		sensor isDead @unit @dead
+		jump BindUnit equal isDead true
+
+		jump FinishCount equal firstUnit @unit
+		jump FlagProcess notEqual firstUnit null
+		set firstUnit @unit
+
+	FlagProcess:
 		sensor flag @unit @flag
-		jump UseInfoUnit equal flag procId
-		jump UseInfoUnit equal flag 0
-		set error "no available units"
-		jump GetStartInfo always
-
-		UseInfoUnit:
-			set error " "
+		op shr unitProcId flag extraBits
+		jump CountFlagged equal unitProcId procId
+		jump CountFree equal flag 0
+		jump NextCount always
 		
-			set firstUnit @unit
+	CountFlagged:
+		op add flagged flagged 1
+		jump NextCount notEqual status "UNFLAG"
+		Unflag:
+			ucontrol flag 0
+			op sub neededFlags neededFlags 1
+			jump FlagDone equal neededFlags 0
+			jump NextCount always
 
-			sensor cap @unit @itemCapacity
-			sensor range @unit @range
-			op sub range range 1
-			op min dropRange dropRange range
-		
-			ulocate building core false 0 coreX coreY coreFound core
+	CountFree:
+		op add free free 1
+		jump NextCount notEqual status "FLAG"
+		Flag:
+			ucontrol flag procId
+			op sub neededFlags neededFlags 1
+			jump FlagDone equal neededFlags 0
+	
+	NextCount:
+		op add i i 1
+		jump PreflagLoop always
+
+	FinishCount:
+		jump GetNextAction greaterThan totalUnits 0
+		set totalFlagged flagged
+		set totalFree free
+		set totalUnits i
+
+		GetNextAction:
+			jump FlagDone equal totalFlagged maxUnits
+			jump FlagDone equal status "FLAG"
+			jump FlagDone equal status "UNFLAG"
+
+			set flagged 0
+			set free 0
+			set i 0
+
+			jump NeedFlags lessThan totalFlagged maxUnits
+			NeedUnflags: 
+				op sub neededFlags totalFlagged maxUnits
+				set status "UNFLAG"
+				jump PreflagLoop always
+
+			NeedFlags:
+				op sub neededFlags maxUnits totalFlagged
+				op min neededFlags neededFlags totalFree
+				jump FlagDone lessThanEq neededFlags 0
+				set status "FLAG"
+				jump PreflagLoop always
+
+	FlagDone:
+
+	GetStartUnit:
+		# get an already flagged unit
+		ubind unitType
+		jump GetStartUnit equal @unit null
+		sensor isDead @unit @dead
+		jump GetStartUnit equal isDead true
+		sensor flag @unit @flag
+		jump GetStartUnit notEqual flag procId
+
+		sensor cap @unit @itemCapacity
+		sensor range @unit @range
+		op sub range range 1
+		op min dropRange dropRange range
+	
+		ulocate building core false 0 coreX coreY coreFound core
 
 	GetDropTarget:
 		set l 0
@@ -60,33 +132,6 @@ Initialize:
 	GetDropCoords:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y
-
-	Preflag:
-		set status "PREFLAG"
-		set preflagged 0
-		PreflagLoop:
-
-			sensor flag @unit @flag
-			jump Unflag greaterThanEq preflagged maxUnits
-			jump Preflag equal flag procId
-
-			jump PreflagBind notEqual flag 0
-			ucontrol flag procId
-			
-			Preflag:
-				ucontrol itemDrop @air 200
-				op add preflagged preflagged 1
-				jump PreflagBind always
-			Unflag:
-				jump PreflagBind notEqual flag procId
-				ucontrol flag 0
-				ucontrol itemDrop @air 200
-			PreflagBind:
-				ubind unitType
-				jump PreflagLoop notEqual firstUnit @unit
-
-		FinishPreflag:
-			set firstUnit null
 
 	set status "IDLE"
 
