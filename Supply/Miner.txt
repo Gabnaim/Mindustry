@@ -2,10 +2,10 @@ Initialize:
 	set status "INITIALIZE"
 	set unitType @poly
 	set maxUnits 4
-
+	set waitTicks 1800 # wait 30 secs before releasing when idle
 	set miningRange 8.75
 	set dropRange 7
-	set useCoords true
+	set useCoords false
 	set oreX 58
 	set oreY 138
 
@@ -58,7 +58,7 @@ Preflag:
 		jump NextCount notEqual status "UNFLAG"
 		ucontrol flag 0
 		op sub neededFlags neededFlags 1
-		jump GetStartUnit equal neededFlags 0
+		jump FlagDone equal neededFlags 0
 		jump NextCount always
 
 	CountFree:
@@ -66,7 +66,7 @@ Preflag:
 		jump NextCount notEqual status "FLAG"
 		ucontrol flag procId
 		op sub neededFlags neededFlags 1
-		jump GetStartUnit equal neededFlags 0
+		jump FlagDone equal neededFlags 0
 	
 	NextCount:
 		op add i i 1
@@ -79,9 +79,9 @@ Preflag:
 		set totalUnits i
 
 		GetNextAction:
-			jump GetStartUnit equal totalFlagged maxUnits
-			jump GetStartUnit equal status "FLAG"
-			jump GetStartUnit equal status "UNFLAG"
+			jump FlagDone equal totalFlagged maxUnits
+			jump FlagDone equal status "FLAG"
+			jump FlagDone equal status "UNFLAG"
 
 			set flagged 0
 			set free 0
@@ -95,9 +95,11 @@ Preflag:
 			NeedFlags:
 				op sub neededFlags maxUnits totalFlagged
 				op min neededFlags neededFlags totalFree
-				jump GetStartUnit lessThanEq neededFlags 0
+				jump FlagDone lessThanEq neededFlags 0
 				set status "FLAG"
 				jump PreflagLoop always
+
+	FlagDone:
 
 	GetStartUnit:
 		set status "START"
@@ -192,7 +194,7 @@ DropItems:
 			jump Mine equal carried 0
 			op add dropI dropI 1
 			jump LoopUntilEmpty lessThan dropI 100
-	jump Next always
+		jump Next always
 
 Mine:
 	MoveToOre:
@@ -305,24 +307,30 @@ Error:
 Reset:
 	jump Start equal status "IDLE"
 	jump Start equal status "ERROR"
-	set status "STOPPING"
+	jump ReleaseAll equal status "RELEASING"
+	set startTick @tick
+
+ReleaseAll:
+	set status "RELEASING"
+	op sub elapsed @tick startTick
+	jump Start lessThan elapsed waitTicks
 
 	set firstUnit null
-	StopLoop:
+	ReleaseLoop:
 		ubind unitType
-		jump AllStopped equal @unit firstUnit
-		jump StopUnit notEqual firstUnit null
+		jump FinishRelease equal @unit firstUnit
+		jump ReleaseUnit notEqual firstUnit null
 		set firstUnit @unit
 		
-		StopUnit:
+		ReleaseUnit:
 			sensor flag @unit @flag
-			jump StopLoop notEqual flag procId
+			jump ReleaseLoop notEqual flag procId
 			ucontrol stop
+			ucontrol itemDrop @air 100
 			ucontrol flag 0
-			ucontrol itemDrop @air 200
-		jump StopLoop always
+			jump ReleaseLoop always
 		
-	AllStopped:
+	FinishRelease:
 		set status "IDLE"
 		jump Start always
 
