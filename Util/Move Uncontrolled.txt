@@ -1,0 +1,71 @@
+Initialize:
+	set flagId 0
+	set useMemory true
+	set unitType @mono
+	set UNIT_TYPE_ADDR 0
+	set range 3
+	
+
+	op add moveX @thisx 0
+	op add moveY @thisy -10
+	set finished false
+	set lastActive false
+
+	GetLinks:
+		set switch switch1
+		jump GetLinks equal switch null
+		set memory cell1
+		jump Start equal useMemory false
+		jump GetLinks equal memory null
+
+Start:
+	set lastUnitType unitType
+CheckActive:
+	sensor active switch @enabled
+	jump Reset notEqual active lastActive
+	jump Start equal active false
+	jump Start equal finished true
+	jump BindUnit equal useMemory false
+
+ReadUnitType:
+	read unitTypeId memory UNIT_TYPE_ADDR
+	jump Start lessThan unitTypeId 0
+	jump Start greaterThan unitTypeId 55
+	lookup unit unitType unitTypeId
+	jump Reset notEqual unitType lastUnitType
+
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	jump Finished equal firstUnit @unit
+  	jump Move notEqual firstUnit null
+	set firstUnit @unit
+	
+Move:
+	sensor controlled @unit @controlled
+	jump Start equal controlled true
+	ucontrol itemDrop @air 200
+	ucontrol flag 0
+	ucontrol within moveX moveY range isNear
+	jump Arrived equal isNear true
+	ucontrol boost true
+	ucontrol pathfind moveX moveY
+	jump Start always
+
+Arrived:
+	ucontrol boost false
+	ucontrol stop
+	sensor flag @unit @flag
+	jump Start always
+	
+Finished:
+	set finished true
+	control enabled switch false
+	jump Start always
+
+Reset:
+	set lastActive active
+	set finished false
+	set firstUnit null
+	jump Start always
+	
