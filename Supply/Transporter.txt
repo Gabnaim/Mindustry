@@ -281,29 +281,39 @@ FinishGroup:
 Reset:
 	jump Start equal status "IDLE"
 	jump Start equal status "ERROR"
-	jump ReleaseAll equal status "RELEASING"
-	set startTick @tick
+	jump StopAll notEqual status "RELEASING"
 
 ReleaseAll:
-	set status "RELEASING"
 	op sub elapsed @tick startTick
 	jump Start lessThan elapsed waitTicks
+	jump Stopping always
 
+StopAll:
+	set status "STOPPING"
+
+Stopping:
 	set firstUnit null
-	ReleaseLoop:
+	StopLoop:
 		ubind unitType
-		jump FinishRelease equal @unit firstUnit
-		jump ReleaseUnit notEqual firstUnit null
+		jump FinishStop equal @unit firstUnit
+		jump StopUnit notEqual firstUnit null
 		set firstUnit @unit
 		
-		ReleaseUnit:
+		StopUnit:
 			sensor flag @unit @flag
-			jump ReleaseLoop notEqual flag procId
+			jump StopLoop notEqual flag procId
 			ucontrol stop
+			jump StopLoop equal status "STOPPING"
 			ucontrol itemDrop @air 100
 			ucontrol flag 0
-			jump ReleaseLoop always
+			jump StopLoop always
 		
+	FinishStop:
+		jump FinishRelease equal status "RELEASING"
+		set status "RELEASING"
+		set startTick @tick
+		jump Start always
+
 	FinishRelease:
 		set status "IDLE"
 		jump Start always
