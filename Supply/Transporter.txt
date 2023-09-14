@@ -1,5 +1,5 @@
 Initialize:
-	set unitType @poly
+	set unitType @pulsar
 	set maxUnits 3
 	set material @silicon
 	set takeAll false
@@ -100,6 +100,7 @@ Preflag:
 				jump PreflagLoop always
 
 	FlagDone:
+		jump Preflag equal totalFlagged 0
 
 	GetStartUnit:
 		set status "START"
@@ -183,6 +184,7 @@ Start:
 CheckActive:
 	sensor active switch @enabled
 	jump ActiveChanged notEqual active lastActive
+	jump Reset equal active false
 
 BindUnit:
 	ubind unitType
@@ -197,6 +199,7 @@ ProcessUnit:
 
 	sensor flag @unit @flag
 	jump BindUnit notEqual flag procId
+	set status "TRANSPORTING"
 
 SelectAction:
 	sensor carried @unit @totalItems
