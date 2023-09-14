@@ -18,3 +18,4 @@ GetProcIdFromFlag:
 
 GetInfoFromFlag:
 	op and info flag infoMask
+ 
