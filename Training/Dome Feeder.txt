@@ -1,0 +1,109 @@
+set sourceFile "Dome Feeder.txt"
+
+Initialize:
+	set unitType @flare
+	op shl procId @thisx 10
+	op add procId procId @thisy
+	set sourceMin 500
+	set dropRange 7
+
+	GetLinks:
+		set dome dome1
+		jump GetLinks equal dome null
+	
+	sensor domeX dome @x
+	sensor domeY dome @y
+	
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		sensor cap @unit @itemCapacity
+		sensor range @unit @range
+		ulocate building core false 0 sourceX sourceY sourceFound source
+
+	set material @silicon
+
+
+Start:
+CheckDome:
+	sensor silicon dome @silicon
+	sensor phase dome @phase-fabric
+
+	jump CheckPhase lessThan phase silicon
+
+	CheckSilicon:
+		set material @silicon
+		op sub amount 10 silicon
+		jump FeedDome always
+
+	CheckPhase:
+		set material @phase-fabric
+		op sub amount 10 phase
+
+FeedDome:
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump StartRun equal muleDead false
+	
+FindMule:
+	ubind unitType
+	jump Start equal @unit null
+	sensor unitDead @unit @dead
+	jump FindMule equal unitDead true
+
+	sensor unitFlag @unit @flag
+	jump UseMule equal unitFlag procId
+
+FlagMule:
+	jump FindMule notEqual unitFlag 0
+	ucontrol flag procId
+
+UseMule:
+	set mule @unit
+	
+StartRun:
+	sensor carried mule @totalItems
+	jump Pickup equal carried 0
+	sensor carriedMat mule @firstItem
+	jump DumpUnneeded notEqual carriedMat material
+	jump Pickup always
+	
+DumpUnneeded:
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump DumpLoop equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	jump DumpUnneeded always
+
+	DumpLoop:
+		DumpUntilEmpty:
+			ucontrol itemDrop source material carried
+			sensor carried mule @totalItems 
+			jump DumpUntilEmpty greaterThan carried 0
+	
+Pickup:
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump PickupLoop equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	jump Pickup always
+
+	PickupLoop:
+		LoopUntilFull:
+			ucontrol itemTake source material amount
+			sensor carried mule @totalItems 
+			jump LoopUntilFull lessThan carried amount
+
+Deliver:
+	ucontrol within domeX domeY dropRange isNearDome
+	jump DeliverLoop equal isNearDome true
+	ucontrol approach domeX domeY dropRange
+	jump Deliver always
+
+	DeliverLoop:
+		LoopUntilEmpty:
+			ucontrol itemDrop dome carried
+			sensor carried mule @totalItems
+			jump LoopUntilEmpty greaterThan carried 0
+	
+FinishRun:
+	jump Start always
