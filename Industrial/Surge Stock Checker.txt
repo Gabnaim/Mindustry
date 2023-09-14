@@ -1,0 +1,59 @@
+Initialize:
+	set sourceFile "Surge Stock Checker.txt"
+	set error " "
+	set minSupply 500
+	set maxSurge 1000
+	GetLinkedCore:
+		set l 0
+		LinkLoop:
+			getlink link l
+			sensor type link @type
+			jump Found equal type @core-nucleus
+			jump Found equal type @core-foundation
+			jump Found equal type @core-shard
+		NextLink:
+			op add l l 1
+			jump LinkLoop lessThan l @links
+			set error "Need link to core"
+			jump GetLinkedCore always
+		Found:
+			set core link
+
+	set error " "
+
+Start:
+	sensor copper core @copper
+	jump Close lessThan copper minSupply
+	sensor lead core @lead
+	jump Close lessThan lead minSupply
+	sensor titanium core @titanium
+	jump Close lessThan titanium minSupply
+	sensor silicon core @silicon
+	jump Close lessThan silicon minSupply
+
+	sensor surge core @surge-alloy
+	jump Close greaterThan surge maxSurge
+	
+	set isOpen true
+	jump LinkLoop always
+
+	Close:
+		set isOpen false
+		
+	LinkLoop:
+		set i 0
+		LoopThroughLinks:
+			getlink link i
+			jump Next equal link core
+			control enabled link isOpen
+			
+			Next:
+				op add i i 1
+				jump LoopThroughLinks lessThan i @links
+
+	jump Start always
+			
+
+
+
+	
