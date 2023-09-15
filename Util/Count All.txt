@@ -23,8 +23,11 @@ BindUnit:
 	jump NextUnitType equal @unit null
 	sensor isDead @unit @dead
 	jump GetNextUnit equal isDead true
+
 	jump FinishGroup equal firstUnit @unit
-  	jump ProcessUnit notEqual firstUnit null
+  	jump StartGroup equal firstUnit null
+	sensor firstDead firstUnit @dead
+	jump ProcessUnit equal firstDead false
 
 StartGroup:
 	set firstUnit @unit
