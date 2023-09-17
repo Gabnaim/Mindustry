@@ -1,23 +1,30 @@
 # link all buildings in area
-Initialize:
-	set mender projector1
-
 Start:
 	getlink link i
 	jump NextLink equal link mender
 	sensor health link @health
 	sensor maxHealth link @maxHealth
-	jump NextLink equal health maxHealth
-
+	op lessThan currentDamaged health maxHealth
+	jump CheckMender equal health maxHealth
+	
 Damaged:
 	set hasDamage true
-	jump FinishGroup always
+	
+CheckMender: 
+	sensor type link @type
+	jump SetMender equal type @mend-projector
+	jump SetMender equal type @mender
+	jump NextLink always
+
+SetMender:
+	op or useMender hasDamage lastHasDamage
+	control enabled link useMender
 
 NextLink:
 	op add i i 1
 	jump Start lessThan i @links
 
 FinishGroup:
-	control enabled mender hasDamage
 	set i 0
+	set lastHasDamage hasDamage
 	set hasDamage false
