@@ -106,8 +106,6 @@ Preflag:
 		jump GetStartUnit notEqual flag procId
 
 		sensor cap @unit @itemCapacity
-		op mul dropCap cap 0.6
-		op floor dropCap dropCap
 		sensor range @unit @range
 		op sub range range 1
 		op min dropRange dropRange range
@@ -144,9 +142,6 @@ Start:
 BindUnit:
 	ubind unitType
 	jump Start equal @unit null
-	jump FinishGroup equal firstUnit @unit
-	jump ProcessUnit notEqual firstUnit null
-	set firstUnit @unit
 	
 ProcessUnit:
 	sensor isDead @unit @dead
@@ -164,7 +159,7 @@ SelectAction:
 
 	jump Mine equal carried 0
 	jump DumpUnneeded notEqual carriedItem minedOre
-	jump DropItems greaterThanEq carried dropCap
+	jump DropItems greaterThanEq carried cap
 	jump Mine always
 
 DumpUnneeded:
@@ -245,13 +240,18 @@ FindOre:
 		set error "No ore found"
 		jump Error always
 
-Next:
-	jump Start always
+	OreFound:
+		op sub oreCoreDistX coreX oreX
+		op sub oreCoreDistY coreY oreY
+		op len oreCoreDist oreCoreDistX oreCoreDistY
+		jump Next greaterThan oreCoreDist 24
 
-FinishGroup:
-	set totalUsed used
-	set used 0
-	set firstUnit null
+		# if the mine is near the core, we need to drop
+		# before full to prevent auto drop to core
+		op mul cap cap 0.6
+		op floor cap cap
+
+Next:
 	jump Start always
 		
 Error:
