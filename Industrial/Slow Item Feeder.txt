@@ -10,8 +10,8 @@ Initialize:
 	op add procId procId @thisy
 	set material1 @thorium
 	set material2 @phase-fabric
-	set stockLevel1 120
-	set stockLevel2 40
+	set stockLevel1 360
+	set stockLevel2 120
 	set sourceMin 200
 	set dropRange 7
 
@@ -47,13 +47,13 @@ CheckLevels:
 	op lessThan notEnough1 sourceLevel1 sourceMin
 	sensor dropLevel1 dropTarget material1
 	op greaterThanEq full1 dropLevel1 stockLevel1
-	op or skip1 enough1 notEnough2
+	op or skip1 notEnough1 full1
 
 	sensor sourceLevel2 source material2
 	op lessThan notEnough2 sourceLevel2 sourceMin
 	sensor dropLevel2 dropTarget material2
 	op greaterThanEq full2 dropLevel2 stockLevel2
-	op or skip2 enough2 notEnough2
+	op or skip2 notEnough2 full2
 
 	op and skipBoth skip1 skip2
 	jump Start equal skipBoth true
@@ -62,20 +62,23 @@ CheckLevels:
 
 	op div stockRate1 dropLevel1 stockLevel1
 	op div stockRate2 dropLevel2 stockLevel2
-	jump Check2 lessThan stockRate2 stickRate1
+	jump Check2 lessThan stockRate2 stockRate1
 
 	Check1:
 		set material material1
-		set level level1
+		set dropLevel dropLevel1
+		set stockLevel stockLevel1
 		jump CalcNeeded always
 
 	Check2:
 		set material material2
-		set level level2
+		set dropLevel dropLevel2
+		set stockLevel stockLevel2
 
 	CalcNeeded:
-		op sub needed dropCap level
+		op sub needed stockLevel dropLevel
 		op min amount needed cap
+		jump Start lessThanEq amount 0
 
 FeedDrop:
 CheckMule:
@@ -101,37 +104,24 @@ UseMule:
 	
 StartRun:
 	sensor carried mule @totalItems
-	jump Pickup equal carried 0
 	sensor carriedMat mule @firstItem
-	jump DumpUnneeded notEqual carriedMat material
-	jump Pickup always
-	
-DumpUnneeded:
-	ucontrol within sourceX sourceY dropRange isNearSource
-	jump DumpLoop equal isNearSource true
-	ucontrol approach sourceX sourceY dropRange
-	jump DumpUnneeded always
-
-	DumpLoop:
-		DumpUntilEmpty:
-			ucontrol itemDrop source material carried
-			sensor carried mule @totalItems 
-			jump DumpUntilEmpty greaterThan carried 0
+	jump Pickup equal carried 0
+	jump DropItems always
 	
 Pickup:
 	ucontrol within sourceX sourceY dropRange isNearSource
 	jump PickupLoop equal isNearSource true
 	ucontrol approach sourceX sourceY dropRange
 	ucontrol boost true
-	jump Pickup always
+	jump Start always
 
 	PickupLoop:
-		set pickupI true
+		set pickupI 0
 		ucontrol boost false
 		LoopUntilFull:
-			ucontrol itemTake source material cap
+			ucontrol itemTake source material amount
 			sensor carried mule @totalItems
-			jump DropItems equal carried cap
+			jump DropItems equal carried amount
 
 			op add pickupI pickupI 1
 			jump LoopUntilFull lessThan pickupI 100 
