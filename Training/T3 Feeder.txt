@@ -1,8 +1,9 @@
+set sourceFile "T3 Feeder.txt"
+
 Initialize:
-	set unitType @flare
+	set unitType @poly
 	op shl procId @thisx 10
 	op add procId procId @thisy
-	set maxTick 600 #release mule after 10 seconds idle
 	set sourceMin 500
 	set dropRange 7
 
@@ -24,19 +25,39 @@ Start:
 ###########################################	
 CheckFactory:
 ###########################################
-	set stockLevel 80
+	sensor buildType factory @config
 	sensor facSil factory @silicon
-	sensor facGraph factory @graphite
-	jump CheckGraphite lessThan facGraph facSil
+	sensor facGlass factory @metaglass
+	sensor facTit factory @titanium
+	op div silLevel facSil 260
+	op div glassLevel facGlass 80
+	op div titLevel facTit 160
+	
+	FindMin:
+		jump MinSil lessThan silLevel glassLevel
+		jump MinGlass always
+	MinSil:
+		set stockLevel 260
+		jump CheckSilicon lessThan silLevel titLevel
+	MinGlass:
+		set stockLevel 80
+		jump CheckGlass lessThan glassLevel titLevel
+		set stockLevel 160
+		jump CheckTitanium always
 	
 CheckSilicon:
 	op sub needed stockLevel facSil
 	set material @silicon
 	jump CheckStock always
 	
-CheckGraphite:
-	op sub needed stockLevel facGraph
-	set material @graphite
+CheckGlass:
+	op sub needed stockLevel facGlass
+	set material @metaglass
+	jump CheckStock always
+
+CheckTitanium:
+	op sub needed stockLevel facTit
+	set material @titanium
 
 CheckStock:
 	jump NothingToDo equal needed 0
