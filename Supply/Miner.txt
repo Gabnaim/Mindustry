@@ -109,8 +109,6 @@ Preflag:
 		jump GetStartUnit notEqual flag procId
 
 		sensor cap @unit @itemCapacity
-		op mul dropCap cap 0.6
-		op floor dropCap dropCap
 		sensor range @unit @range
 		op sub range range 1
 		op min dropRange dropRange range
@@ -121,11 +119,8 @@ Preflag:
 		set l 0
 		LinkLoop:
 			getlink link l
-			sensor type link @type
-			jump Found equal link core
-			jump Found equal type @container
-			jump Found equal type @vault
-			jump Found equal type @mass-driver
+			sensor buildingCap link @itemCapacity
+			jump Found greaterThanEq buildingCap 10
 		NextLink:
 			op add l l 1
 			jump LinkLoop lessThan l @links
@@ -137,6 +132,7 @@ Preflag:
 	GetDropCoords:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y
+		sensor dropCap dropTarget @itemCapacity
 		
 	set status "IDLE"
 	set oreFound false
@@ -151,9 +147,6 @@ CheckActive:
 BindUnit:
 	ubind unitType
 	jump Start equal @unit null
-	jump FinishGroup equal firstUnit @unit
-	jump ProcessUnit notEqual firstUnit null
-	set firstUnit @unit
 	
 ProcessUnit:
 	sensor isDead @unit @dead
@@ -167,12 +160,19 @@ SelectAction:
 	set status "MINING"
 	sensor isMining @unit @mining
 	sensor carried @unit @totalItems
-	sensor carriedItem @unit @firstItem
-
 	jump Mine equal carried 0
+	sensor carriedItem @unit @firstItem
 	jump DumpUnneeded notEqual carriedItem minedOre
-	jump DropItems equal carried dropCap
-	jump Mine always
+
+	sensor carried @unit @totalItems
+	sensor stock dropTarget @totalItems
+	op sub needed dropCap stock
+	op min needed needed cap
+	jump Mine lessThan carried needed
+	jump Start equal needed 0
+
+	op min dropAmount needed carried
+	jump DropItems always
 
 DumpUnneeded:
 	ucontrol itemDrop @air carried
@@ -190,9 +190,12 @@ DropItems:
 		ucontrol boost false
 		sensor carried @unit @totalItems
 		LoopUntilEmpty:
-			ucontrol itemDrop dropTarget carried
+			ucontrol itemDrop dropTarget dropAmount
 			sensor carried @unit @totalItems
 			jump Mine equal carried 0
+			sensor stock dropTarget @totalItems
+			jump Mine equal stock dropCap 
+			
 			op add dropI dropI 1
 			jump LoopUntilEmpty lessThan dropI 100
 		jump Next always
@@ -227,15 +230,12 @@ FindOre:
 			op add floorReturn @counter 1
 			jump GetMinedFloor always
 
-			jump FoundOre equal minedFloor floor
+			jump OreFound equal minedFloor floor
 			jump NoOre notEqual minedOre @sand
 		CheckSand:
-			jump NoOre notEqual floor @darksand
+			jump OreFound equal floor @darksand
+			jump NoOre always
 
-		FoundOre:
-			set oreFound true
-			jump Next always
-		
 	SearchNearDrop:
 		GoToDrop:
 			ucontrol within dropX dropY 1 isNearDrop
@@ -246,11 +246,24 @@ FindOre:
 		
 		LocateOre:
 			ulocate ore core true minedOre oreX oreY oreFound oreMine
-			jump Next equal oreFound true
+			jump OreFound equal oreFound true
 
 	NoOre:
 		set error "No ore found"
 		jump Error always
+
+	OreFound:
+		set oreFound true
+		op sub oreCoreDistX coreX oreX
+		op sub oreCoreDistY coreY oreY
+		op len oreCoreDist oreCoreDistX oreCoreDistY
+		jump Next greaterThan oreCoreDist coreRange
+
+		# if the mine is near the core, we need to drop
+		# before full to prevent auto drop to core
+		op mul cap cap 0.6
+		op floor cap cap
+		jump Next always
 
 ChangeOre:
 	set lastChoice oreChoice
@@ -292,12 +305,6 @@ ChangeOre:
 		jump Error always
 
 Next:
-	jump Start always
-
-FinishGroup:
-	set totalUsed used
-	set used 0
-	set firstUnit null
 	jump Start always
 		
 Error:
