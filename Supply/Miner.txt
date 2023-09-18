@@ -109,6 +109,8 @@ Preflag:
 		jump GetStartUnit notEqual flag procId
 
 		sensor cap @unit @itemCapacity
+		op mul dropCap cap 0.6
+		op floor dropCap dropCap
 		sensor range @unit @range
 		op sub range range 1
 		op min dropRange dropRange range
@@ -169,7 +171,7 @@ SelectAction:
 
 	jump Mine equal carried 0
 	jump DumpUnneeded notEqual carriedItem minedOre
-	jump DropItems equal carried cap
+	jump DropItems equal carried dropCap
 	jump Mine always
 
 DumpUnneeded:
