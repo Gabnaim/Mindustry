@@ -1,16 +1,14 @@
 Initialize:
 	set status "INITIALIZE"
-	set enabled false
 	set unitType @pulsar
 	set maxUnits 3
 	set minedOre @coal
-	set waitTicks 1800 # wait 30 secs before releasing when idle
-	set miningRange 8.75
-	set dropRange 7
 	set useCoords false
 	set oreX 58
 	set oreY 138
 
+	set miningRange 8.75
+	set dropRange 7
 	set error " "
 	
 	op shl procId @thisx 10
@@ -109,6 +107,7 @@ Preflag:
 		sensor range @unit @range
 		op sub range range 1
 		op min dropRange dropRange range
+		op add coreRange dropRange miningRange
 	
 		ulocate building core false 0 coreX coreY coreFound core
 
@@ -117,10 +116,8 @@ Preflag:
 		LinkLoop:
 			getlink link l
 			sensor type link @type
-			jump Found equal link core
-			jump Found equal type @container
-			jump Found equal type @vault
-			jump Found equal type @mass-driver
+			sensor buildingCap link @itemCapacity
+			jump Found greaterThanEq buildingCap 10
 		NextLink:
 			op add l l 1
 			jump LinkLoop lessThan l @links
@@ -215,14 +212,11 @@ FindOre:
 			op add floorReturn @counter 1
 			jump GetMinedFloor always
 
-			jump FoundOre equal minedFloor floor
+			jump OreFound equal minedFloor floor
 			jump NoOre notEqual minedOre @sand
 		CheckSand:
-			jump NoOre notEqual floor @darksand
-
-		FoundOre:
-			set oreFound true
-			jump Next always
+			jump OreFound equal floor @darksand
+			jump NoOre always
 		
 	SearchNearDrop:
 		GoToDrop:
@@ -234,17 +228,18 @@ FindOre:
 		
 		LocateOre:
 			ulocate ore core true minedOre oreX oreY oreFound oreMine
-			jump Next equal oreFound true
+			jump OreFound equal oreFound true
 
 	NoOre:
 		set error "No ore found"
 		jump Error always
 
 	OreFound:
+		set oreFound true
 		op sub oreCoreDistX coreX oreX
 		op sub oreCoreDistY coreY oreY
 		op len oreCoreDist oreCoreDistX oreCoreDistY
-		jump Next greaterThan oreCoreDist 24
+		jump Next greaterThan oreCoreDist coreRange
 
 		# if the mine is near the core, we need to drop
 		# before full to prevent auto drop to core
@@ -283,3 +278,5 @@ GetMinedFloor:
 	set @counter floorReturn
 	set minedFloor @ore-scrap
 	set @counter floorReturn
+
+
