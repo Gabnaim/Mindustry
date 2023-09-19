@@ -5,10 +5,10 @@ Initialize:
 	set maxUnits 3
 	set minedOre @coal
 	set useCoords false
-	set oreX 58
-	set oreY 138
+	set oreX 0
+	set oreY 0
 
-	set releaseWaitTicks 300 # wait in ticks before releasing when idle
+	set releaseWaitTicks 1800 # wait in ticks before releasing when idle
 
 	set miningRange 8.75
 	set dropRange 7
@@ -119,7 +119,6 @@ Preflag:
 		sensor range @unit @range
 		op sub range range 1
 		op min dropRange dropRange range
-		# op add coreRange dropRange miningRange
 		set coreRange 23
 	
 		ulocate building core false 0 coreX coreY coreFound core
@@ -286,6 +285,7 @@ Error:
 
 ActiveChanged:
 	set lastActive active
+	set releaseStart @tick
 	jump Reset equal active false
 	jump Initialize always
 

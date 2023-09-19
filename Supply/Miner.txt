@@ -2,22 +2,23 @@ Initialize:
 	set status "INITIALIZE"
 	set unitType @poly
 	set maxUnits 4
-	set waitTicks 1800 # wait 30 secs before releasing when idle
+	set useCoords false
+	set oreX 0
+	set oreY 0
+
+	set releaseWaitTicks 1800 # wait in ticks before releasing when idle
+	
 	set miningRange 8.75
 	set dropRange 7
-	set useCoords false
-	set oreX 58
-	set oreY 138
-
 	set error " "
 	set errorIcon @blast-compound
+
+	op shl procId @thisx 10
+	op add procId procId @thisy
 
 	GetSorter:
 		set sorter sorter1
 		jump GetSorter equal sorter null
-
-		op shl procId @thisx 10
-		op add procId procId @thisy
 
 	CheckConfig:
 		jump Preflag equal useCoords false
@@ -112,6 +113,7 @@ Preflag:
 		sensor range @unit @range
 		op sub range range 1
 		op min dropRange dropRange range
+		set coreRange 23
 	
 		ulocate building core false 0 coreX coreY coreFound core
 
@@ -136,6 +138,7 @@ Preflag:
 		
 	set status "IDLE"
 	set oreFound false
+	set releaseStart @tick
 
 Start:
 CheckActive:
@@ -143,6 +146,10 @@ CheckActive:
 	jump ChangeOre notEqual oreChoice lastChoice
 	jump Reset equal oreChoice null
 	jump Start equal status "ERROR"
+
+CheckStuck:
+	op sub releaseWait @tick releaseStart
+	jump Reset greaterThanEq releaseWait releaseWaitTicks
 
 BindUnit:
 	ubind unitType
@@ -208,6 +215,7 @@ Mine:
 		ucontrol approach oreX oreY miningRange
 	
 	MineOre:
+		set releaseStart @tick
 		ucontrol mine oreX oreY
 		jump Next always
 
@@ -253,20 +261,28 @@ FindOre:
 		jump Error always
 
 	OreFound:
+		set releaseStart @tick
 		set oreFound true
 		op sub oreCoreDistX coreX oreX
 		op sub oreCoreDistY coreY oreY
 		op len oreCoreDist oreCoreDistX oreCoreDistY
-		jump Next greaterThan oreCoreDist coreRange
+		jump DropEarly lessThanEq oreCoreDist coreRange
 
+		op sub oreDropDistX dropX oreX
+		op sub oreDropDistY dropY oreY
+		op len oreDropDist oreDropDistX oreDropDistY
+		op add targetRange miningRange dropRange
+		jump Next lessThanEq targetRange oreDropDist
+
+	DropEarly:
 		# if the mine is near the core, we need to drop
 		# before full to prevent auto drop to core
 		op mul cap cap 0.6
 		op floor cap cap
-		jump Next always
 
 ChangeOre:
 	set lastChoice oreChoice
+	set releaseStart @tick
 	jump Reset equal oreChoice null
 	jump Start equal oreChoice errorIcon
 
@@ -315,31 +331,43 @@ Error:
 Reset:
 	jump Start equal status "IDLE"
 	jump Start equal status "ERROR"
-	jump ReleaseAll equal status "RELEASING"
-	set startTick @tick
+	jump Start lessThan releaseWait releaseWaitTicks
+	jump StopAll notEqual status "RELEASING"
 
 ReleaseAll:
-	set status "RELEASING"
-	op sub elapsed @tick startTick
-	jump Start lessThan elapsed waitTicks
+	op sub releaseWait @tick releaseStart
+	jump Start lessThan releaseWait releaseWaitTicks
+	jump Stopping always
 
+StopAll:
+	set status "STOPPING"
+
+Stopping:
 	set firstUnit null
-	ReleaseLoop:
+	StopLoop:
 		ubind unitType
-		jump FinishRelease equal @unit firstUnit
-		jump ReleaseUnit notEqual firstUnit null
+		jump FinishStop equal @unit firstUnit
+		jump StopUnit notEqual firstUnit null
 		set firstUnit @unit
 		
-		ReleaseUnit:
+		StopUnit:
 			sensor flag @unit @flag
-			jump ReleaseLoop notEqual flag procId
+			jump StopLoop notEqual flag procId
 			ucontrol stop
+			jump StopLoop equal status "STOPPING"
 			ucontrol itemDrop @air 100
 			ucontrol flag 0
-			jump ReleaseLoop always
+			ucontrol move releaseX releaseY
+			jump StopLoop always
 		
+	FinishStop:
+		jump FinishRelease equal status "RELEASING"
+		set status "RELEASING"
+		jump Start always
+
 	FinishRelease:
 		set status "IDLE"
+		control config sorter null
 		jump Start always
 
 GetMinedFloor:
