@@ -1,7 +1,7 @@
 Initialize:
 	set status "INITIALIZE"
-	set unitType @poly
-	set maxUnits 4
+	set unitType @pulsar
+	set maxUnits 3
 	set useCoords false
 	set oreX 0
 	set oreY 0
@@ -15,6 +15,9 @@ Initialize:
 
 	op shl procId @thisx 10
 	op add procId procId @thisy
+
+	op add releaseX @thisx 2
+	op add releaseY @thisy -12
 
 	GetSorter:
 		set sorter sorter1
@@ -167,19 +170,12 @@ SelectAction:
 	set status "MINING"
 	sensor isMining @unit @mining
 	sensor carried @unit @totalItems
-	jump Mine equal carried 0
 	sensor carriedItem @unit @firstItem
+
+	jump Mine equal carried 0
 	jump DumpUnneeded notEqual carriedItem minedOre
-
-	sensor carried @unit @totalItems
-	sensor stock dropTarget @totalItems
-	op sub needed dropCap stock
-	op min needed needed cap
-	jump Mine lessThan carried needed
-	jump Start equal needed 0
-
-	op min dropAmount needed carried
-	jump DropItems always
+	jump DropItems greaterThanEq carried cap
+	jump Mine always
 
 DumpUnneeded:
 	ucontrol itemDrop @air carried
@@ -197,12 +193,9 @@ DropItems:
 		ucontrol boost false
 		sensor carried @unit @totalItems
 		LoopUntilEmpty:
-			ucontrol itemDrop dropTarget dropAmount
+			ucontrol itemDrop dropTarget carried
 			sensor carried @unit @totalItems
 			jump Mine equal carried 0
-			sensor stock dropTarget @totalItems
-			jump Mine equal stock dropCap 
-			
 			op add dropI dropI 1
 			jump LoopUntilEmpty lessThan dropI 100
 		jump Next always
@@ -279,6 +272,7 @@ FindOre:
 		# before full to prevent auto drop to core
 		op mul cap cap 0.6
 		op floor cap cap
+		jump Next always
 
 ChangeOre:
 	set lastChoice oreChoice
