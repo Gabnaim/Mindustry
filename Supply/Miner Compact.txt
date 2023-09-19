@@ -41,6 +41,7 @@ Preflag:
 	set flagged 0
 	set free 0
 	set i 0
+	set neededFlags 0
 	set status "COUNT"
 
 	PreflagLoop:
@@ -119,7 +120,7 @@ Preflag:
 		sensor range @unit @range
 		op sub range range 1
 		op min dropRange dropRange range
-		set coreRange 23
+		op add coreRange 27.5 miningRange
 	
 		ulocate building core false 0 coreX coreY coreFound core
 
@@ -160,6 +161,9 @@ CheckStuck:
 BindUnit:
 	ubind unitType
 	jump Start equal @unit null
+	jump FinishGroup equal firstUnit @unit
+	jump ProcessUnit notEqual firstUnit null
+	set firstUnit @unit
 	
 ProcessUnit:
 	sensor isDead @unit @dead
@@ -278,6 +282,10 @@ FindOre:
 
 Next:
 	jump Start always
+
+FinishGroup:
+	set firstUnit null
+	jump Start always
 		
 Error:
 	set status "ERROR"
@@ -292,6 +300,7 @@ ActiveChanged:
 Reset:
 	jump Start equal status "IDLE"
 	jump Start equal status "ERROR"
+	op sub releaseWait @tick releaseStart
 	jump Start lessThan releaseWait releaseWaitTicks
 	jump StopAll notEqual status "RELEASING"
 
@@ -318,6 +327,7 @@ Stopping:
 			jump StopLoop equal status "STOPPING"
 			ucontrol itemDrop @air 100
 			ucontrol flag 0
+			ucontrol boost true
 			ucontrol move releaseX releaseY
 			jump StopLoop always
 		
@@ -328,7 +338,6 @@ Stopping:
 
 	FinishRelease:
 		set status "IDLE"
-		control enabled switch false
 		jump Start always
 
 GetMinedFloor:
