@@ -1,0 +1,25 @@
+ Initialize:
+	set storage vault1
+	set switch switch1
+	set material @silicon
+	jump Initialize equal storage null
+	jump Initialize equal switch null
+
+	sensor cap storage @itemCapacity
+
+Start:
+	sensor active switch @enabled
+	jump Start equal active false
+
+	set startTime @time
+
+CheckFull:
+	sensor stock storage material
+	jump CheckFull lessThan stock cap
+
+Stop:
+	op sub fullTime @time startTime
+	op div prodPerSec fullTime cap
+
+Done:
+	jump Done always
