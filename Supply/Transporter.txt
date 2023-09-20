@@ -11,7 +11,8 @@ Initialize:
 	set otherEndX 0
 	set otherEndY 0
 
-	set waitTicks 1800 # wait 30 secs before releasing when idle
+	set waitTicks 1800 # wait 30 secs before rel
+easing when idle
 	set dropRange 7
 
 	set status "INITIALIZE"
@@ -259,7 +260,6 @@ Pickup:
 	PickupLoop:
 		set pickupI true
 		ucontrol boost false
-		sensor carried @unit @totalItems
 		LoopUntilFull:
 			ucontrol itemTake source material cap
 			sensor carried @unit @totalItems
@@ -276,8 +276,6 @@ ActiveChanged:
 	jump Initialize always
 
 FinishGroup:
-	set totalUsed used
-	set used 0
 	set firstUnit null
 	jump Start always
 
