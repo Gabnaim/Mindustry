@@ -1,23 +1,38 @@
-set i 0
-Start: 
-	getlink link i
-	sensor type link @type
-	jump Next notEqual type @thorium-reactor
+Initialize:
+	set switch unloader1
+	jump Initialize equal switch null
 
-	set reactor link
-	sensor cryo reactor @cryofluid
-	jump TurnOff lessThanEqual cryo 12
+Start:
+	sensor choice switch @config
+	op equal saveMaterials choice @thorium
+
+ProcessLinks:
+	set i 0
+	LinkLoop: 
+		getlink link i
+		sensor type link @type
+		jump Next notEqual type @thorium-reactor
 	
-	sensor stored reactor @powerNetStored
-	sensor powerCap reactor @powerNetCapacity
-	op div storageLevel stored powerCap
-	jump TurnOff greaterThanEq storageLevel 0.9
+		FailSafe:
+			sensor cryo link @cryofluid
+			jump TurnOff lessThanEq cryo 12
+	
+		MaterialSaver:
+			jump TurnOn equal saveMaterials false
+			sensor stored link @powerNetStored
+			sensor powerCap link @powerNetCapacity
+			op div storageRate stored powerCap
+			jump TurnOff greaterThanEq storageRate 0.95
+	
+		TurnOn:
+			control enabled link true
+			jump Next always
+	
+		TurnOff:
+			control enabled link false
+	
+		Next: 
+			op add i i 1
+			jump LinkLoop lessThan i @links
 
-	control enabled reactor true
-	jump Next always
-
-	TurnOff:
-		control enabled reactor false
-Next: 
-	op add i i 1
-	jump Start lessThan i @links
+	jump Start always
