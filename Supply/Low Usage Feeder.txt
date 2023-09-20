@@ -8,10 +8,10 @@ Initialize:
 	set unitType @flare
 	op shl procId @thisx 10
 	op add procId procId @thisy
-	set material1 @thorium
+	set material1 @silicon
 	set material2 @phase-fabric
-	set stockLevel1 120
-	set stockLevel2 40
+	set stockLevel1 10
+	set stockLevel2 10
 	set sourceMin 200
 	set dropRange 7
 
@@ -105,9 +105,29 @@ UseMule:
 StartRun:
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
+	jump DumpItems notEqual material carriedMat
 	jump Pickup equal carried 0
 	jump DropItems always
-	
+
+DumpItems:
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump DumpLoop equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	ucontrol boost true
+	jump Start always
+
+	DumpLoop:
+		set dumpI 0
+		ucontrol boost false
+		sensor carried mule @totalItems
+		DumpUntilEmpty:
+			ucontrol itemDrop source carried
+			sensor carried @unit @totalItems
+			jump Pickup equal carried 0
+			op add dumpI dumpI 1
+			jump DumpUntilEmpty lessThan dumpI 100
+		jump Start always
+
 Pickup:
 	ucontrol within sourceX sourceY dropRange isNearSource
 	jump PickupLoop equal isNearSource true
