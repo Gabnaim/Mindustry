@@ -32,9 +32,11 @@ StartGroup:
 	set firstUnit @unit
 
 ProcessUnit:
+	sensor controlled @unit @controlled
+	jump NextUnit equal controlled true
 	ucontrol flag 0
 	
-FinishUnit:
+NextUnit:
 	op add i i 1
 	jump GetNextUnit always
 
