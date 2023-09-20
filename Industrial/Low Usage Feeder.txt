@@ -1,4 +1,4 @@
-set sourceFile "Slow Item Feeder.txt"
+set sourceFile "Low Usage Feeder.txt"
 # Designed to feed two items with one unit at a slow rate
 # For example phase fabric and silicon to a dropTarget,
 # or thorium and phase fabric to a container supplying
@@ -10,8 +10,8 @@ Initialize:
 	op add procId procId @thisy
 	set material1 @thorium
 	set material2 @phase-fabric
-	set stockLevel1 360
-	set stockLevel2 120
+	set stockLevel1 120
+	set stockLevel2 40
 	set sourceMin 200
 	set dropRange 7
 
@@ -119,12 +119,14 @@ Pickup:
 		set pickupI 0
 		ucontrol boost false
 		LoopUntilFull:
-			ucontrol itemTake source material amount
+			ucontrol itemTake source material cap
 			sensor carried mule @totalItems
-			jump DropItems equal carried amount
+			jump DropItems equal carried cap
 
 			op add pickupI pickupI 1
 			jump LoopUntilFull lessThan pickupI 100 
+			# make it work when the core was upgraded
+			ulocate building core false 0 sourceX sourceY sourceFound source
 
 DropItems:
 	ucontrol within dropX dropY dropRange isNearDrop
