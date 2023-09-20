@@ -15,6 +15,12 @@ Initialize:
 	set sourceMin 200
 	set dropRange 7
 
+	CheckMaterials:
+		op equal isNull1 material1 null
+		op equal isNull2 material2 null
+		op and bothNull isNull1 isNull2
+		jump Initialize equal bothNull true
+
 	GetDropTarget:
 		set l 0
 		LinkLoop:
@@ -42,43 +48,43 @@ Initialize:
 		ulocate building core false 0 sourceX sourceY sourceFound source
 
 Start:
-CheckLevels:
-	sensor sourceLevel1 source material1
-	op lessThan notEnough1 sourceLevel1 sourceMin
-	sensor dropLevel1 dropTarget material1
-	op greaterThanEq full1 dropLevel1 stockLevel1
-	op or skip1 notEnough1 full1
+CheckMaterial1:
+	set skip1 isNull1
+	jump CheckMaterial2 equal material1 null
 
-	sensor sourceLevel2 source material2
-	op lessThan notEnough2 sourceLevel2 sourceMin
-	sensor dropLevel2 dropTarget material2
-	op greaterThanEq full2 dropLevel2 stockLevel2
-	op or skip2 notEnough2 full2
+	set checkMat material1
+	set stockLevel stockLevel1
+	op add checkReturn @counter 1
+	jump CheckMaterial always
 
+	set skip1 skip
+	set stockRate1 stockRate
+
+CheckMaterial2:
+	set skip2 isNull2
+	jump SelectMaterial equal material2 null
+	
+	set checkMat material2
+	set stockLevel stockLevel2
+	op add checkReturn @counter 1
+	jump CheckMaterial always
+
+	set skip2 skip
+	set stockRate2 stockRate
+
+SelectMaterial:
 	op and skipBoth skip1 skip2
 	jump Start equal skipBoth true
-	jump Check2 equal skip1 true
-	jump Check1 equal skip2 true
+	jump Use2 equal skip1 true
+	jump Use1 equal skip2 true
+	jump Use2 lessThan stockRate2 stockRate1
 
-	op div stockRate1 dropLevel1 stockLevel1
-	op div stockRate2 dropLevel2 stockLevel2
-	jump Check2 lessThan stockRate2 stockRate1
-
-	Check1:
+	Use1:
 		set material material1
-		set dropLevel dropLevel1
-		set stockLevel stockLevel1
-		jump CalcNeeded always
+		jump FeedDrop always
 
-	Check2:
+	Use2:
 		set material material2
-		set dropLevel dropLevel2
-		set stockLevel stockLevel2
-
-	CalcNeeded:
-		op sub needed stockLevel dropLevel
-		op min amount needed cap
-		jump Start lessThanEq amount 0
 
 FeedDrop:
 CheckMule:
@@ -168,3 +174,13 @@ DropItems:
 
 FinishRun:
 	jump Start always
+
+CheckMaterial:
+	sensor sourceLevel source checkMat
+	op lessThan notEnough sourceLevel sourceMin
+	sensor dropLevel dropTarget checkMat
+	op greaterThanEq isFull dropLevel stockLevel
+	op or skip notEnough full
+	op div stockRate dropLevel stockLevel
+	set @counter checkReturn
+	
