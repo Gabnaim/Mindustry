@@ -19,7 +19,8 @@ CheckFull:
 
 Stop:
 	op sub fullTime @time startTime
-	op div prodPerSec fullTime cap
+	op div prodPerSec cap fullTime
+	op mul prodPerSec prodPerSec 1000
 
 Done:
 	jump Done always
