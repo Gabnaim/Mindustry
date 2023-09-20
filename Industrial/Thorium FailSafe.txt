@@ -1,0 +1,23 @@
+set i 0
+Start: 
+	getlink link i
+	sensor type link @type
+	jump Next notEqual type @thorium-reactor
+
+	set reactor link
+	sensor cryo reactor @cryofluid
+	jump TurnOff lessThanEqual cryo 12
+	
+	sensor stored reactor @powerNetStored
+	sensor powerCap reactor @powerNetCapacity
+	op div storageLevel stored powerCap
+	jump TurnOff greaterThanEq storageLevel 0.9
+
+	control enabled reactor true
+	jump Next always
+
+	TurnOff:
+		control enabled reactor false
+Next: 
+	op add i i 1
+	jump Start lessThan i @links
