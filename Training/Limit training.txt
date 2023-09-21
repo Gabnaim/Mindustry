@@ -1,27 +1,69 @@
 set name "Limit Training"
 
 Initialize:
-	set maxUnits 8
-	set unitType @mega
+	set maxUnits 4
+
+	GetLinks:
+		jump GetLinks lessThan @links 1
+	
+		set i 0
+		set tier 0
+		LinkLoop:
+			getlink link i
+			sensor type link @type
+	
+			#factory
+			jump FoundFactory equal type @air-factory
+			jump FoundFactory equal type @ground-factory
+			jump FoundFactory equal type @naval-factory
+	
+			#reconstructor
+			jump FoundT2 equal type @additive-reconstructor
+			jump FoundT3 equal type @multiplicative-reconstructor
+			jump FoundT4 equal type @exponential-reconstructor
+			jump FoundT5 equal type @tetrative-reconstructor
+			jump NextLink always
+	
+			FoundFactory:
+				set factory link
+				jump NextLink always
+			FoundT2:
+				jump NextLink greaterThan tier 1
+				set tier 1
+				jump NextLink always
+			FoundT3:
+				jump NextLink greaterThan tier 2
+				set tier 2
+				jump NextLink always
+			FoundT4:
+				jump NextLink greaterThan tier 3
+				set tier 3
+				jump NextLink always
+			FoundT5:
+				set tier 4
+	
+			NextLink:
+				op add i i 1
+				jump LinkLoop lessThan i @links
+	
+			jump GetLinks equal factory null
+	
+		EndGetLinks:
+
+	op sub unitHolders @links 1
+	op sub checkLinksAt maxUnits unitHolders
 	set unitCount 0
 	set totalCount 0
 
-GetStaticLinks:
-	set factory factory1
-	jump GetStaticLinks equal factory null
-
-	sensor id unitType @id
-	op mod tier id 5
-	op sub baseId id tier
-	lookup unit baseType baseId
-
 Start:	
-	op sub unitHolders @links 1
-	op sub checkLinksAt maxUnits unitHolders
+	sensor baseType factory @config
+	sensor baseId baseType @id
+	op add id baseId tier
+	lookup unit unitType id
 
 Bind:
 	ubind unitType
-	jump CheckLinks equal @unit null
+	jump CheckBuildings equal @unit null
 	sensor isDead @unit @dead
 	jump Start equal isDead true
 
@@ -33,36 +75,36 @@ Count:
 	op add unitCount unitCount 1
 	jump Start lessThan unitCount checkLinksAt
 	
-CheckLinks:
+CheckBuildings:
 	set i 0
 	set builtUnits 0
 
-	LinkLoop:
+	BuildingLoop:
 		getlink building i
 		sensor payloadCount building @payloadCount
-		jump NextLink equal payloadCount 0
+		jump NextBuilding equal payloadCount 0
 		sensor payloadType building @payloadType
 		sensor payloadId payloadType @id
 		
 		CheckType:
-			jump NextLink greaterThan payloadId id
-			jump NextLink lessThan payloadId baseId
+			jump NextBuilding greaterThan payloadId id
+			jump NextBuilding lessThan payloadId baseId
 
 		AddBuiltUnit:
 			op add builtUnits builtUnits payloadCount
 
-		NextLink:
+		NextBuilding:
 			op add i i 1
-			jump LinkLoop lessThan i @links
+			jump BuildingLoop lessThan i @links
 
-	FinishLinkLoop:
+	FinishBuildingLoop:
 		op add totalCount unitCount builtUnits
 		jump Start lessThan totalCount maxUnits
 
 MaxReached:
 	# Setting the config to null or 0 does not clear it,
 	# but using a t2 unit does
-	control config factory @poly
+	control enabled factory false
 
 FinishCount:
 	op add totalCount unitCount builtUnits
@@ -71,6 +113,7 @@ FinishCount:
 	set firstUnit null
 	set builtUnits 0
 	jump Start greaterThanEq totalCount maxUnits
+	control enabled factory true
 	control config factory baseType
 	jump Start always
 
