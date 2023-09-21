@@ -1,0 +1,64 @@
+Initialize:
+	set source node1
+	set message message1
+	jump Initialize equal source null
+	jump Initialize equal message null
+
+Start:
+	printflush message
+
+	sensor powerIn source @powerNetIn
+	sensor powerOut source @powerNetOut
+	op sub netProd powerIn powerOut
+
+	set data netProd
+	set label "Net Power: "
+	op add printReturn @counter 1
+	jump PrintStuff always
+
+	set data powerIn
+	set label "Power In: "
+	op add printReturn @counter 1
+	jump PrintStuff always
+
+	set data powerOut
+	set label "Power Out: "
+	op add printReturn @counter 1
+	jump PrintStuff always
+
+	sensor data source @powerNetStored
+	set label "Stored: "
+	op add printReturn @counter 1
+	jump PrintStuff always
+
+	sensor data source @powerNetCapacity
+	set label "Storage Cap: "
+	op add printReturn @counter 1
+	jump PrintStuff always
+
+	jump Start always
+
+PrintStuff:
+	print label
+	set color "[cyan]"
+	jump PrintNeg lessThan data 0
+	jump PrintData always
+	PrintNeg:
+		set color "[red]"
+
+	PrintData:
+		jump PrintRaw lessThan data 10000
+		PrintK:
+			op idiv data data 1000
+			print color
+			print data
+			print "k[]\n"
+			set @counter printReturn
+	
+		PrintRaw:
+			op floor data data
+			print color
+			print data
+			print "[]\n" 
+			set @counter printReturn
+
