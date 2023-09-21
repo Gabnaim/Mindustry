@@ -1,8 +1,43 @@
+Initialize:
+	set length 10
+	printflush message1
+
+Start:
+	jump Start equal done true
+	
+SetValues:
+	set i 0
+	SetLoop:
+		op rand value i
+
+		op add callBack @counter 1
+		jump ArraySet always 
+	
+		op add i i 1
+		jump SetLoop lessThan i length
+
+GetValues:
+	set i 0
+	GetLoop:
+		op add callBack @counter 1
+		jump ArrayGet always 
+
+		print value
+		print "\n"
+	
+		op add i i 1
+		jump GetLoop lessThan i length
+
+Done:
+	printflush message1
+	set done true
+	jump Start always
+	
 ArraySet:
 	op mul offset i 2
 	op add offset offset 1
 	op add arrayLoc @counter offset
-	jump arrayLoc always
+	set @counter arrayLoc
 
 	set value0 value
 	set @counter callBack
@@ -29,7 +64,7 @@ ArrayGet:
 	op mul offset i 2
 	op add offset offset 1
 	op add arrayLoc @counter offset
-	jump arrayLoc always
+	set @counter arrayLoc
 
 	set value value0
 	set @counter callBack
