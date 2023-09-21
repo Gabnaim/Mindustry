@@ -1,3 +1,5 @@
+set name "T2 Feeder"
+
 Initialize:
 	set unitType @flare
 	op shl procId @thisx 10
@@ -57,8 +59,12 @@ FeedFactory:
 CheckMule:
 	jump FindMule equal mule null
 	sensor muleDead mule @dead
-	jump StartRun equal muleDead false
-	
+	jump FindMule equal muleDead true
+
+	set @unit mule
+	ucontrol flag procId
+	jump StartRun always
+
 FindMule:
 	ubind unitType
 	jump Start equal @unit null

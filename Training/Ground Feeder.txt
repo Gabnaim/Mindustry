@@ -1,4 +1,4 @@
-set sourceFile "Ground Feeder.txt"
+set name "Ground Feeder"
 
 Initialize:
 	set unitType @flare
@@ -104,7 +104,11 @@ FeedFactory:
 CheckMule:
 	jump FindMule equal mule null
 	sensor muleDead mule @dead
-	jump StartRun equal muleDead false
+	jump FindMule equal muleDead true
+
+	set @unit mule
+	ucontrol flag procId
+	jump StartRun always
 	
 FindMule:
 	ubind unitType

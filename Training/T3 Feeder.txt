@@ -1,4 +1,4 @@
-set sourceFile "T3 Feeder.txt"
+set name "T3 Feeder"
 
 Initialize:
 	set unitType @poly
@@ -78,7 +78,11 @@ FeedFactory:
 CheckMule:
 	jump FindMule equal mule null
 	sensor muleDead mule @dead
-	jump StartRun equal muleDead false
+	jump FindMule equal muleDead true
+
+	set @unit mule
+	ucontrol flag procId
+	jump StartRun always
 	
 FindMule:
 	ubind unitType
