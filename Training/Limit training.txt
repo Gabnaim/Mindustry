@@ -50,8 +50,6 @@ Initialize:
 	
 		EndGetLinks:
 
-	op sub unitHolders @links 1
-	op sub checkLinksAt maxUnits unitHolders
 	set unitCount 0
 	set totalCount 0
 
@@ -63,7 +61,7 @@ Start:
 
 Bind:
 	ubind unitType
-	jump CheckBuildings equal @unit null
+	jump FinishCount equal @unit null
 	sensor isDead @unit @dead
 	jump Start equal isDead true
 
@@ -73,8 +71,27 @@ Bind:
 	
 Count:
 	op add unitCount unitCount 1
-	jump Start lessThan unitCount checkLinksAt
-	
+	jump Start always
+
+FinishCount:
+	op add checkBuildingsReturn @counter 1
+	jump CheckBuildings always
+
+	set lastCount totalCount
+	set firstUnit null
+	set totalCount 0
+	set unitCount 0
+	jump DisableFactory greaterThanEq lastCount maxUnits
+
+EnableFactory:
+	control enabled factory true
+	control config factory baseType
+	jump Start always
+
+DisableFactory:
+	control enabled factory false
+	jump Start always
+
 CheckBuildings:
 	set i 0
 	set builtUnits 0
@@ -97,25 +114,9 @@ CheckBuildings:
 			op add i i 1
 			jump BuildingLoop lessThan i @links
 
-	FinishBuildingLoop:
+	FinishBuildings:
 		op add totalCount unitCount builtUnits
-		jump Start lessThan totalCount maxUnits
-
-MaxReached:
-	# Setting the config to null or 0 does not clear it,
-	# but using a t2 unit does
-	control enabled factory false
-
-FinishCount:
-	op add totalCount unitCount builtUnits
-	set lastCount totalCount
-	set unitCount 0
-	set firstUnit null
-	set builtUnits 0
-	jump Start greaterThanEq totalCount maxUnits
-	control enabled factory true
-	control config factory baseType
-	jump Start always
+		set @counter checkBuildingsReturn
 
 
 
