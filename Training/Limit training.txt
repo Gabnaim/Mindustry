@@ -1,3 +1,5 @@
+set name "Limit Training"
+
 Initialize:
 	set maxUnits 8
 	set unitType @mega
