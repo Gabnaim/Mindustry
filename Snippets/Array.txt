@@ -1,0 +1,55 @@
+ArraySet:
+	op mul offset i 2
+	op add offset offset 1
+	op add arrayLoc @counter offset
+	jump arrayLoc always
+
+	set value0 value
+	set @counter callBack
+	set value1 value
+	set @counter callBack
+	set value2 value
+	set @counter callBack
+	set value3 value
+	set @counter callBack
+	set value4 value
+	set @counter callBack
+	set value5 value
+	set @counter callBack
+	set value6 value
+	set @counter callBack
+	set value7 value
+	set @counter callBack
+	set value8 value
+	set @counter callBack
+	set value9 value
+	set @counter callBack
+
+ArrayGet:
+	op mul offset i 2
+	op add offset offset 1
+	op add arrayLoc @counter offset
+	jump arrayLoc always
+
+	set value value0
+	set @counter callBack
+	set value value1
+	set @counter callBack
+	set value value2
+	set @counter callBack
+	set value value3
+	set @counter callBack
+	set value value4
+	set @counter callBack
+	set value value5
+	set @counter callBack
+	set value value6
+	set @counter callBack
+	set value value7
+	set @counter callBack
+	set value value8
+	set @counter callBack
+	set value value9
+	set @counter callBack
+
+	
