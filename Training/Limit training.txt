@@ -1,6 +1,8 @@
 Initialize:
 	set maxUnits 8
-	set unitType @mono
+	set unitType @mega
+	set unitCount 0
+	set totalCount 0
 
 GetStaticLinks:
 	set factory factory1
@@ -17,7 +19,7 @@ Start:
 
 Bind:
 	ubind unitType
-	jump Start equal @unit null
+	jump CheckLinks equal @unit null
 	sensor isDead @unit @dead
 	jump Start equal isDead true
 
