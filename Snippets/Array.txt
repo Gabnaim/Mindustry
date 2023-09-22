@@ -14,7 +14,9 @@ Start:
 SetValues:
 	set i 0
 	SetLoop:
-		op rand value 100
+		op add seed i 1
+		op mul seed seed 10
+		op rand value seed
 		op floor value value
 
 		op add arrayReturn @counter 1
@@ -88,7 +90,7 @@ InsertionSort:
 		jump ArrayGet always 
 	    set x value
 
-		op sub j i 1
+		op sub j k 1
 		UnsortedLoop:
 			set i j
 			op add arrayReturn @counter 1
@@ -97,13 +99,11 @@ InsertionSort:
 			jump NextPosition lessThanEq a[j] x
 
 			op add i j 1
-			set i j
 			op add arrayReturn @counter 1
 			jump ArrayGet always 
 			set a[j+1] value
 
 			set value a[j]
-			op add i j 1
 			op add arrayReturn @counter 1
 			jump ArraySet always 
 
