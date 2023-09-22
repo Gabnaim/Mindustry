@@ -19,14 +19,14 @@ Preflag:
 	set flagged 0
 	set free 0
 	set i 0
+	set neededFlags 0
 	set status "COUNT"
 
 	PreflagLoop:
-	BindUnit:
 		ubind unitType
-		jump Preflag equal @unit null
+		jump PreflagLoop equal @unit null
 		sensor isDead @unit @dead
-		jump BindUnit equal isDead true
+		jump PreflagLoop equal isDead true
 
 		jump FinishCount equal firstUnit @unit
 		jump FlagProcess notEqual firstUnit null
@@ -34,27 +34,24 @@ Preflag:
 
 	FlagProcess:
 		sensor flag @unit @flag
-		op shr unitProcId flag extraBits
-		jump CountFlagged equal unitProcId procId
+		jump CountFlagged equal flag procId
 		jump CountFree equal flag 0
 		jump NextCount always
 		
 	CountFlagged:
 		op add flagged flagged 1
 		jump NextCount notEqual status "UNFLAG"
-		Unflag:
-			ucontrol flag 0
-			op sub neededFlags neededFlags 1
-			jump FlagDone equal neededFlags 0
-			jump NextCount always
+		ucontrol flag 0
+		op sub neededFlags neededFlags 1
+		jump FlagDone equal neededFlags 0
+		jump NextCount always
 
 	CountFree:
 		op add free free 1
 		jump NextCount notEqual status "FLAG"
-		Flag:
-			ucontrol flag procId
-			op sub neededFlags neededFlags 1
-			jump FlagDone equal neededFlags 0
+		ucontrol flag procId
+		op sub neededFlags neededFlags 1
+		jump FlagDone equal neededFlags 0
 	
 	NextCount:
 		op add i i 1
@@ -74,12 +71,12 @@ Preflag:
 			set flagged 0
 			set free 0
 			set i 0
+			set firstUnit null
 
 			jump NeedFlags lessThan totalFlagged maxUnits
-			NeedUnflags: 
-				op sub neededFlags totalFlagged maxUnits
-				set status "UNFLAG"
-				jump PreflagLoop always
+			op sub neededFlags totalFlagged maxUnits
+			set status "UNFLAG"
+			jump PreflagLoop always
 
 			NeedFlags:
 				op sub neededFlags maxUnits totalFlagged
@@ -110,8 +107,6 @@ CheckActive:
 	op notEqual active oreChoice null
 	jump ActiveChanged notEqual active lastActive
 	jump Reset equal active false
-
-	jump FinishGroup greaterThanEq used maxUnits
 
 BindUnit:
 	ubind unitType
@@ -146,41 +141,58 @@ Next:
 	jump Start always
 
 FinishGroup:
-	set totalUsed used
-	set used 0
 	set firstUnit null
 	jump Start always
 
 ActiveChanged:
 	set lastActive active
+	set releaseStart @tick
 	jump Reset equal active false
 	jump Initialize always
 
 Reset:
 	jump Start equal status "IDLE"
+	jump Start equal status "ERROR"
+	op sub releaseWait @tick releaseStart
+	jump Start lessThan releaseWait releaseWaitTicks
+	jump StopAll notEqual status "RELEASING"
+
+ReleaseAll:
+	op sub releaseWait @tick releaseStart
+	jump Start lessThan releaseWait releaseWaitTicks
+	jump Stopping always
+
+StopAll:
 	set status "STOPPING"
 
+Stopping:
 	set firstUnit null
 	StopLoop:
 		ubind unitType
-		jump AllStopped equal @unit firstUnit
-
-		jump StopProcess notEqual firstUnit null
+		jump FinishStop equal @unit firstUnit
+		jump StopUnit notEqual firstUnit null
 		set firstUnit @unit
-
-		StopProcess:
+		
+		StopUnit:
 			sensor flag @unit @flag
 			jump StopLoop notEqual flag procId
 			ucontrol stop
-			ucontrol itemDrop @air 200
-			ucontrol unbind
-
-		jump StopLoop always
+			jump StopLoop equal status "STOPPING"
+			ucontrol itemDrop @air 100
+			ucontrol flag 0
+			ucontrol boost true
+			ucontrol move releaseX releaseY
+			jump StopLoop always
 		
-	AllStopped:
+	FinishStop:
+		jump FinishRelease equal status "RELEASING"
+		set status "RELEASING"
+		jump Start always
+
+	FinishRelease:
 		set status "IDLE"
 		jump Start always
-	
+
 
 
 
