@@ -1,3 +1,5 @@
+set name "Four Item Feeder"
+
 Initialize:
 	set unitType @mega
 	op shl procId @thisx 10
@@ -5,21 +7,15 @@ Initialize:
 	set sourceMin 500
 	set dropRange 7
 
+	set items 4
 	set material1 @silicon
 	set stockLevel1 2000
-
 	set material2 @plastanium
 	set stockLevel2 1200
-
 	set material3 @surge-alloy
 	set stockLevel3 1000
-
 	set material4 @phase-fabric
 	set stockLevel4 700
-
-	GetLinks:
-		set switch switch1
-		jump GetLinks equal switch null
 
 	GetDropTarget:
 		set l 0
@@ -40,8 +36,6 @@ Initialize:
 		sensor dropY dropTarget @y
 		sensor dropCap dropTarget @itemCapacity
 
-	set length 4
-
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
@@ -51,11 +45,11 @@ Initialize:
 		jump GetStartInfo equal sourceFound false
 
 Start:
-	sensor active switch @enabled
-	jump Start equal active false
-	set start @time
 
 SelectMaterial:
+	sensor carried mule @totalItems
+	sensor carriedMat mule @firstItem
+
 	set i 0
 	set minIndex -1
 	set minRate 1
@@ -68,6 +62,10 @@ SelectMaterial:
 		op sub needed stockLevel dropLevel
 		jump NextMaterial lessThanEq needed 0
 
+		# if we are carrying material that is still needed,
+		# deliver it even if another stock is lower
+		jump Feed equal material carriedMat
+	
 		sensor sourceLevel source material
 		jump NextMaterial lessThanEq sourceLevel sourceMin
 
@@ -85,7 +83,7 @@ SelectMaterial:
 
 	NextMaterial:
 		op add i i 1
-		jump SelectLoop lessThan i length
+		jump SelectLoop lessThan i items
 
 	jump NothingToDo equal minIndex -1
 
@@ -103,7 +101,14 @@ Feed:
 CheckMule:
 	jump FindMule equal mule null
 	sensor muleDead mule @dead
-	jump StartRun equal muleDead false
+	jump FindMule equal muleDead true
+
+	sensor muleFlag mule @flag
+	jump StartRun equal muleFlag procId
+	jump FindMule notEqual muleFlag 0
+	set @unit mule
+	ucontrol flag procId
+	jump StartRun always
 	
 FindMule:
 	ubind unitType
@@ -124,6 +129,7 @@ UseMule:
 StartRun:
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
+
 	jump DumpItems notEqual material carriedMat
 	jump Pickup equal carried 0
 	jump DropItems always
@@ -189,54 +195,46 @@ FinishRun:
 	jump Start always
 
 ArraySet:
-	op mul offset i 3
+	op mul offset i 2
 	op add offset offset 1
 	op add arrayLoc @counter offset
 	set @counter arrayLoc
 
-	set stockRate1 stockRate
 	set amount1 amount
 	set @counter arrayReturn
 
-	set stockRate2 stockRate
 	set amount2 amount
 	set @counter arrayReturn
 
-	set stockRate3 stockRate
 	set amount3 amount
 	set @counter arrayReturn
 
-	set stockRate4 stockRate
 	set amount4 amount
 	set @counter arrayReturn
 
 ArrayGet:
-	op mul offset i 5
+	op mul offset i 4
 	op add offset offset 1
 	op add arrayLoc @counter offset
 	set @counter arrayLoc
 
 	set material material1
 	set stockLevel stockLevel1
-	set stockRate stockRate1
 	set amount amount1
 	set @counter arrayReturn
 
 	set material material2
 	set stockLevel stockLevel2
-	set stockRate stockRate2
 	set amount amount2
 	set @counter arrayReturn
 
 	set material material3
 	set stockLevel stockLevel3
-	set stockRate stockRate3
 	set amount amount3
 	set @counter arrayReturn
 
 	set material material4
 	set stockLevel stockLevel4
-	set stockRate stockRate4
 	set amount amount4
 	set @counter arrayReturn
 
