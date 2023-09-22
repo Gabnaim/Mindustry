@@ -1,0 +1,194 @@
+Initialize:
+	set switch switch1
+	jump Initialize equal switch null
+	set dropTarget vault1
+	jump Initialize equal dropTarget null
+
+	set material1 @silicon
+	set stockLevel1 2000
+
+	set material2 @plastanium
+	set stockLevel2 1200
+
+	set material3 @surge-alloy
+	set stockLevel3 1000
+
+	set material4 @phase-fabric
+	set stockLevel4 700
+
+	set length 4
+	printflush message1
+
+	ubind flare
+	ulocate building core false 0 sourceX sourceY sourceFound source 
+
+Start:
+	sensor active switch @enabled
+	jump Start equal active false
+	set start @time
+
+SelectMaterial:
+	set i 0
+	set minIndex -1
+	set minRate 1
+	SelectLoop:
+		op add arrayReturn @counter 1
+		jump ArrayGet always 
+
+	CheckMaterial:
+		sensor dropLevel dropTarget material
+		op sub needed stockLevel dropLevel
+		jump NextMaterial lessThanEq needed 0
+		sensor sourceLevel source material
+		
+		jump NextMaterial lessThanEq sourceLevel sourceMin
+		op sub available sourceLevel sourceMin
+		op min amount needed cap
+		op min amount amount available
+		op div stockRate dropLevel stockLevel
+		jump NextMaterial greaterThanEq stockRate minRate
+		
+		op add arrayReturn @counter 1
+		jump ArraySet always 
+	
+		set minIndex i
+		set minRate stockRate
+
+	NextMaterial:
+		op add i i 1
+		jump SelectLoop lessThan i length
+
+	jump NothingToDo equal minIndex -1
+
+	set i minIndex
+	op add arrayReturn @counter 1
+	jump ArrayGet always 	
+	jump Feed always
+
+NothingToDo:
+	jump Start always
+
+###########################################
+Feed:
+###########################################
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump FindMule equal muleDead true
+
+	set @unit mule
+	ucontrol flag procId
+	jump StartRun always
+	
+FindMule:
+	ubind unitType
+	jump Start equal @unit null
+	sensor unitDead @unit @dead
+	jump FindMule equal unitDead true
+
+	sensor unitFlag @unit @flag
+	jump UseMule equal unitFlag procId
+
+FlagMule:
+	jump FindMule notEqual unitFlag 0
+	ucontrol flag procId
+
+UseMule:
+	set mule @unit
+	
+StartRun:
+	sensor carried mule @totalItems
+	jump Pickup equal carried 0
+	sensor carriedMat mule @firstItem
+	jump Pickup equal carriedMat material
+	
+DumpUnneeded:
+	ucontrol itemDrop @air carried
+	
+Pickup:
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump PickupLoop equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	jump Pickup always
+
+	PickupLoop:
+		op min amount amount cap
+		set pickupI 0
+		LoopUntilFull:
+			ucontrol itemTake source material amount
+			op add pickupI pickupI 1
+			sensor carried mule @totalItems 
+			jump FinishRun greaterThanEq pickupI 100
+			jump LoopUntilFull lessThan carried amount
+
+Deliver:
+	ucontrol within factoryX factoryY dropRange isNearFactory
+	jump DeliverLoop equal isNearFactory true
+	ucontrol approach factoryX factoryY dropRange
+	jump Deliver always
+
+	DeliverLoop:
+		set deliverI 0
+		LoopUntilEmpty:
+			ucontrol itemDrop factory carried
+			sensor carried mule @totalItems
+			jump FinishRun equal carried 0
+			op add deliverI deliverI 1
+			jump LoopUntilEmpty lessThan deliverI 100
+	
+FinishRun:
+	jump Start always
+
+ArraySet:
+	op mul offset i cols+1
+	op add offset offset 1
+	op add arrayLoc @counter offset
+	set @counter arrayLoc
+
+	set stockRate1 stockRate
+	set amount1 amount
+	set @counter arrayReturn
+
+	set stockRate2 stockRate
+	set amount2 amount
+	set @counter arrayReturn
+
+	set stockRate3 stockRate
+	set amount3 amount
+	set @counter arrayReturn
+
+	set stockRate4 stockRate
+	set amount4 amount
+	set @counter arrayReturn
+
+ArrayGet:
+	op mul offset i 4
+	op add offset offset 1
+	op add arrayLoc @counter offset
+	set @counter arrayLoc
+
+	set material material1
+	set stockLevel stockLevel1
+	set stockRate stockRate1
+	set amount amount1
+	set @counter arrayReturn
+
+	set material material2
+	set stockLevel stockLevel2
+	set stockRate stockRate2
+	set amount amount2
+	set @counter arrayReturn
+
+	set material material3
+	set stockLevel stockLevel3
+	set stockRate stockRate3
+	set amount amount3
+	set @counter arrayReturn
+
+	set material material4
+	set stockLevel stockLevel4
+	set stockRate stockRate4
+	set amount amount4
+	set @counter arrayReturn
+
+	
