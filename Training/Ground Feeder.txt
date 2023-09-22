@@ -106,6 +106,9 @@ CheckMule:
 	sensor muleDead mule @dead
 	jump FindMule equal muleDead true
 
+	sensor muleFlag mule @flag
+	jump StartRun equal muleFlag procId
+	jump FindMule notEqual muleFlag 0
 	set @unit mule
 	ucontrol flag procId
 	jump StartRun always
