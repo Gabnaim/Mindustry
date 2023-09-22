@@ -1,16 +1,9 @@
 Initialize:
 	set maxUnits 4
-	set unitType @zenith
-	set radius 5
+	set unitType @eclipse
 
 	op shl procId @thisx 10 # first 10 bit for x
 	op add procId procId @thisy # second 10 bit for y
-
-	set STARTING 0
-	set MOVING 1
-	set RELEASING 2
-	set FINISHED 3
-	set status STARTING
 
 GetLinks:
 	GetEntry:
@@ -23,125 +16,165 @@ GetLinks:
 	sensor moveX entry @x
 	sensor moveY entry @y
 
+Preflag:
+	set totalFlagged 0
+	set totalFree 0
+	set totalUnits 0
+	set firstUnit null
+	set flagged 0
+	set free 0
+	set i 0
+	set neededFlags 0
+	set status "COUNT"
+
+	PreflagLoop:
+		ubind unitType
+		jump PreflagLoop equal @unit null
+		sensor isDead @unit @dead
+		jump PreflagLoop equal isDead true
+
+		jump FinishCount equal firstUnit @unit
+		jump FlagProcess notEqual firstUnit null
+		set firstUnit @unit
+
+	FlagProcess:
+		sensor flag @unit @flag
+		jump CountFlagged equal flag procId
+		jump CountFree equal flag 0
+		jump NextCount always
+		
+	CountFlagged:
+		op add flagged flagged 1
+		jump NextCount notEqual status "UNFLAG"
+		ucontrol flag 0
+		op sub neededFlags neededFlags 1
+		jump FlagDone equal neededFlags 0
+		jump NextCount always
+
+	CountFree:
+		op add free free 1
+		jump NextCount notEqual status "FLAG"
+		ucontrol flag procId
+		op sub neededFlags neededFlags 1
+		jump FlagDone equal neededFlags 0
+	
+	NextCount:
+		op add i i 1
+		jump PreflagLoop always
+
+	FinishCount:
+		jump GetNextAction greaterThan totalUnits 0
+		set totalFlagged flagged
+		set totalFree free
+		set totalUnits i
+
+		GetNextAction:
+			jump FlagDone equal totalFlagged maxUnits
+			jump FlagDone equal status "FLAG"
+			jump FlagDone equal status "UNFLAG"
+
+			set flagged 0
+			set free 0
+			set i 0
+			set firstUnit null
+
+			jump NeedFlags lessThan totalFlagged maxUnits
+			op sub neededFlags totalFlagged maxUnits
+			set status "UNFLAG"
+			jump PreflagLoop always
+
+			NeedFlags:
+				op sub neededFlags maxUnits totalFlagged
+				op min neededFlags neededFlags totalFree
+				jump FlagDone lessThanEq neededFlags 0
+				set status "FLAG"
+				jump PreflagLoop always
+
+	FlagDone:
+
+	GetStartUnit:
+		set status "START"
+		# get an already flagged unit
+		ubind unitType
+		jump GetStartUnit equal @unit null
+		sensor flag @unit @flag
+		jump GetStartUnit notEqual flag procId
+
+		sensor size @unit @size
+		op mul radius size 2
 
 Start:
 CheckActive:
 	sensor active switch @enabled
+	jump ActiveChanged notEqual active lastActive
 	jump Reset equal active false
 
-	print "Status: "
-	print status
-	print "\n"
-
-	jump Start equal status FINISHED
-	jump Proceed equal status MOVING
-	jump Release equal status RELEASING
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	jump FinishGroup equal firstUnit @unit
+	jump ProcessUnit notEqual firstUnit null
+	set firstUnit @unit
 	
-StartMove:
-	print "Starting move\n"
-	set i 0
+ProcessUnit:
+	sensor isDead @unit @dead
+	jump BindUnit equal isDead true
+
+	sensor flag @unit @flag
+	jump BindUnit notEqual flag procId
+
+Approach:
+	set status "PROCESSING"
+	ucontrol within moveX moveY radius isNear
+	jump Enter equal isNear true
+	ucontrol boost true
+	ucontrol approach moveX moveY radius
+	jump Start always
+
+Enter:
+	ucontrol move moveX moveY
+	wait 2
+	ucontrol payEnter
+	jump Start always
+
+FinishGroup:
 	set firstUnit null
+	jump Start always
 
-	MoveLoop:
-		Bind:
-			ubind unitType
-			jump Start equal @unit null
-			sensor isDead @unit @dead
-			jump MoveLoop equal isDead true
+ActiveChanged:
+	set lastActive active
+	jump Reset equal active false
+	jump Initialize always
 
-			jump FinishMoveGroup equal firstUnit @unit
-			jump FinishMoveGroup greaterThanEq i maxUnits
-			jump ProcessMove notEqual firstUnit null
-			set firstUnit @unit
-		
-		ProcessMove:
-			sensor flag @unit @flag
-			jump MoveLoop notEqual flag 0
-			print "Moving\n"
+Reset:
+	jump Start equal status "IDLE"
+	set status "STOPPING"
 
-			ucontrol flag procId
-			op add i i 1
-			ucontrol approach moveX moveY radius
-			jump MoveLoop lessThan i maxUnits
-		
-		FinishMoveGroup:
-			set totalFlagged i
-			set firstUnit null
-			set status MOVING
-			jump Start always
-
-Proceed:
-	print "Proceeding\n"
-	set j 0
-
-	ProceedLoop:
-		Bind:
-			ubind unitType
-			jump Start equal @unit null
-			sensor isDead @unit @dead
-			jump ProceedLoop equal isDead true
-			jump FinishProceed greaterThanEq j totalFlagged
-		
-		Navigate:
-			sensor flag @unit @flag
-			jump ProceedLoop notEqual flag procId
-			
-			ucontrol within moveX moveY radius isNear
-			jump ProceedLoop equal isNear false
-
-			ucontrol move moveX moveY
-			op add j j 1
-			print "Moving to entry\n"
-			wait 1
-			ucontrol payEnter
-			jump ProceedLoop lessThan j totalFlagged
-
-		FinishProceed:
-			set status RELEASING
-			jump Start always
-
-Release:
-	print "Releasing\n"
 	set firstUnit null
-	set k 0
+	StopLoop:
+		ubind unitType
+		jump AllStopped equal @unit null
+		sensor dead @unit @dead
+		jump StopLoop equal dead true
 
-	ReleaseLoop:
-		Bind:
-			ubind unitType
-			jump Start equal @unit null
-			sensor isDead @unit @dead
-			jump ReleaseLoop equal isDead true
+		jump AllStopped equal @unit firstUnit
+		jump SetStopFirst equal firstUnit null
+		sensor firstDead firstUnit @dead
+		jump StopProcess equal firstDead false
 
-			jump FinishRelease greaterThanEq k totalFlagged
-			jump FinishRelease equal firstUnit @unit
-			jump ReleaseUnit notEqual firstUnit null
-
+		SetStopFirst:
 			set firstUnit @unit
-		
-		ReleaseUnit:
+
+		StopProcess:
 			sensor flag @unit @flag
-			jump ReleaseLoop notEqual flag procId
-			op add k k 1
-			print "Releasing unit\n"
+			jump StopLoop notEqual flag procId
 			ucontrol flag 0
 			ucontrol unbind
-			jump ReleaseLoop lessThan k totalFlagged
 
-		FinishRelease:
-			set status FINISHED
-
-FinishRun:
-	
-	print "\nFlagged: "
-	print totalFlagged
-	printflush message1
-	jump Start always
-	
-Reset:
-	set status STARTING
-	set totalFlagged 0
-	printflush message1
-	jump Start always
+		jump StopLoop always
+		
+	AllStopped:
+		set status "IDLE"
+		jump Start always
 	
 	
-
