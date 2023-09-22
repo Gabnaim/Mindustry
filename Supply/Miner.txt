@@ -1,3 +1,7 @@
+set name "Miner"
+set author "gabnaim"
+set note "All logic original"
+
 Initialize:
 	set status "INITIALIZE"
 	set unitType @pulsar
@@ -38,6 +42,7 @@ Preflag:
 	set flagged 0
 	set free 0
 	set i 0
+	set neededFlags 0
 	set status "COUNT"
 
 	PreflagLoop:
@@ -89,6 +94,7 @@ Preflag:
 			set flagged 0
 			set free 0
 			set i 0
+			set firstUnit null
 
 			jump NeedFlags lessThan totalFlagged maxUnits
 			op sub neededFlags totalFlagged maxUnits
@@ -116,7 +122,7 @@ Preflag:
 		sensor range @unit @range
 		op sub range range 1
 		op min dropRange dropRange range
-		set coreRange 23
+		op add coreRange 27.5 miningRange
 	
 		ulocate building core false 0 coreX coreY coreFound core
 
@@ -157,6 +163,9 @@ CheckStuck:
 BindUnit:
 	ubind unitType
 	jump Start equal @unit null
+	jump FinishGroup equal firstUnit @unit
+	jump ProcessUnit notEqual firstUnit null
+	set firstUnit @unit
 	
 ProcessUnit:
 	sensor isDead @unit @dead
@@ -272,7 +281,18 @@ FindOre:
 		# before full to prevent auto drop to core
 		op mul cap cap 0.6
 		op floor cap cap
-		jump Next always
+
+Next:
+	jump Start always
+
+FinishGroup:
+	set firstUnit null
+	jump Start always
+
+Error:
+	set status "ERROR"
+	control config sorter errorIcon
+	jump Start always
 
 ChangeOre:
 	set lastChoice oreChoice
@@ -313,15 +333,7 @@ ChangeOre:
 	CannotMine:
 		set error "Cannot mine ore"
 		jump Error always
-
-Next:
-	jump Start always
 		
-Error:
-	set status "ERROR"
-	control config sorter errorIcon
-	jump Start always
-
 Reset:
 	jump Start equal status "IDLE"
 	jump Start equal status "ERROR"

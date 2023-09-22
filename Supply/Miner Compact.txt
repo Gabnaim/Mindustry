@@ -1,5 +1,8 @@
+set name "Miner Compact"
+set author "gabnaim"
+set note "All logic original"
+
 Initialize:
-	set name "Compact Miner"
 	set status "INITIALIZE"
 	set unitType @pulsar
 	set maxUnits 3
@@ -93,6 +96,7 @@ Preflag:
 			set flagged 0
 			set free 0
 			set i 0
+			set firstUnit null
 
 			jump NeedFlags lessThan totalFlagged maxUnits
 			op sub neededFlags totalFlagged maxUnits
