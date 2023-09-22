@@ -1,0 +1,241 @@
+set name "T5 Feeder"
+
+Initialize:
+	set unitType @mega
+	op shl procId @thisx 10
+	op add procId procId @thisy
+	set sourceMin 500
+	set dropRange 7
+
+	set items 4
+	set material1 @silicon
+	set stockLevel1 2000
+	set material2 @plastanium
+	set stockLevel2 1200
+	set material3 @surge-alloy
+	set stockLevel3 1000
+	set material4 @phase-fabric
+	set stockLevel4 700
+
+	GetDropTarget:
+		set l 0
+		LinkLoop:
+			getlink link l
+			sensor type link @type
+			sensor buildingCap link @itemCapacity
+			jump Found greaterThanEq buildingCap 10
+		NextLink:
+			op add l l 1
+			jump LinkLoop lessThan l @links
+			jump GetDropTarget always
+		Found:
+			set dropTarget link
+	
+	GetDropCoords:
+		sensor dropX dropTarget @x
+		sensor dropY dropTarget @y
+		sensor dropCap dropTarget @itemCapacity
+
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		sensor cap @unit @itemCapacity
+		sensor range @unit @range
+		ulocate building core false 0 sourceX sourceY sourceFound source
+		jump GetStartInfo equal sourceFound false
+
+Start:
+
+SelectMaterial:
+	sensor carried mule @totalItems
+	sensor carriedMat mule @firstItem
+
+	set i 0
+	set minIndex -1
+	set minRate 1
+	SelectLoop:
+		op add arrayReturn @counter 1
+		jump ArrayGet always 
+
+	CheckMaterial:
+		sensor dropLevel dropTarget material
+		op sub needed stockLevel dropLevel
+		jump NextMaterial lessThanEq needed 0
+
+		# if we are carrying material that is still needed,
+		# deliver it even if another stock is lower
+		jump Feed equal material carriedMat
+	
+		sensor sourceLevel source material
+		jump NextMaterial lessThanEq sourceLevel sourceMin
+
+		op sub available sourceLevel sourceMin
+		op min amount needed cap
+		op min amount amount available
+		op div stockRate dropLevel stockLevel
+		jump NextMaterial greaterThanEq stockRate minRate
+		
+		op add arrayReturn @counter 1
+		jump ArraySet always 
+	
+		set minIndex i
+		set minRate stockRate
+
+	NextMaterial:
+		op add i i 1
+		jump SelectLoop lessThan i items
+
+	jump NothingToDo equal minIndex -1
+
+	set i minIndex
+	op add arrayReturn @counter 1
+	jump ArrayGet always 	
+	jump Feed always
+
+NothingToDo:
+	jump Start always
+
+###########################################
+Feed:
+###########################################
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump FindMule equal muleDead true
+
+	sensor muleFlag mule @flag
+	jump StartRun equal muleFlag procId
+	jump FindMule notEqual muleFlag 0
+	set @unit mule
+	ucontrol flag procId
+	jump StartRun always
+	
+FindMule:
+	ubind unitType
+	jump Start equal @unit null
+	sensor unitDead @unit @dead
+	jump FindMule equal unitDead true
+
+	sensor unitFlag @unit @flag
+	jump UseMule equal unitFlag procId
+
+FlagMule:
+	jump FindMule notEqual unitFlag 0
+	ucontrol flag procId
+
+UseMule:
+	set mule @unit
+	
+StartRun:
+	sensor carried mule @totalItems
+	sensor carriedMat mule @firstItem
+
+	jump DumpItems notEqual material carriedMat
+	jump Pickup equal carried 0
+	jump DropItems always
+
+DumpItems:
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump DumpLoop equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	ucontrol boost true
+	jump Start always
+
+	DumpLoop:
+		set dumpI 0
+		ucontrol boost false
+		sensor carried mule @totalItems
+		DumpUntilEmpty:
+			ucontrol itemDrop source carried
+			sensor carried @unit @totalItems
+			jump Pickup equal carried 0
+			op add dumpI dumpI 1
+			jump DumpUntilEmpty lessThan dumpI 100
+		jump Start always
+
+Pickup:
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump PickupLoop equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	ucontrol boost true
+	jump Start always
+
+	PickupLoop:
+		set pickupI 0
+		ucontrol boost false
+		LoopUntilFull:
+			ucontrol itemTake source material cap
+			sensor carried mule @totalItems
+			jump DropItems equal carried cap
+
+			op add pickupI pickupI 1
+			jump LoopUntilFull lessThan pickupI 100 
+			# make it work when the core was upgraded
+			ulocate building core false 0 sourceX sourceY sourceFound source
+
+DropItems:
+	ucontrol within dropX dropY dropRange isNearDrop
+	jump DropLoop equal isNearDrop true
+	ucontrol boost true
+	ucontrol approach dropX dropY dropRange
+	jump Start always
+
+	DropLoop:
+		set dropI 0
+		ucontrol boost false
+		sensor carried mule @totalItems
+		LoopUntilEmpty:
+			ucontrol itemDrop dropTarget carried
+			sensor carried @unit @totalItems
+			jump Pickup equal carried 0
+			op add dropI dropI 1
+			jump LoopUntilEmpty lessThan dropI 100 
+
+FinishRun:
+	jump Start always
+
+ArraySet:
+	op mul offset i 2
+	op add offset offset 1
+	op add arrayLoc @counter offset
+	set @counter arrayLoc
+
+	set amount1 amount
+	set @counter arrayReturn
+
+	set amount2 amount
+	set @counter arrayReturn
+
+	set amount3 amount
+	set @counter arrayReturn
+
+	set amount4 amount
+	set @counter arrayReturn
+
+ArrayGet:
+	op mul offset i 4
+	op add offset offset 1
+	op add arrayLoc @counter offset
+	set @counter arrayLoc
+
+	set material material1
+	set stockLevel stockLevel1
+	set amount amount1
+	set @counter arrayReturn
+
+	set material material2
+	set stockLevel stockLevel2
+	set amount amount2
+	set @counter arrayReturn
+
+	set material material3
+	set stockLevel stockLevel3
+	set amount amount3
+	set @counter arrayReturn
+
+	set material material4
+	set stockLevel stockLevel4
+	set amount amount4
+	set @counter arrayReturn
+
+	
