@@ -1,9 +1,4 @@
-set sourceFile "Low Usage Feeder.txt"
-# Designed to feed two items with one unit at a slow rate
-# For example phase fabric and silicon to a dropTarget,
-# or thorium and phase fabric to a container supplying
-# RTGs and overdrive projector
-
+set name "Two Item Feeder"
 Initialize:
 	set unitType @flare
 	op shl procId @thisx 10
@@ -14,12 +9,6 @@ Initialize:
 	set stockLevel2 10
 	set sourceMin 200
 	set dropRange 7
-
-	CheckMaterials:
-		op equal isNull1 material1 null
-		op equal isNull2 material2 null
-		op and bothNull isNull1 isNull2
-		jump Initialize equal bothNull true
 
 	GetDropTarget:
 		set l 0
@@ -46,12 +35,10 @@ Initialize:
 		sensor cap @unit @itemCapacity
 		sensor range @unit @range
 		ulocate building core false 0 sourceX sourceY sourceFound source
+		jump GetStartInfo equal sourceFound false
 
 Start:
 CheckMaterial1:
-	set skip1 isNull1
-	jump CheckMaterial2 equal material1 null
-
 	set checkMat material1
 	set stockLevel stockLevel1
 	op add checkReturn @counter 1
@@ -61,9 +48,6 @@ CheckMaterial1:
 	set stockRate1 stockRate
 
 CheckMaterial2:
-	set skip2 isNull2
-	jump SelectMaterial equal material2 null
-	
 	set checkMat material2
 	set stockLevel stockLevel2
 	op add checkReturn @counter 1
