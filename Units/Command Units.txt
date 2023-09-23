@@ -27,6 +27,7 @@ Initialize:
 	set spawnRange 40
 	set rallyDistanceX 5
 	set rallyDistanceY 5
+	set maxIndex 10
 
 	# Get the flag from the processor that is doing the flagging
 	GetId:
