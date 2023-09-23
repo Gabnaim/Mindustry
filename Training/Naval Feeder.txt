@@ -124,6 +124,8 @@ StartRun:
 	
 DumpUnneeded:
 	ucontrol itemDrop @air carried
+	sensor carried mule @totalItems
+	jump StartRun greaterThan carried 0
 	
 Pickup:
 	ucontrol within sourceX sourceY dropRange isNearSource
