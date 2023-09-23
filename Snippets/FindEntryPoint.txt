@@ -12,7 +12,7 @@ Start:
 	sensor rotation building @rotation
 	sensor buildingX building @x
 	sensor buildingY building @y
-	op div offset buildingSize 2
+	op idiv offset buildingSize 2
 
 	set entryX buildingX
 	set entryY buildingY
@@ -41,9 +41,19 @@ Start:
 	
 Test:
 	ubind @mace
-	ucontrol move entryX entryY
+	sensor carriedX @unit @x
+	sensor carriedY @unit @y
+
+	ubind @mega
+	ucontrol move carriedX carriedY
+	wait 2
+	ucontrol payTake 1
+
+	wait 2
+	ucontrol move buildingX buildingY
 	wait 5
-	payEnter
+	ucontrol payDrop
+	
 	control enabled switch false
 	jump Start always
 	
