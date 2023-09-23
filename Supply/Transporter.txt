@@ -36,6 +36,7 @@ Preflag:
 	set flagged 0
 	set free 0
 	set i 0
+	set neededFlags 0
 	set status "COUNT"
 
 	PreflagLoop:
@@ -87,6 +88,7 @@ Preflag:
 			set flagged 0
 			set free 0
 			set i 0
+			set firstUnit null
 
 			jump NeedFlags lessThan totalFlagged maxUnits
 			op sub neededFlags totalFlagged maxUnits
@@ -101,7 +103,6 @@ Preflag:
 				jump PreflagLoop always
 
 	FlagDone:
-		jump Preflag equal totalFlagged 0
 
 	GetStartUnit:
 		set status "START"
