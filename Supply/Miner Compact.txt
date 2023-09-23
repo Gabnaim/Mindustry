@@ -190,6 +190,8 @@ SelectAction:
 
 DumpUnneeded:
 	ucontrol itemDrop @air carried
+	sensor carried @unit @totalItems
+	jump SelectAction greaterThan carried 0
 	jump Mine always
 
 DropItems:
