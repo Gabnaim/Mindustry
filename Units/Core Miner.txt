@@ -1,6 +1,6 @@
 set name "Core Miner"
 Initialize:
-	set unitType @mono
+	set unitType @poly
 	set miningRange 8.5
 	set dropRange 7
 	set minMetals 1000
@@ -8,8 +8,8 @@ Initialize:
 	set ores 4
 	set ore1 @copper
 	set ore2 @lead
-	set ore3 @sand
-	set ore4 @scrap
+	set ore3 @coal
+	set ore4 @sand
 	
 	GetStartInfo:
 		ubind unitType
@@ -17,13 +17,24 @@ Initialize:
 		ulocate building core false 0 coreX coreY coreFound core
 		sensor maxStock core @itemCapacity
 		sensor cap @unit @itemCapacity
-		set cap 16
 
 Start:
+BindUnit:
+	ubind unitType
+	jump Start equal @unit null
+	sensor isDead @unit @dead
+	jump Start equal isDead true
+	sensor flag @unit @flag
+	jump Start notEqual flag 0
+
+	sensor isMining @unit @mining
+	sensor carried @unit @totalItems
+	sensor carriedItem @unit @firstItem
+	jump DropItems greaterThanEq carried cap
+
 CheckStock:
 	set i 0
 	set min 99999
-	set minOre null
 	MinLoop:
 		op mul offset i 2
 		op add offset offset 1
@@ -52,30 +63,13 @@ CheckStock:
 		op add i i 1
 		jump MinLoop lessThan i ores
 
-	jump Start equal minOre null
-
 	set minedOre minOre
 	ulocate ore core true minedOre oreX oreY oreFound oreMine
 
-BindUnit:
-	ubind unitType
-	jump Start equal @unit null
-	jump FinishGroup equal firstUnit @unit
-	jump ProcessUnit notEqual firstUnit null
-	set firstUnit @unit
-	
-ProcessUnit:
-	sensor isDead @unit @dead
-	jump BindUnit equal isDead true
-
 SelectAction:
-	sensor isMining @unit @mining
-	sensor carried @unit @totalItems
-	sensor carriedItem @unit @firstItem
-
-	jump Mine equal carried 0
+	jump MoveToOre equal carried 0
 	jump DropItems notEqual carriedItem minedOre
-	jump DropItems greaterThanEq carried cap
+	jump Start equal isMining true
 	
 Mine:
 	MoveToOre:
@@ -107,7 +101,3 @@ Mine:
 				op add dropI dropI 1
 				jump LoopUntilEmpty lessThan dropI 100
 			jump Start always
-
-FinishGroup:
-	set firstUnit null
-	jump Start always
