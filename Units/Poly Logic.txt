@@ -4,8 +4,6 @@ Initialize:
 	set withdrawDistance 23
 	set defendRadius 23
 	set miningRange 8.5
-	# mining coal can be turned off. Copper and lead can't
-	set mineCoal true
 
 	set maxTick 360 #break loop after 6 seconds idle
 	
@@ -131,10 +129,6 @@ Mine:
 	CheckStock:
 		sensor copper core @copper
 		sensor lead core @lead
-		jump MineCoal equal mineCoal true
-		set coal 999999
-		jump SelectOre always
-	MineCoal:
 		sensor coal core @coal
 	
 		SelectOre:
@@ -172,14 +166,19 @@ Mine:
 	DropItems:
 		ucontrol within coreX coreY miningRange isNearDrop
 		jump DropLoop equal isNearDrop true
+		ucontrol boost true
 		ucontrol approach coreX coreY miningRange
 		jump Start always
 	
 		DropLoop:
+			set dropI 0
+			ucontrol boost false
 			sensor carried @unit @totalItems
 			LoopUntilEmpty:
 				ucontrol itemDrop core carried
 				sensor carried @unit @totalItems
-				jump LoopUntilEmpty greaterThan carried 0 
-		jump Start always
+				jump Start equal carried 0
+				op add dropI dropI 1
+				jump LoopUntilEmpty lessThan dropI 100
+			jump Start always
 	
