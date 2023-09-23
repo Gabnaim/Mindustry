@@ -1,20 +1,57 @@
 Initialize:
-	set maxUnits 4
-	set unitType @eclipse
+	set maxUnits 1
+	set unitType @mace
 
 	op shl procId @thisx 10 # first 10 bit for x
 	op add procId procId @thisy # second 10 bit for y
 
 	GetLinks:
-		GetEntry:
-			set entry conveyor1
-			jump GetEntry equal entry null
-		GetSwitch:
-			set switch switch1
-			jump GetSwitch equal switch null
+		set requiredLinks 2
+		jump GetLinks lessThan @links requiredLinks
+
+		set i 0
+		set found 0
+		LinkLoop:
+			getlink link i
+			sensor type link @type
+
+			#switch
+			jump FoundSwitch equal type @switch
+
+			#payload building
+			jump FoundEntry equal type @additive-reconstructor
+			jump FoundEntry equal type @multiplicative-reconstructor
+			jump FoundEntry equal type @exponential-reconstructor
+			jump FoundEntry equal type @tetrative-reconstructor
+			jump FoundEntry equal type @payload-conveyor
+			jump FoundEntry equal type @payload-router
+			jump NextLink always
+
+			FoundSwitch:
+				set switch link
+				op add found found 1
+				jump NextLink always
+	
+			FoundEntry:
+				op add found found 1
+				set entry link
+
+			NextLink:
+				jump EndGetLinks equal found requiredLinks
+				op add i i 1
+				jump LinkLoop lessThan i @links
+			
+			jump GetLinks always
+
+		EndGetLinks:
 
 	sensor moveX entry @x
 	sensor moveY entry @y
+	sensor entrySize entry @size
+	sensor rotation entry @rotation
+
+	
+	
 
 	set targetX moveX
 	set targetY moveY
@@ -121,6 +158,7 @@ Preflag:
 		sensor size @unit @size
 		sensor speed @unit @speed
 		op mul radius size 2
+		op add radius radius entrySize
 
 		op div enterWait radius speed
 		op add enterWait enterWait 1
@@ -216,7 +254,7 @@ Approach:
 
 Enter:
 	set status "ENTER"
-	ucontrol move moveX moveY
+	ucontrol approach moveX moveY entrySize
 	wait enterWait
 	ucontrol payEnter
 	jump Start always
