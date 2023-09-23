@@ -1,0 +1,49 @@
+Initialize:
+	set building reconstructor1
+	jump Initialize equal building null
+	set switch switch1
+	jump Initialize equal switch null
+
+Start:
+	sensor active switch @enabled
+	jump Start equal active false
+
+	sensor buildingSize building @size
+	sensor rotation building @rotation
+	sensor buildingX building @x
+	sensor buildingY building @y
+	op div offset buildingSize 2
+
+	set entryX buildingX
+	set entryY buildingY
+	
+	jump Right equal rotation 0
+	jump Up equal rotation 1
+	jump Left equal rotation 2
+	jump Down equal rotation 3
+	jump EndFindEntry always
+
+	Right:
+		op sub entryX buildingX offset
+		jump EndFindEntry always
+	Up:
+		op sub entryY buildingY offset
+		jump EndFindEntry always
+	Left:
+		op add entryX buildingX offset
+		jump EndFindEntry always
+	Down:
+		op add entryY buildingY offset
+		jump EndFindEntry always
+
+	EndFindEntry:
+
+	
+Test:
+	ubind @mace
+	ucontrol move entryX entryY
+	wait 5
+	payEnter
+	control enabled switch false
+	jump Start always
+	
