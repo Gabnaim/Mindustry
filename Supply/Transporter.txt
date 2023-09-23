@@ -213,6 +213,8 @@ SelectAction:
 
 DumpItems:
 	ucontrol itemDrop @air carried
+	sensor carried mule @totalItems
+	jump SelectAction greaterThan carried 0
 	jump Pickup always
 	
 DropItems:
