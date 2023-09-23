@@ -1,0 +1,34 @@
+Initialize:
+	set id 0
+	printflush message1
+
+FlyerCheck:
+	jump Ground lessThanEq id 4
+	jump Air lessThanEq id 9
+	jump Ground lessThanEq id 14
+	jump Air lessThanEq id 24
+	
+Ground:
+	set isGround true
+	jump EndFlyerCheck always
+
+Air: 
+	set isGround false
+	jump EndFlyerCheck always
+
+EndFlyerCheck:
+	lookup unit unitType id
+	print id 
+	print " "
+	print unitType
+	jump PrintAir equal isGround false
+	print " G\n"
+	jump NextUnitType always
+	PrintAir:
+		print " A\n"
+
+NextUnitType:
+	op add id id 1
+	jump FlyerCheck lessThanEq id 37
+
+

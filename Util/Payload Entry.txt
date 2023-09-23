@@ -5,17 +5,35 @@ Initialize:
 	op shl procId @thisx 10 # first 10 bit for x
 	op add procId procId @thisy # second 10 bit for y
 
-GetLinks:
-	GetEntry:
-		set entry conveyor1
-		jump GetEntry equal entry null
-	GetSwitch:
-		set switch switch1
-		jump GetSwitch equal switch null
+	GetLinks:
+		GetEntry:
+			set entry conveyor1
+			jump GetEntry equal entry null
+		GetSwitch:
+			set switch switch1
+			jump GetSwitch equal switch null
 
 	sensor moveX entry @x
 	sensor moveY entry @y
 
+	set targetX moveX
+	set targetY moveY
+
+	sensor id unitType @id
+	jump Initialize greaterThan id 37
+
+	FlyerCheck:
+		jump Ground lessThanEq id 4
+		jump Air lessThanEq id 9
+		jump Ground lessThanEq id 14
+		jump Air lessThanEq id 24
+		Ground:
+			set isGround true
+			jump EndFlyerCheck always
+		Air: 
+			set isGround false
+		EndFlyerCheck:
+	
 Preflag:
 	set totalFlagged 0
 	set totalFree 0
@@ -101,13 +119,23 @@ Preflag:
 		jump GetStartUnit notEqual flag procId
 
 		sensor size @unit @size
+		sensor speed @unit @speed
 		op mul radius size 2
+
+		op div enterWait radius speed
+		op add enterWait enterWait 1
+
+		op sub checkSpeed speed 1
+		op div stuckWait 1 checkSpeed
+
+	set i 0
 
 Start:
 CheckActive:
 	sensor active switch @enabled
 	jump ActiveChanged notEqual active lastActive
 	jump Reset equal active false
+	jump FinishGroup greaterThan i totalUnits
 
 BindUnit:
 	ubind unitType
@@ -124,21 +152,83 @@ ProcessUnit:
 	jump BindUnit notEqual flag procId
 
 Approach:
-	set status "PROCESSING"
-	ucontrol within moveX moveY radius isNear
+	set status "APPROACH"
+	op add i i 1
+	ucontrol within targetX targetY radius isNear
 	jump Enter equal isNear true
 	ucontrol boost true
-	ucontrol approach moveX moveY radius
-	jump Start always
+
+	jump GroundApproach equal isGround true
+
+	AirApproach:
+		ucontrol approach targetX targetY radius
+		jump Start always
+	
+	GroundApproach:
+		ucontrol pathfind targetX targetY 
+
+		# We only calculate the target for the first unit. 
+		# All others just do a pathfind using last target
+		jump Start notEqual @unit firstUnit
+
+		sensor startX @unit @x
+		sensor startY @unit @y
+		wait stuckWait
+
+		CheckMoved:
+			ucontrol within startX startY 1 notMoved
+			jump Start equal notMoved false
+
+		FindOpenSpot:
+			sensor unitX @unit @x
+			sensor unitY @unit @y
+			set k 0
+	
+			jump AddX greaterThan unitX targetX
+			set stepx -1
+			AddX:
+				set stepx 1
+	
+			jump AddY greaterThan unitY targetY
+			set stepy -1
+			AddY:
+				set stepy 1
+		
+			FindOpenLoop:
+				op mod xmove i 2
+				jump XStep equal xmove 1
+				YStep:
+					op add targetY targetY stepy
+				XStep:
+					op add targetX targetX stepx
+
+				ucontrol pathfind targetX targetY
+				wait stuckWait
+				
+				ucontrol within startX startY 1 notMoved
+				jump PathFinding equal notMoved false
+
+				op add k k 1
+				jump FindOpenLoop lessThan k 10
+
+		PathFinding:
+			jump Start always
 
 Enter:
+	set status "ENTER"
 	ucontrol move moveX moveY
-	wait 2
+	wait enterWait
 	ucontrol payEnter
+	jump Start always
+
+StopUnit:
+	ucontrol stop
+	ucontrol boost false
 	jump Start always
 
 FinishGroup:
 	set firstUnit null
+	set i 0
 	jump Start always
 
 ActiveChanged:
