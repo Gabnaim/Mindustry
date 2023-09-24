@@ -1,6 +1,6 @@
 Initialize:
-	set maxUnits 1
-	set unitType @mace
+	set maxUnits 4
+	set unitType @mega
 
 	op shl procId @thisx 10 # first 10 bit for x
 	op add procId procId @thisy # second 10 bit for y
@@ -25,6 +25,7 @@ Initialize:
 			jump FoundEntry equal type @tetrative-reconstructor
 			jump FoundEntry equal type @payload-conveyor
 			jump FoundEntry equal type @payload-router
+			jump FoundEntry equal type @payload-void
 			jump NextLink always
 
 			FoundSwitch:
@@ -48,10 +49,6 @@ Initialize:
 	sensor moveX entry @x
 	sensor moveY entry @y
 	sensor entrySize entry @size
-	sensor rotation entry @rotation
-
-	
-	
 
 	set targetX moveX
 	set targetY moveY
@@ -254,7 +251,7 @@ Approach:
 
 Enter:
 	set status "ENTER"
-	ucontrol approach moveX moveY entrySize
+	ucontrol move moveX moveY
 	wait enterWait
 	ucontrol payEnter
 	jump Start always
@@ -303,6 +300,7 @@ Reset:
 		
 	AllStopped:
 		set status "IDLE"
+		set firstUnit null
 		jump Start always
 	
 	
