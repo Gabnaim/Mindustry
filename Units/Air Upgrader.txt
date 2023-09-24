@@ -1,0 +1,199 @@
+Initialize:
+	set maxUnits 4
+	set unitType @poly
+
+	set status "INITIALIZE"
+	set error " "
+
+	op shl procId @thisx 10 # first 10 bit for x
+	op add procId procId @thisy # second 10 bit for y
+
+	GetLinks:
+		set requiredLinks 2
+		jump GetLinks lessThan @links requiredLinks
+
+		set i 0
+		set upgradeTier 0
+		LinkLoop:
+			getlink link i
+			sensor type link @type
+
+			#switch
+			jump FoundSwitch equal type @switch
+	
+			#reconstructor
+			jump FoundT2 equal type @additive-reconstructor
+			jump FoundT3 equal type @multiplicative-reconstructor
+			jump FoundT4 equal type @exponential-reconstructor
+			jump FoundT5 equal type @tetrative-reconstructor
+			jump NextLink always
+
+			FoundSwitch:
+				set switch link
+				op add found found 1
+				jump NextLink always
+	
+			FoundT2:
+				jump NextLink greaterThan upgradeTier 1
+				set upgradeTier 1
+				set upgrader link
+				jump NextLink always
+			FoundT3:
+				jump NextLink greaterThan upgradeTier 2
+				set upgrader link
+				set upgradeTier 2
+				jump NextLink always
+			FoundT4:
+				jump NextLink greaterThan upgradeTier 3
+				set upgrader link
+				set upgradeTier 3
+				jump NextLink always
+			FoundT5:
+				set upgrader link
+				set upgradeTier 4
+
+			NextLink:
+				op add i i 1
+				jump LinkLoop lessThan i @links
+			
+			jump GetLinks equal switch null
+			jump GetLinks equal upgrader null
+
+		EndGetLinks:
+
+	sensor targetX upgrader @x
+	sensor targetY upgrader @y
+	sensor upgraderSize upgrader @size
+
+	sensor id unitType @id
+	jump Initialize greaterThan id 37
+
+	FlyerCheck:
+		jump Ground lessThanEq id 4
+		jump Air lessThanEq id 9
+		jump Ground lessThanEq id 14
+		jump Air lessThanEq id 24
+		Ground:
+			set error "Only air units"
+			jump Initialize always
+		Air: 
+
+	GetUnitTypes:
+		op mod unitTier id 5
+		op sub baseId id unitTier
+		op add higherId baseId upgradeTier
+		op sub lowerId higherId 1
+	
+		lookup unit lowerType lowerId
+		lookup unit higherType higherId
+	
+	GetLowerUnit:
+		set status "START"
+		ubind lowerType
+		jump GetLowerUnit equal @unit null
+
+		sensor size @unit @size
+		sensor speed @unit @speed
+		op idiv approachOffset upgraderSize 2
+		op mul radius size 2
+		op add radius radius approachOffset
+
+		op div enterWait radius speed
+		op add enterWait enterWait 1
+
+	set i 0
+	set totalCount 0
+	set status "READY"
+
+Start:
+CheckActive:
+	sensor active switch @enabled
+	jump ActiveChanged notEqual active lastActive
+	jump Reset equal active false
+	jump Queue notEqual status "READY"
+	
+CountUpgraded:
+	set status "COUNT"
+	set higherCount 0
+	set payloadCount 0
+
+	CountLoop:
+		ubind higherType
+		jump FinishCount equal @unit null
+		jump FinishCount equal firstUnit @unit
+		jump Count notEqual firstUnit null
+		set firstUnit @unit
+		
+	Count:
+		sensor isDead @unit @dead
+		jump CountLoop equal isDead true
+		op add higherCount higherCount 1
+		jump CountLoop always
+	
+	FinishCount:
+		sensor payloadType upgrader @payloadType
+		jump CheckMax notEqual payloadType lowerType
+		sensor payloadCount upgrader @payloadCount
+
+	CheckMax:
+		op add totalCount higherCount payLoadCount
+		jump Start greaterThanEq totalCount maxUnits
+
+Queue:
+	jump BindUnit equal lowerUnit null
+	sensor dead lowerUnit @dead
+	jump BindUnit equal dead true
+	set @unit lowerUnit
+	jump Wait equal status "WAIT"
+	jump Approach always
+
+	BindUnit:
+		ubind lowerType
+		jump Start equal @unit null
+
+		sensor isDead @unit @dead
+		jump BindUnit equal isDead true
+	
+		sensor flag @unit @flag
+		jump UseUnit equal flag procId
+
+	FlagUnit:
+		jump BindUnit notEqual flag 0
+		ucontrol flag procId
+		
+	UseUnit:
+		set lowerUnit @unit
+		
+	Approach:
+		set status "APPROACH"
+		ucontrol within targetX targetY radius isNear
+		jump Wait equal isNear true
+		ucontrol boost true
+		ucontrol approach targetX targetY radius
+		jump Start always
+		
+	Wait:
+		sensor payloadCount upgrader @payloadCount
+		jump Enter equal payloadCount 0
+		set status "WAIT"
+		jump Start always
+
+	Enter:
+		set status "ENTER"
+		ucontrol move targetX targetY
+		wait enterWait
+		ucontrol payEnter
+		wait 2
+		set lowerUnit null
+		set status "READY"
+		jump Start always
+	
+ActiveChanged:
+	set lastActive active
+	jump Reset equal active false
+	jump Initialize always
+
+Reset:
+	set status "IDLE"
+	jump Start always
+	
