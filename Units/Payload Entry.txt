@@ -181,10 +181,10 @@ BindUnit:
 	
 ProcessUnit:
 	sensor isDead @unit @dead
-	jump BindUnit equal isDead true
+	jump Start equal isDead true
 
 	sensor flag @unit @flag
-	jump BindUnit notEqual flag procId
+	jump Start notEqual flag procId
 
 Approach:
 	set status "APPROACH"
