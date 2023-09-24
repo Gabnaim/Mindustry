@@ -50,39 +50,43 @@ Initialize:
 	
 		EndGetLinks:
 
-	set unitCount 0
-	set totalCount 0
-
+	
 Start:	
 	sensor baseType factory @config
 	sensor baseId baseType @id
 	op add id baseId tier
 	lookup unit unitType id
 
-Bind:
-	ubind unitType
-	jump FinishCount equal @unit null
-	sensor isDead @unit @dead
-	jump Start equal isDead true
-
-	jump FinishCount equal firstUnit @unit
-	jump Count notEqual firstUnit null
-	set firstUnit @unit
-	
-Count:
-	op add unitCount unitCount 1
-	jump Start always
-
-FinishCount:
-	op add checkBuildingsReturn @counter 1
-	jump CheckBuildings always
-
-	set lastCount totalCount
-	set firstUnit null
-	set totalCount 0
+CountUnits:
 	set unitCount 0
-	jump DisableFactory greaterThanEq lastCount maxUnits
+	set totalCount 0
 
+	CountLoop:
+	Bind:
+		ubind unitType
+		jump FinishCount equal @unit null
+		sensor isDead @unit @dead
+		jump Start equal isDead true
+	
+		jump FinishCount equal firstUnit @unit
+		jump Count notEqual firstUnit null
+		set firstUnit @unit
+		
+	Count:
+		op add unitCount unitCount 1
+		jump Start always
+	
+	FinishCount:
+		op add checkBuildingsReturn @counter 1
+		jump CheckBuildings always
+	
+		set lastCount totalCount
+		set firstUnit null
+		set totalCount 0
+		set unitCount 0
+
+	jump DisableFactory greaterThanEq lastCount maxUnits
+	
 EnableFactory:
 	control enabled factory true
 	control config factory baseType
