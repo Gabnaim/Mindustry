@@ -110,7 +110,8 @@ CheckActive:
 	sensor active switch @enabled
 	jump ActiveChanged notEqual active lastActive
 	jump Reset equal active false
-	jump Queue notEqual status "READY"
+	jump Wait equal status "WAIT"
+	jump Approach equal status "APPROACH"
 	
 CountUpgraded:
 	set status "COUNT"
@@ -131,6 +132,7 @@ CountUpgraded:
 		jump CountLoop always
 	
 	FinishCount:
+		set firstUnit null
 		sensor payloadType upgrader @payloadType
 		jump CheckMax notEqual payloadType lowerType
 		sensor payloadCount upgrader @payloadCount
@@ -183,7 +185,7 @@ Queue:
 		ucontrol move targetX targetY
 		wait enterWait
 		ucontrol payEnter
-		wait 2
+		wait 5
 		set lowerUnit null
 		set status "READY"
 		jump Start always
