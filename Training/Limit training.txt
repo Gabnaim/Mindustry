@@ -60,13 +60,14 @@ Start:
 CountUnits:
 	set unitCount 0
 	set totalCount 0
+	set firstUnit null
 
 	CountLoop:
 	Bind:
 		ubind unitType
 		jump FinishCount equal @unit null
 		sensor isDead @unit @dead
-		jump Start equal isDead true
+		jump CountLoop equal isDead true
 	
 		jump FinishCount equal firstUnit @unit
 		jump Count notEqual firstUnit null
@@ -74,7 +75,7 @@ CountUnits:
 		
 	Count:
 		op add unitCount unitCount 1
-		jump Start always
+		jump CountLoop always
 	
 	FinishCount:
 		op add checkBuildingsReturn @counter 1
