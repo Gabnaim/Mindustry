@@ -136,19 +136,16 @@ CountUpgraded:
 	
 	FinishCount:
 		set firstUnit null
-		ucontrol unbind
 		sensor payloadType upgrader @payloadType
 		jump CheckMax notEqual payloadType lowerType
 		sensor payloadCount upgrader @payloadCount
 
 	CheckMax:
 		op add totalCount higherCount payLoadCount
-		set higherCount 0
 		op sub needed maxUnits totalCount
 
 Queue:
 	jump ReleaseFlagged lessThanEq needed 0
-	set currentUnit @unit
 	jump Wait equal status "WAIT"
 	jump Approach equal status "APPROACH"
 
@@ -156,7 +153,6 @@ Queue:
 
 	FindFlagged:
 		set firstUnit null
-		set available null
 		FindLoop:
 		BindUnit:
 			ubind lowerType
@@ -203,7 +199,6 @@ Queue:
 		sensor payloadCount upgrader @payloadCount
 		jump Enter equal payloadCount 0
 		set status "WAIT"
-		set currentUnit @unit
 		jump Start always
 
 	Enter:
@@ -212,10 +207,13 @@ Queue:
 		wait enterWait
 		ucontrol stop
 		ucontrol payEnter
+
 		set lowerUnit available
 		set available null
+
+		op sub needed needed 1
+		jump ReleaseFlagged lessThanEq needed 0
 		set status "READY"
-		set currentUnit @unit
 		jump Start always
 	
 ActiveChanged:
@@ -250,6 +248,7 @@ ReleaseFlagged:
 
 FinishRelease:
 	set lowerUnit null
+	set available null
 	set status "IDLE"
 	jump Start always
 	
