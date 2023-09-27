@@ -1,7 +1,7 @@
 Initialize:
-	set unitType @pulsar
-	set maxUnits 3
-	set material @silicon
+	set unitType @mega
+	set maxUnits 1
+	set material @phase-fabric
 	set takeAll false
 	set pickupHere true # if false, drop here
 	set coreTransport true # other side is core
@@ -11,8 +11,7 @@ Initialize:
 	set otherEndX 0
 	set otherEndY 0
 
-	set waitTicks 1800 # wait 30 secs before rel
-easing when idle
+	set waitTicks 1800 
 	set dropRange 7
 
 	set status "INITIALIZE"
@@ -205,10 +204,10 @@ ProcessUnit:
 
 SelectAction:
 	sensor carried @unit @totalItems
-	sensor carriedItem @unit firstItem
-	jump DropItems equal carried cap
+	sensor carriedItem @unit @firstItem
 	jump Pickup equal carried 0
 	jump DumpItems notEqual carriedItem material
+	jump DropItems equal carried cap
 	jump Pickup always 
 
 DumpItems:
@@ -308,7 +307,6 @@ Stopping:
 			jump StopLoop notEqual flag procId
 			ucontrol stop
 			jump StopLoop equal status "STOPPING"
-			ucontrol itemDrop @air 100
 			ucontrol flag 0
 			jump StopLoop always
 		
