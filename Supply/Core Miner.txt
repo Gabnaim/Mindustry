@@ -7,6 +7,7 @@ Initialize:
 	set unitType @pulsar
 	set maxUnits 3
 	set minedOre @titanium
+	set maxDistance 20
 
 	set releaseWaitTicks 1800 # wait in ticks before releasing when idle
 
@@ -64,9 +65,19 @@ Preflag:
 	CountFree:
 		op add free free 1
 		jump NextCount notEqual status "FLAG"
-		ucontrol flag procId
-		op sub neededFlags neededFlags 1
-		jump FlagDone equal neededFlags 0
+		
+		CheckDistance:
+			sensor x @unit @x
+			sensor y @unit @y
+			op sub xDiff @thisx x
+			op sub yDiff @thisy y
+			op len distance xDiff yDiff
+			jump NextCount greaterThan distance maxDistance
+
+		Flag:
+			ucontrol flag procId
+			op sub neededFlags neededFlags 1
+			jump FlagDone equal neededFlags 0
 	
 	NextCount:
 		op add i i 1
