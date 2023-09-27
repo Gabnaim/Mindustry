@@ -8,6 +8,7 @@ Start:
 	sensor active switch @enabled
 	jump Start equal active false
 
+FindEntry:
 	sensor buildingSize building @size
 	sensor rotation building @rotation
 	sensor buildingX building @x
