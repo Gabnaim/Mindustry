@@ -1,6 +1,7 @@
 Initialize:
 	set maxUnits 4
 	set unitType @mega
+	set maxDistance 30
 
 	op shl procId @thisx 10 # first 10 bit for x
 	op add procId procId @thisy # second 10 bit for y
