@@ -2,7 +2,6 @@ Initialize:
 	set sourceFile "Surge Stock Checker.txt"
 	set error " "
 	set minSupply 500
-	set maxSurge 1000
 	GetLinkedCore:
 		set l 0
 		LinkLoop:
@@ -18,6 +17,9 @@ Initialize:
 			jump GetLinkedCore always
 		Found:
 			set core link
+
+	sensor cap core @itemCapacity
+	op sub maxSurge cap 1
 
 	set error " "
 
