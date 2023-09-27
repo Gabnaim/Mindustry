@@ -1,7 +1,9 @@
 Initialize:
 	set status "INITIALIZE"
-	set unitType @poly
-	set maxUnits 4 # store upto 8
+	set unitType @horizon
+	set maxUnits 4 
+	set maxDistance 10
+	set releaseWaitTicks 120
 
 	GetSorter:
 		set sorter sorter1
@@ -10,6 +12,9 @@ Initialize:
 	GetId:
 		op shl procId @thisx 9
 		op add procId procId @thisy
+
+	op sub releaseX @thisx 2
+	op sub releaseY @thisy 5
 
 Preflag:
 	set totalFlagged 0
@@ -49,9 +54,19 @@ Preflag:
 	CountFree:
 		op add free free 1
 		jump NextCount notEqual status "FLAG"
-		ucontrol flag procId
-		op sub neededFlags neededFlags 1
-		jump FlagDone equal neededFlags 0
+
+		CheckDistance:
+			sensor x @unit @x
+			sensor y @unit @y
+			op sub xDiff @thisx x
+			op sub yDiff @thisy y
+			op len distance xDiff yDiff
+			jump NextCount greaterThan distance maxDistance
+
+		Flag:
+			ucontrol flag procId
+			op sub neededFlags neededFlags 1
+			jump FlagDone equal neededFlags 0
 	
 	NextCount:
 		op add i i 1
@@ -178,7 +193,6 @@ Stopping:
 			jump StopLoop notEqual flag procId
 			ucontrol stop
 			jump StopLoop equal status "STOPPING"
-			ucontrol itemDrop @air 100
 			ucontrol flag 0
 			ucontrol boost true
 			ucontrol move releaseX releaseY
