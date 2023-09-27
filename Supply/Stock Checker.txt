@@ -6,8 +6,8 @@ Initialize:
 	
 	GetLimits:
 		set sourceMin 0
-		set sourceMax 12999 # set one less than max capacity
-							# to disable when it hits max
+		set sourceMax 12999 
+		set autoMax true
 		jump GetLimits greaterThan sourceMin sourceMax
 
 	GetLinks:
@@ -22,6 +22,10 @@ Initialize:
 	LocateCore:
 		ulocate building core false 0 coreX coreY coreFound core
 		set source core
+
+		sensor cap core @itemCapacity
+		jump Start equal autoMax false
+		op sub sourceMax cap 1 
 
 Start:
 	sensor stock source material
