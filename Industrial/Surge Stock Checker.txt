@@ -42,7 +42,7 @@ Start:
 	Close:
 		set isOpen false
 		
-	LinkLoop:
+	SetLinks:
 		set i 0
 		LoopThroughLinks:
 			getlink link i
