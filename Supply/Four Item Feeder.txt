@@ -2,22 +2,24 @@ set name "Four Item Feeder"
 
 Initialize:
 	set unitType @mega
-	op shl procId @thisx 10
-	op add procId procId @thisy
 	set sourceMin 500
-	set dropRange 7
 
 	set items 4
+	set stockAtCap true
 	set material1 @copper
-	set stockLevel1 1000
+	set stockLevel1 900
 	set material2 @lead
 	set stockLevel2 1000
 	set material3 @titanium
-	set stockLevel3 1000
+	set stockLevel3 700
 	set material4 @silicon
-	set stockLevel4 1000
+	set stockLevel4 900
 
 	set returnMaterial @surge-alloy
+
+	set dropRange 7
+	op shl procId @thisx 9
+	op add procId procId @thisy
 
 	GetDropTarget:
 		set l 0
@@ -38,15 +40,89 @@ Initialize:
 		sensor dropY dropTarget @y 
 		sensor dropCap dropTarget @itemCapacity
 
-	GetStartInfo:
+FindMule:
+	set firstUnit null
+	set free 0
+	set minDistance 1000
+	set status "FIND"
+
+	FindLoop:
 		ubind unitType
-		jump GetStartInfo equal @unit null
+		jump NotFound equal @unit null
+		sensor unitDead @unit @dead
+		jump FindLoop equal unitDead true
+	
+		jump FinishCount equal firstUnit @unit
+		jump FlagProcess notEqual firstUnit null
+		set firstUnit @unit
+	
+	FlagProcess:
+		sensor flag @unit @flag
+		jump UseMule equal flag procId
+		jump FindLoop notEqual flag 0
+	
+	CheckDistance:
+		ucontrol stop
+		sensor x @unit @x
+		sensor y @unit @y
+		op sub xDiff @thisx x
+		op sub yDiff @thisy y
+		op len distance xDiff yDiff
+		jump CountFree equal status "FIND"
+		GetClosest:
+			op sub diff distance minDistance
+			op abs diff diff
+			jump FlagMule lessThan diff 3
+			jump FindLoop always
+		
+		CountFree:
+			op add free free 1
+			jump FindLoop greaterThan distance minDistance
+			set minDistance distance
+			jump FindLoop always
+	
+	FinishCount:
+		jump NotFound equal free 0
+		set error " "
+		set firstUnit null
+		jump FindMule equal status "FLAG"
+		set status "FLAG"
+		jump FindLoop always
+	
+	NotFound:
+		set error "No free units"
+		jump FindMule always
+	
+	FlagMule:
+		ucontrol flag procId
+	
+	UseMule:
+		set mule @unit
+	
+	FindDone:
+		set error " "
+
+	GetStartInfo:
 		sensor cap @unit @itemCapacity
 		sensor range @unit @range
 		ulocate building core false 0 sourceX sourceY sourceFound source
 		jump GetStartInfo equal sourceFound false
 
+	set releaseStart @time
+
 Start:
+	op sub releaseWait @time releaseStart
+	jump Release greaterThanEq releaseWait releaseWaitMs
+
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump FindMule equal muleDead true
+
+	sensor muleFlag mule @flag
+	jump SelectMaterial equal muleFlag procId
+	jump FindMule notEqual muleFlag 0
+	set @unit mule
 
 SelectMaterial:
 	sensor carried mule @totalItems
@@ -91,37 +167,7 @@ SelectMaterial:
 NothingToDo:
 	jump Start always
 
-###########################################
 Feed:
-###########################################
-CheckMule:
-	jump FindMule equal mule null
-	sensor muleDead mule @dead
-	jump FindMule equal muleDead true
-
-	sensor muleFlag mule @flag
-	jump StartRun equal muleFlag procId
-	jump FindMule notEqual muleFlag 0
-	set @unit mule
-	ucontrol flag procId
-	jump StartRun always
-	
-FindMule:
-	ubind unitType
-	jump Start equal @unit null
-	sensor unitDead @unit @dead
-	jump FindMule equal unitDead true
-
-	sensor unitFlag @unit @flag
-	jump UseMule equal unitFlag procId
-
-FlagMule:
-	jump FindMule notEqual unitFlag 0
-	ucontrol flag procId
-
-UseMule:
-	set mule @unit
-	
 StartRun:
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
@@ -138,6 +184,7 @@ DropToSource:
 	jump Start always
 
 	SourceDrop:
+		set releaseStart @time
 		set dropI 0
 		ucontrol boost false
 		sensor carried mule @totalItems
@@ -157,6 +204,7 @@ PickupFromSource:
 	jump Start always
 
 	SourcePickup:
+		set releaseStart @time
 		set pickupI 0
 		ucontrol boost false
 		SourcePickupLoop:
@@ -177,6 +225,7 @@ DropToTarget:
 	jump Start always
 
 	TargetDrop:
+		set releaseStart @time
 		set dropI 0
 		ucontrol boost false
 		sensor carried mule @totalItems
@@ -195,6 +244,7 @@ Return:
 
 PickupFromTarget:
 	TargetPickup:
+		set releaseStart @time
 		set pickupI 0
 		ucontrol boost false
 		TargetPickupLoop:
@@ -206,6 +256,16 @@ PickupFromTarget:
 			jump TargetPickupLoop lessThan pickupI 100 
 
 FinishRun:
+	jump Start always
+
+Release:
+	set status "RELEASE"
+	ucontrol stop
+	ucontrol flag 0
+	ucontrol boost false
+	ucontrol unbind
+	set mule null
+	set status "IDLE"
 	jump Start always
 
 ArrayGet:
