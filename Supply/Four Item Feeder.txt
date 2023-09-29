@@ -35,7 +35,7 @@ Initialize:
 	
 	GetDropCoords:
 		sensor dropX dropTarget @x
-		sensor dropY dropTarget @y
+		sensor dropY dropTarget @y 
 		sensor dropCap dropTarget @itemCapacity
 
 	GetStartInfo:
@@ -126,83 +126,84 @@ StartRun:
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
 
-	jump DumpItems notEqual material carriedMat
-	jump Pickup equal carried 0
-	jump DropItems always
+	jump DropToSource notEqual material carriedMat
+	jump PickupFromSource equal carried 0
+	jump DropToTarget always
 
-DumpItems:
+DropToSource:
 	ucontrol within sourceX sourceY dropRange isNearSource
-	jump DumpLoop equal isNearSource true
+	jump SourceDrop equal isNearSource true
 	ucontrol approach sourceX sourceY dropRange
 	ucontrol boost true
 	jump Start always
 
-	DumpLoop:
+	SourceDrop:
 		set dumpI 0
 		ucontrol boost false
 		sensor carried mule @totalItems
-		DumpUntilEmpty:
+		SourceDropLoop:
 			ucontrol itemDrop source carried
 			sensor carried @unit @totalItems
-			jump Pickup equal carried 0
+			jump PickupFromSource equal carried 0
 			op add dumpI dumpI 1
-			jump DumpUntilEmpty lessThan dumpI 100
+			jump SourceDropLoop lessThan dumpI 100
 		jump Start always
 
-Pickup:
+PickupFromSource:
 	ucontrol within sourceX sourceY dropRange isNearSource
-	jump PickupLoop equal isNearSource true
+	jump SourcePickup equal isNearSource true
 	ucontrol approach sourceX sourceY dropRange
 	ucontrol boost true
 	jump Start always
 
-	PickupLoop:
+	SourcePickup:
 		set pickupI 0
 		ucontrol boost false
-		LoopUntilFull:
+		SourcePickupLoop:
 			ucontrol itemTake source material cap
 			sensor carried mule @totalItems
-			jump DropItems equal carried cap
+			jump DropToTarget equal carried cap
 
 			op add pickupI pickupI 1
-			jump LoopUntilFull lessThan pickupI 100 
+			jump SourcePickupLoop lessThan pickupI 100 
 			# make it work when the core was upgraded
 			ulocate building core false 0 sourceX sourceY sourceFound source
 
-DropItems:
+DropToTarget:
 	ucontrol within dropX dropY dropRange isNearDrop
-	jump DropLoop equal isNearDrop true
+	jump TargetDrop equal isNearDrop true
 	ucontrol boost true
 	ucontrol approach dropX dropY dropRange
 	jump Start always
 
-	DropLoop:
+	TargetDrop:
 		set dropI 0
 		ucontrol boost false
 		sensor carried mule @totalItems
-		LoopUntilEmpty:
+		TargetDropLoop:
 			ucontrol itemDrop dropTarget carried
 			sensor carried @unit @totalItems
 			jump Return equal carried 0
 			op add dropI dropI 1
-			jump LoopUntilEmpty lessThan dropI 100 
+			jump TargetDropLoop lessThan dropI 100 
 
 Return:
-	jump Pickup equal returnMaterial null
+	jump PickupFromSource equal returnMaterial null
 	sensor returnStock dropTarget returnMaterial
-	jump Pickup equal returnStock null
+	jump PickupFromSource equal returnStock null
 	op min returnAmount returnStock cap
 
-	ReturnPickupLoop:
-		set returnI 0
+PickupFromTarget:
+	TargetPickup:
+		set pickupI 0
 		ucontrol boost false
-		ReturnLoop:
+		TargetPickupLoop:
 			ucontrol itemTake dropTarget returnMaterial returnAmount
 			sensor carried mule @totalItems
 			jump Start equal carried returnAmount
 
-			op add returnI returnI 1
-			jump ReturnLoop lessThan returnI 100 
+			op add pickupI pickupI 1
+			jump TargetPickupLoop lessThan pickupI 100 
 
 FinishRun:
 	jump Start always
