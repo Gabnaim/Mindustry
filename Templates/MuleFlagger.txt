@@ -4,21 +4,10 @@ Initialize:
 	set status "INITIALIZE"
 	jump Initialize equal switch null
 	set releaseWaitMs 5000
+	set error " "
 
 	op shl procId @thisx 9
 	op add procId procId @thisy
-
-CheckMule:
-	jump FindMule equal mule null
-	sensor muleDead mule @dead
-	jump FindMule equal muleDead true
-
-	sensor muleFlag mule @flag
-	jump Start equal muleFlag procId
-	jump FindMule notEqual muleFlag 0
-	set @unit mule
-	ucontrol flag procId
-	jump Start always
 
 FindMule:
 	set firstUnit null
@@ -26,59 +15,77 @@ FindMule:
 	set minDistance 1000
 	set status "FIND"
 
-FindLoop:
-	ubind unitType
-	jump Start equal @unit null
-	sensor unitDead @unit @dead
-	jump FindLoop equal unitDead true
-
-	jump FinishCount equal firstUnit @unit
-	jump FlagProcess notEqual firstUnit null
-	set firstUnit @unit
-
-FlagProcess:
-	sensor flag @unit @flag
-	jump UseMule equal flag procId
-	jump FindLoop notEqual flag 0
-
-CheckDistance:
-	ucontrol stop
-	sensor x @unit @x
-	sensor y @unit @y
-	op sub xDiff @thisx x
-	op sub yDiff @thisy y
-	op len distance xDiff yDiff
-	jump CountFree equal status "FIND"
-	GetClosest:
-		op sub diff distance minDistance
-		op abs diff diff
-		jump FlagMule lessThan diff 3
+	FindLoop:
+		ubind unitType
+		jump NotFound equal @unit null
+		sensor unitDead @unit @dead
+		jump FindLoop equal unitDead true
+	
+		jump FinishCount equal firstUnit @unit
+		jump FlagProcess notEqual firstUnit null
+		set firstUnit @unit
+	
+	FlagProcess:
+		sensor flag @unit @flag
+		jump UseMule equal flag procId
+		jump FindLoop notEqual flag 0
+	
+	CheckDistance:
+		ucontrol stop
+		sensor x @unit @x
+		sensor y @unit @y
+		op sub xDiff @thisx x
+		op sub yDiff @thisy y
+		op len distance xDiff yDiff
+		jump CountFree equal status "FIND"
+		GetClosest:
+			op sub diff distance minDistance
+			op abs diff diff
+			jump FlagMule lessThan diff 3
+			jump FindLoop always
+		
+		CountFree:
+			op add free free 1
+			jump FindLoop greaterThan distance minDistance
+			set minDistance distance
+			jump FindLoop always
+	
+	FinishCount:
+		jump NotFound equal free 0
+		set error " "
+		set firstUnit null
+		jump FindMule equal status "FLAG"
+		set status "FLAG"
 		jump FindLoop always
 	
-	CountFree:
-		op add free free 1
-		jump FindLoop greaterThan distance minDistance
-		set minDistance distance
-		jump FindLoop always
-
-FinishCount:
-	jump CheckMule equal free 0
-	set firstUnit null
-	jump CheckMule equal status "FLAG"
-	set status "FLAG"
-	jump FindLoop always
-
-FlagMule:
-	ucontrol flag procId
-
-UseMule:
-	set mule @unit
+	NotFound:
+		set error "No free units"
+		jump FindMule always
+	
+	FlagMule:
+		ucontrol flag procId
+	
+	UseMule:
+		set mule @unit
+	
+	FindDone:
+		set error " "
 	
 Start:
 CheckActive:
 	sensor active switch @enabled
 	jump ActiveChanged notEqual active lastActive
 	jump Reset equal active false
+
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump FindMule equal muleDead true
+
+	sensor muleFlag mule @flag
+	jump DoStuff equal muleFlag procId
+	jump FindMule notEqual muleFlag 0
+	set @unit mule
 
 DoStuff:
 	set status "PROCESSING"
