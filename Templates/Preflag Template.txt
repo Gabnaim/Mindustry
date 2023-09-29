@@ -1,9 +1,9 @@
 Initialize:
 	set status "INITIALIZE"
-	set unitType @horizon
+	set unitType @mega
 	set maxUnits 4 
-	set maxDistance 10
-	set releaseWaitTicks 120
+	set maxDistance 20
+	set releaseWaitSecs 30
 
 	GetSorter:
 		set sorter sorter1
@@ -15,6 +15,7 @@ Initialize:
 
 	op sub releaseX @thisx 2
 	op sub releaseY @thisy 5
+	op mul releaseWaitMs releaseWaitSecs 1000
 
 Preflag:
 	set totalFlagged 0
@@ -101,6 +102,7 @@ Preflag:
 				jump PreflagLoop always
 
 	FlagDone:
+		jump Preflag equal totalFlagged 0
 
 	GetStartUnit:
 		# get an already flagged unit
@@ -161,20 +163,20 @@ FinishGroup:
 
 ActiveChanged:
 	set lastActive active
-	set releaseStart @tick
+	set releaseStart @time
 	jump Reset equal active false
 	jump Initialize always
 
 Reset:
 	jump Start equal status "IDLE"
 	jump Start equal status "ERROR"
-	op sub releaseWait @tick releaseStart
-	jump Start lessThan releaseWait releaseWaitTicks
+	op sub releaseWait @time releaseStart
+	jump Start lessThan releaseWait releaseWaitMs
 	jump StopAll notEqual status "RELEASING"
 
 ReleaseAll:
-	op sub releaseWait @tick releaseStart
-	jump Start lessThan releaseWait releaseWaitTicks
+	op sub releaseWait @time releaseStart
+	jump Start lessThan releaseWait releaseWaitMs
 	jump Stopping always
 
 StopAll:
