@@ -16,10 +16,14 @@ Initialize:
 	set stockLevel4 900
 
 	set returnMaterial @surge-alloy
+	set error " "
 
 	set dropRange 7
+	set releaseWaitSecs 5
+
 	op shl procId @thisx 9
 	op add procId procId @thisy
+	op mul releaseWaitMs releaseWaitSecs 1000
 
 	GetDropTarget:
 		set l 0
@@ -41,6 +45,7 @@ Initialize:
 		sensor dropCap dropTarget @itemCapacity
 
 FindMule:
+	set releaseStart @time
 	set firstUnit null
 	set free 0
 	set minDistance 1000
@@ -109,8 +114,10 @@ FindMule:
 		jump GetStartInfo equal sourceFound false
 
 	set releaseStart @time
+	set error " "
 
 Start:
+	set status "CHECKMATERIALS"
 	op sub releaseWait @time releaseStart
 	jump Release greaterThanEq releaseWait releaseWaitMs
 
@@ -168,6 +175,7 @@ NothingToDo:
 	jump Start always
 
 Feed:
+	set status "TRANSPORTING"
 StartRun:
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
@@ -259,6 +267,7 @@ FinishRun:
 	jump Start always
 
 Release:
+	jump Start equal status "IDLE"
 	set status "RELEASE"
 	ucontrol stop
 	ucontrol flag 0
