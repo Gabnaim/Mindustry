@@ -3,11 +3,12 @@ Initialize:
 	set switch switch1
 	set status "INITIALIZE"
 	jump Initialize equal switch null
-	set releaseWaitMs 5000
+	set releaseWaitSecs 5
 	set error " "
 
 	op shl procId @thisx 9
 	op add procId procId @thisy
+	op mul releaseWaitMs releaseWaitSecs 1000
 
 FindMule:
 	set firstUnit null
@@ -118,7 +119,9 @@ Reset:
 
 Release:
 	set status "RELEASE"
+	ucontrol stop
 	ucontrol flag 0
+	ucontrol boost false
 	ucontrol unbind
 	set mule null
 	set status "IDLE"
