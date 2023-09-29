@@ -138,15 +138,15 @@ DropToSource:
 	jump Start always
 
 	SourceDrop:
-		set dumpI 0
+		set dropI 0
 		ucontrol boost false
 		sensor carried mule @totalItems
 		SourceDropLoop:
 			ucontrol itemDrop source carried
 			sensor carried @unit @totalItems
 			jump PickupFromSource equal carried 0
-			op add dumpI dumpI 1
-			jump SourceDropLoop lessThan dumpI 100
+			op add dropI dropI 1
+			jump SourceDropLoop lessThan dropI 100
 		jump Start always
 
 PickupFromSource:
