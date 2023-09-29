@@ -8,14 +8,16 @@ Initialize:
 	set dropRange 7
 
 	set items 4
-	set material1 @silicon
-	set stockLevel1 2000
-	set material2 @plastanium
-	set stockLevel2 1200
-	set material3 @surge-alloy
+	set material1 @copper
+	set stockLevel1 1000
+	set material2 @lead
+	set stockLevel2 1000
+	set material3 @titanium
 	set stockLevel3 1000
-	set material4 @phase-fabric
-	set stockLevel4 700
+	set material4 @silicon
+	set stockLevel4 1000
+
+	set returnMaterial @surge-alloy
 
 	GetDropTarget:
 		set l 0
@@ -69,14 +71,8 @@ SelectMaterial:
 		sensor sourceLevel source material
 		jump NextMaterial lessThanEq sourceLevel sourceMin
 
-		op sub available sourceLevel sourceMin
-		op min amount needed cap
-		op min amount amount available
 		op div stockRate dropLevel stockLevel
 		jump NextMaterial greaterThanEq stockRate minRate
-		
-		op add arrayReturn @counter 1
-		jump ArraySet always 
 	
 		set minIndex i
 		set minRate stockRate
@@ -187,55 +183,53 @@ DropItems:
 		LoopUntilEmpty:
 			ucontrol itemDrop dropTarget carried
 			sensor carried @unit @totalItems
-			jump Pickup equal carried 0
+			jump Return equal carried 0
 			op add dropI dropI 1
 			jump LoopUntilEmpty lessThan dropI 100 
+
+Return:
+	jump Pickup equal returnMaterial null
+	sensor returnStock dropTarget returnMaterial
+	jump Pickup equal returnStock null
+	op min returnAmount returnStock cap
+
+	ReturnPickupLoop:
+		set returnI 0
+		ucontrol boost false
+		ReturnLoop:
+			ucontrol itemTake dropTarget returnMaterial returnAmount
+			sensor carried mule @totalItems
+			jump Start equal carried returnAmount
+
+			op add returnI returnI 1
+			jump ReturnLoop lessThan returnI 100 
 
 FinishRun:
 	jump Start always
 
-ArraySet:
-	op mul offset i 2
-	op add offset offset 1
-	op add arrayLoc @counter offset
-	set @counter arrayLoc
-
-	set amount1 amount
-	set @counter arrayReturn
-
-	set amount2 amount
-	set @counter arrayReturn
-
-	set amount3 amount
-	set @counter arrayReturn
-
-	set amount4 amount
-	set @counter arrayReturn
-
 ArrayGet:
-	op mul offset i 4
+	op mul offset i 3
 	op add offset offset 1
 	op add arrayLoc @counter offset
 	set @counter arrayLoc
 
 	set material material1
 	set stockLevel stockLevel1
-	set amount amount1
 	set @counter arrayReturn
 
 	set material material2
 	set stockLevel stockLevel2
-	set amount amount2
 	set @counter arrayReturn
 
 	set material material3
 	set stockLevel stockLevel3
-	set amount amount3
 	set @counter arrayReturn
 
 	set material material4
 	set stockLevel stockLevel4
-	set amount amount4
 	set @counter arrayReturn
+
+
+
 
 	
