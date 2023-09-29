@@ -1,0 +1,121 @@
+Initialize:
+	set unitType @flare
+	set switch switch1
+	set status "INITIALIZE"
+	jump Initialize equal switch null
+	set releaseWaitMs 5000
+
+	op shl procId @thisx 9
+	op add procId procId @thisy
+
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump FindMule equal muleDead true
+
+	sensor muleFlag mule @flag
+	jump Start equal muleFlag procId
+	jump FindMule notEqual muleFlag 0
+	set @unit mule
+	ucontrol flag procId
+	jump Start always
+
+FindMule:
+	set firstUnit null
+	set free 0
+	set minDistance 1000
+	set status "FIND"
+
+FindLoop:
+	ubind unitType
+	jump Start equal @unit null
+	sensor unitDead @unit @dead
+	jump FindLoop equal unitDead true
+
+	jump FinishCount equal firstUnit @unit
+	jump FlagProcess notEqual firstUnit null
+	set firstUnit @unit
+
+FlagProcess:
+	sensor flag @unit @flag
+	jump UseMule equal flag procId
+	jump FindLoop notEqual flag 0
+
+CheckDistance:
+	ucontrol stop
+	sensor x @unit @x
+	sensor y @unit @y
+	op sub xDiff @thisx x
+	op sub yDiff @thisy y
+	op len distance xDiff yDiff
+	jump CountFree equal status "FIND"
+	GetClosest:
+		op sub diff distance minDistance
+		op abs diff diff
+		jump FlagMule lessThan diff 3
+		jump FindLoop always
+	
+	CountFree:
+		op add free free 1
+		jump FindLoop greaterThan distance minDistance
+		set minDistance distance
+		jump FindLoop always
+
+FinishCount:
+	jump CheckMule equal free 0
+	set firstUnit null
+	jump CheckMule equal status "FLAG"
+	set status "FLAG"
+	jump FindLoop always
+
+FlagMule:
+	ucontrol flag procId
+
+UseMule:
+	set mule @unit
+	
+Start:
+CheckActive:
+	sensor active switch @enabled
+	jump ActiveChanged notEqual active lastActive
+	jump Reset equal active false
+
+DoStuff:
+	set status "PROCESSING"
+	ucontrol within @thisx @thisy 10 isNear
+	jump Move equal isNear true
+	ucontrol approach @thisx @thisy 5
+	jump Next always
+
+	Move:
+		sensor x @unit @x
+		sensor y @unit @y
+		op add moveX x 12
+		op add moveY y 12
+		ucontrol move moveX moveY
+
+Next:
+	jump Start always
+
+ActiveChanged:
+	set lastActive active
+	set releaseStart @time
+	jump Initialize equal active true
+	ucontrol stop 
+	set status "RELEASEWAIT"
+
+Reset:
+	jump Start equal status "IDLE"
+	op sub releaseWait @time releaseStart
+	jump Start lessThan releaseWait releaseWaitMs
+
+Release:
+	set status "RELEASE"
+	ucontrol flag 0
+	ucontrol unbind
+	set mule null
+	set status "IDLE"
+	jump Start always
+
+
+
