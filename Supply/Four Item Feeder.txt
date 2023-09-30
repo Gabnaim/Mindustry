@@ -196,17 +196,18 @@ DropToSource:
 	jump Start always
 
 	SourceDrop:
-	set status "SOURCEDROP"
+		set status "SOURCEDROP"
 		set releaseStart @time
 		set dropI 0
-		ucontrol boost false
-		sensor carried mule @totalItems
 		SourceDropLoop:
-			ucontrol itemDrop source carried
+			ucontrol itemDrop source cap
 			sensor carried @unit @totalItems
 			jump PickupFromSource equal carried 0
 			op add dropI dropI 1
 			jump SourceDropLoop lessThan dropI 100
+
+		# drop to air if source is full
+		ucontrol itemDrop @air cap
 		jump Start always
 
 PickupFromSource:
@@ -228,8 +229,8 @@ PickupFromSource:
 
 			op add pickupI pickupI 1
 			jump SourcePickupLoop lessThan pickupI 100 
-			# make it work when the core was upgraded
-			ulocate building core false 0 sourceX sourceY sourceFound source
+	# make it work when the core was upgraded
+	ulocate building core false 0 sourceX sourceY sourceFound source
 
 DropToTarget:
 	ucontrol within dropX dropY dropRange isNearDrop
