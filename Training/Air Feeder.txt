@@ -29,7 +29,83 @@ Initialize:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y 
 		sensor dropCap dropTarget @itemCapacity
+
+	GetStartInfo:
+		ubind unitType
+		jump ReadInfo notEqual @unit null
+		NoUnits:
+			set error "No units"
+			jump GetStartInfo always
 	
+		ReadInfo:
+			sensor cap @unit @itemCapacity
+			sensor range @unit @range
+			ulocate building core false 0 sourceX sourceY sourceFound source
+			jump GetStartInfo equal sourceFound false
+
+	set releaseStart @time
+	set error " "
+
+Start:
+	op sub releaseWait @time releaseStart
+	jump Release greaterThanEq releaseWait releaseWaitMs
+
+SelectMaterial:
+	sensor buildType dropTarget @config
+	jump CheckFlare equal buildType @flare
+	jump CheckMono equal buildType @mono
+	jump Start always
+
+CheckFlare:
+	sensor facSil dropTarget @silicon
+	set stockLevel 30
+	jump CheckSilicon always
+
+CheckMono:	
+	sensor facSil dropTarget @silicon
+	sensor facLead dropTarget @lead
+	op div silLevel facSil 60
+	op div leadLevel facLead 30
+	set stockLevel 30
+	jump CheckLead lessThan leadLevel silLevel
+	set stockLevel 60
+	
+CheckSilicon:
+	op sub needed stockLevel facSil
+	set material @silicon
+	jump CheckStock always
+	
+CheckLead:
+	op sub needed stockLevel facLead
+	set material @lead
+
+CheckStock:
+	jump NothingToDo equal needed 0
+	sensor sourceStock source material
+	op sub available sourceStock sourceMin
+	jump NotEnough lessThanEq available 0
+	jump Feed greaterThanEq available 0
+
+NothingToDo:
+	set material null
+	jump Start always
+
+NotEnough:
+	set error "Not enough stock"
+	jump Start always
+
+Feed:
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump FindMule equal muleDead true
+
+	sensor muleFlag mule @flag
+	jump StartRun equal muleFlag procId
+	jump FindMule notEqual muleFlag 0
+	set @unit mule
+	jump StartRun always
+
 FindMule:
 	set releaseStart @time
 	set firstUnit null
@@ -82,7 +158,7 @@ FindMule:
 	
 	NotFound:
 		set error "No free units"
-		jump FindMule always
+		jump Start always
 	
 	FlagMule:
 		ucontrol flag procId
@@ -94,73 +170,6 @@ FindMule:
 	FindDone:
 		set error " "
 
-	GetStartInfo:
-		sensor cap @unit @itemCapacity
-		sensor range @unit @range
-		ulocate building core false 0 sourceX sourceY sourceFound source
-		jump GetStartInfo equal sourceFound false
-
-	set releaseStart @time
-	set error " "
-
-Start:
-	op sub releaseWait @time releaseStart
-	jump Release greaterThanEq releaseWait releaseWaitMs
-
-CheckMule:
-	jump FindMule equal mule null
-	sensor muleDead mule @dead
-	jump FindMule equal muleDead true
-
-	sensor muleFlag mule @flag
-	jump SelectMaterial equal muleFlag procId
-	jump FindMule notEqual muleFlag 0
-	set @unit mule
-
-SelectMaterial:
-	set status "SELECTMATERIAL"
-	sensor buildType dropTarget @config
-	jump CheckFlare equal buildType @flare
-	jump CheckMono equal buildType @mono
-	jump Start always
-
-CheckFlare:
-	sensor facSil dropTarget @silicon
-	set stockLevel 30
-	jump CheckSilicon always
-
-CheckMono:	
-	sensor facSil dropTarget @silicon
-	sensor facLead dropTarget @lead
-	op div silLevel facSil 60
-	op div leadLevel facLead 30
-	set stockLevel 30
-	jump CheckLead lessThan leadLevel silLevel
-	set stockLevel 60
-	
-CheckSilicon:
-	op sub needed stockLevel facSil
-	set material @silicon
-	jump CheckStock always
-	
-CheckLead:
-	op sub needed stockLevel facLead
-	set material @lead
-
-CheckStock:
-	jump NothingToDo equal needed 0
-	sensor sourceStock source material
-	op sub available sourceStock sourceMin
-	jump NothingToDo lessThanEq available 0
-	op min amount available needed
-	jump Feed greaterThan amount 0	
-
-NothingToDo:
-	set amount 0
-	set material null
-	jump Start always
-
-Feed:
 StartRun:
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
@@ -258,7 +267,6 @@ FinishRun:
 	jump Start always
 
 Release:
-	set releaseStart @time
 	jump Start equal status "IDLE"
 	set status "RELEASE"
 	ucontrol stop
