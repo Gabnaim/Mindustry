@@ -1,11 +1,9 @@
 set name "T5 Feeder"
 
 Initialize:
+	set status "INITIALIZE"
 	set unitType @mega
-	op shl procId @thisx 10
-	op add procId procId @thisy
 	set sourceMin 500
-	set dropRange 7
 
 	set items 4
 	set material1 @silicon
@@ -17,13 +15,22 @@ Initialize:
 	set material4 @phase-fabric
 	set stockLevel4 700
 
+	set returnMaterial null
+	set error " "
+
+	set dropRange 7
+	set releaseWaitSecs 30
+
+	op shl procId @thisx 9
+	op add procId procId @thisy
+	op mul releaseWaitMs releaseWaitSecs 1000
+
 	GetDropTarget:
 		set l 0
 		LinkLoop:
 			getlink link l
 			sensor type link @type
-			sensor buildingCap link @itemCapacity
-			jump Found greaterThanEq buildingCap 10
+			jump Found equal type @tetrative-reconstructor
 		NextLink:
 			op add l l 1
 			jump LinkLoop lessThan l @links
@@ -33,20 +40,98 @@ Initialize:
 	
 	GetDropCoords:
 		sensor dropX dropTarget @x
-		sensor dropY dropTarget @y
+		sensor dropY dropTarget @y 
 		sensor dropCap dropTarget @itemCapacity
 
-	GetStartInfo:
+FindMule:
+	set releaseStart @time
+	set firstUnit null
+	set free 0
+	set minDistance 1000
+	set status "FIND"
+
+	FindLoop:
 		ubind unitType
-		jump GetStartInfo equal @unit null
+		jump NotFound equal @unit null
+		sensor unitDead @unit @dead
+		jump FindLoop equal unitDead true
+	
+		jump FinishCount equal firstUnit @unit
+		jump FlagProcess notEqual firstUnit null
+		set firstUnit @unit
+	
+	FlagProcess:
+		sensor flag @unit @flag
+		jump UseMule equal flag procId
+		jump FindLoop notEqual flag 0
+	
+	CheckDistance:
+		ucontrol stop
+		sensor x @unit @x
+		sensor y @unit @y
+		op sub xDiff @thisx x
+		op sub yDiff @thisy y
+		op len distance xDiff yDiff
+		jump CountFree equal status "FIND"
+		GetClosest:
+			op sub diff distance minDistance
+			op abs diff diff
+			jump FlagMule lessThan diff 3
+			jump FindLoop always
+		
+		CountFree:
+			op add free free 1
+			jump FindLoop greaterThan distance minDistance
+			set minDistance distance
+			jump FindLoop always
+	
+	FinishCount:
+		jump NotFound equal free 0
+		set error " "
+		set firstUnit null
+		jump FindMule equal status "FLAG"
+		set status "FLAG"
+		jump FindLoop always
+	
+	NotFound:
+		set error "No free units"
+		jump FindMule always
+	
+	FlagMule:
+		ucontrol flag procId
+	
+	UseMule:
+		set mule @unit
+		ucontrol boost true
+	
+	FindDone:
+		set error " "
+
+	GetStartInfo:
 		sensor cap @unit @itemCapacity
 		sensor range @unit @range
 		ulocate building core false 0 sourceX sourceY sourceFound source
 		jump GetStartInfo equal sourceFound false
 
+	set releaseStart @time
+	set error " "
+
 Start:
+	op sub releaseWait @time releaseStart
+	jump Release greaterThanEq releaseWait releaseWaitMs
+
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump FindMule equal muleDead true
+
+	sensor muleFlag mule @flag
+	jump SelectMaterial equal muleFlag procId
+	jump FindMule notEqual muleFlag 0
+	set @unit mule
 
 SelectMaterial:
+	set status "SELECTMATERIAL"
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
 
@@ -69,14 +154,8 @@ SelectMaterial:
 		sensor sourceLevel source material
 		jump NextMaterial lessThanEq sourceLevel sourceMin
 
-		op sub available sourceLevel sourceMin
-		op min amount needed cap
-		op min amount amount available
 		op div stockRate dropLevel stockLevel
 		jump NextMaterial greaterThanEq stockRate minRate
-		
-		op add arrayReturn @counter 1
-		jump ArraySet always 
 	
 		set minIndex i
 		set minRate stockRate
@@ -95,147 +174,137 @@ SelectMaterial:
 NothingToDo:
 	jump Start always
 
-###########################################
 Feed:
-###########################################
-CheckMule:
-	jump FindMule equal mule null
-	sensor muleDead mule @dead
-	jump FindMule equal muleDead true
-
-	sensor muleFlag mule @flag
-	jump StartRun equal muleFlag procId
-	jump FindMule notEqual muleFlag 0
-	set @unit mule
-	ucontrol flag procId
-	jump StartRun always
-	
-FindMule:
-	ubind unitType
-	jump Start equal @unit null
-	sensor unitDead @unit @dead
-	jump FindMule equal unitDead true
-
-	sensor unitFlag @unit @flag
-	jump UseMule equal unitFlag procId
-
-FlagMule:
-	jump FindMule notEqual unitFlag 0
-	ucontrol flag procId
-
-UseMule:
-	set mule @unit
-	
 StartRun:
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
 
-	jump DumpItems notEqual material carriedMat
-	jump Pickup equal carried 0
-	jump DropItems always
+	jump DropToSource notEqual material carriedMat
+	jump PickupFromSource equal status "SOURCEDROP"
+	jump PickupFromSource equal status "TOSOURCEPICKUP"
+	jump PickupFromSource equal carried 0
+	jump DropToTarget always
 
-DumpItems:
+DropToSource:
 	ucontrol within sourceX sourceY dropRange isNearSource
-	jump DumpLoop equal isNearSource true
-	ucontrol approach sourceX sourceY dropRange
+	jump SourceDrop equal isNearSource true
+	set status "TOSOURCEDROP"
 	ucontrol boost true
+	ucontrol approach sourceX sourceY dropRange
 	jump Start always
 
-	DumpLoop:
-		set dumpI 0
+	SourceDrop:
+	set status "SOURCEDROP"
+		set releaseStart @time
+		set dropI 0
 		ucontrol boost false
 		sensor carried mule @totalItems
-		DumpUntilEmpty:
+		SourceDropLoop:
 			ucontrol itemDrop source carried
 			sensor carried @unit @totalItems
-			jump Pickup equal carried 0
-			op add dumpI dumpI 1
-			jump DumpUntilEmpty lessThan dumpI 100
+			jump PickupFromSource equal carried 0
+			op add dropI dropI 1
+			jump SourceDropLoop lessThan dropI 100
 		jump Start always
 
-Pickup:
+PickupFromSource:
 	ucontrol within sourceX sourceY dropRange isNearSource
-	jump PickupLoop equal isNearSource true
-	ucontrol approach sourceX sourceY dropRange
+	jump SourcePickup equal isNearSource true
 	ucontrol boost true
+	ucontrol approach sourceX sourceY dropRange
+	set status "TOSOURCEPICKUP"
 	jump Start always
 
-	PickupLoop:
+	SourcePickup:
+		set status "SOURCEPICKUP"
+		set releaseStart @time
 		set pickupI 0
-		ucontrol boost false
-		LoopUntilFull:
+		SourcePickupLoop:
 			ucontrol itemTake source material cap
 			sensor carried mule @totalItems
-			jump DropItems equal carried cap
+			jump DropToTarget equal carried cap
 
 			op add pickupI pickupI 1
-			jump LoopUntilFull lessThan pickupI 100 
+			jump SourcePickupLoop lessThan pickupI 100 
 			# make it work when the core was upgraded
 			ulocate building core false 0 sourceX sourceY sourceFound source
 
-DropItems:
+DropToTarget:
 	ucontrol within dropX dropY dropRange isNearDrop
-	jump DropLoop equal isNearDrop true
+	jump TargetDrop equal isNearDrop true
+	set status "TOTARGETDROP"
 	ucontrol boost true
 	ucontrol approach dropX dropY dropRange
 	jump Start always
 
-	DropLoop:
+	TargetDrop:
+		set status "TARGETDROP"
+		set releaseStart @time
 		set dropI 0
-		ucontrol boost false
-		sensor carried mule @totalItems
-		LoopUntilEmpty:
-			ucontrol itemDrop dropTarget carried
+		TargetDropLoop:
+			ucontrol itemDrop dropTarget cap
 			sensor carried @unit @totalItems
-			jump Pickup equal carried 0
+			jump Return equal carried 0
 			op add dropI dropI 1
-			jump LoopUntilEmpty lessThan dropI 100 
+			jump TargetDropLoop lessThan dropI 100 
+
+Return:
+	jump Start equal returnMaterial null
+	sensor returnStock dropTarget returnMaterial
+	jump Start equal returnStock 0
+
+PickupFromTarget:
+	TargetPickup:
+		set status "TARGETPICKUP"
+		set pickupI 0
+		TargetPickupLoop:
+			ucontrol itemTake dropTarget returnMaterial cap
+			sensor carried mule @totalItems
+			jump Start equal carried cap
+			sensor returnStock dropTarget returnMaterial
+			jump Start equal returnStock 0
+
+			op add pickupI pickupI 1
+			jump TargetPickupLoop lessThan pickupI 100 
 
 FinishRun:
 	jump Start always
 
-ArraySet:
-	op mul offset i 2
-	op add offset offset 1
-	op add arrayLoc @counter offset
-	set @counter arrayLoc
-
-	set amount1 amount
-	set @counter arrayReturn
-
-	set amount2 amount
-	set @counter arrayReturn
-
-	set amount3 amount
-	set @counter arrayReturn
-
-	set amount4 amount
-	set @counter arrayReturn
+Release:
+	set releaseStart @time
+	jump Start equal status "IDLE"
+	set status "RELEASE"
+	ucontrol stop
+	ucontrol flag 0
+	ucontrol boost false
+	ucontrol unbind
+	set mule null
+	set status "IDLE"
+	jump Start always
 
 ArrayGet:
-	op mul offset i 4
+	op mul offset i 3
 	op add offset offset 1
 	op add arrayLoc @counter offset
 	set @counter arrayLoc
 
 	set material material1
 	set stockLevel stockLevel1
-	set amount amount1
 	set @counter arrayReturn
 
 	set material material2
 	set stockLevel stockLevel2
-	set amount amount2
 	set @counter arrayReturn
 
 	set material material3
 	set stockLevel stockLevel3
-	set amount amount3
 	set @counter arrayReturn
 
 	set material material4
 	set stockLevel stockLevel4
-	set amount amount4
 	set @counter arrayReturn
+
+
+
 
 	
