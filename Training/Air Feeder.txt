@@ -84,6 +84,9 @@ CheckStock:
 	sensor sourceStock source material
 	op sub available sourceStock sourceMin
 	jump NotEnough lessThanEq available 0
+	op min amount needed available
+	op min amount amount cap
+
 	jump Feed always
 
 NothingToDo:
@@ -217,9 +220,9 @@ PickupFromSource:
 		set releaseStart @time
 		set pickupI 0
 		SourcePickupLoop:
-			ucontrol itemTake source material cap
+			ucontrol itemTake source material amount
 			sensor carried mule @totalItems
-			jump DropToTarget equal carried cap
+			jump DropToTarget greaterThanEq carried amount
 
 			op add pickupI pickupI 1
 			jump SourcePickupLoop lessThan pickupI 100 

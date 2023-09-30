@@ -59,6 +59,7 @@ Initialize:
 
 	set releaseStart @time
 	set error " "
+	set status "START"
 
 Start:
 	op sub releaseWait @time releaseStart
@@ -71,6 +72,7 @@ SelectMaterial:
 	set i 0
 	set minIndex -1
 	set minRate 1
+	set cannotUse 0
 	SelectLoop:
 		op add arrayReturn @counter 1
 		jump ArrayGet always 
@@ -84,9 +86,6 @@ SelectMaterial:
 		# deliver it even if another stock is lower
 		jump Feed equal material carriedMat
 	
-		sensor sourceLevel source material
-		jump NextMaterial lessThanEq sourceLevel sourceMin
-
 		op div stockRate dropLevel stockLevel
 		jump NextMaterial greaterThanEq stockRate minRate
 	
@@ -99,16 +98,29 @@ SelectMaterial:
 
 	jump NothingToDo equal minIndex -1
 
-	set i minIndex
-	op add arrayReturn @counter 1
-	jump ArrayGet always 	
+	GetMinMaterial:
+		set i minIndex
+		op add arrayReturn @counter 1
+		jump ArrayGet always 	
+
+		sensor sourceLevel source material
+		op sub available sourceLevel sourceMin
+		jump NotEnoughStock lessThanEq available 0
+		op min amount needed available
+		op min amount amount cap
+
+	set error " "
+	set releaseStart @time
 	jump Feed always
 
-NothingToDo:
-	set material null
-	set needed 0
-	jump Start always
-
+	NothingToDo:
+		set material null
+		jump Start always
+	
+	NotEnoughStock:
+		set error "Not enough stock"
+		jump Start always
+	
 Feed:
 CheckMule:
 	jump FindMule equal mule null
@@ -231,9 +243,9 @@ PickupFromSource:
 		set releaseStart @time
 		set pickupI 0
 		SourcePickupLoop:
-			ucontrol itemTake source material cap
+			ucontrol itemTake source material amount
 			sensor carried mule @totalItems
-			jump DropToTarget equal carried cap
+			jump DropToTarget greaterThanEq carried amount
 
 			op add pickupI pickupI 1
 			jump SourcePickupLoop lessThan pickupI 100 
