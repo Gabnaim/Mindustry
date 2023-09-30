@@ -30,75 +30,18 @@ Initialize:
 		sensor dropY dropTarget @y 
 		sensor dropCap dropTarget @itemCapacity
 	
-	FindMule:
-	set releaseStart @time
-	set firstUnit null
-	set free 0
-	set minDistance 1000
-	set status "FIND"
-
-	FindLoop:
-		ubind unitType
-		jump NotFound equal @unit null
-		sensor unitDead @unit @dead
-		jump FindLoop equal unitDead true
-	
-		jump FinishCount equal firstUnit @unit
-		jump FlagProcess notEqual firstUnit null
-		set firstUnit @unit
-	
-	FlagProcess:
-		sensor flag @unit @flag
-		jump UseMule equal flag procId
-		jump FindLoop notEqual flag 0
-	
-	CheckDistance:
-		ucontrol stop
-		sensor x @unit @x
-		sensor y @unit @y
-		op sub xDiff @thisx x
-		op sub yDiff @thisy y
-		op len distance xDiff yDiff
-		jump CountFree equal status "FIND"
-		GetClosest:
-			op sub diff distance minDistance
-			op abs diff diff
-			jump FlagMule lessThan diff 3
-			jump FindLoop always
-		
-		CountFree:
-			op add free free 1
-			jump FindLoop greaterThan distance minDistance
-			set minDistance distance
-			jump FindLoop always
-	
-	FinishCount:
-		jump NotFound equal free 0
-		set error " "
-		set firstUnit null
-		jump FindMule equal status "FLAG"
-		set status "FLAG"
-		jump FindLoop always
-	
-	NotFound:
-		set error "No free units"
-		jump FindMule always
-	
-	FlagMule:
-		ucontrol flag procId
-	
-	UseMule:
-		set mule @unit
-		ucontrol boost true
-	
-	FindDone:
-		set error " "
-
 	GetStartInfo:
-		sensor cap @unit @itemCapacity
-		sensor range @unit @range
-		ulocate building core false 0 sourceX sourceY sourceFound source
-		jump GetStartInfo equal sourceFound false
+		ubind unitType
+		jump ReadInfo notEqual @unit null
+		NoUnits:
+			set error "No units"
+			jump GetStartInfo always
+	
+		ReadInfo:
+			sensor cap @unit @itemCapacity
+			sensor range @unit @range
+			ulocate building core false 0 sourceX sourceY sourceFound source
+			jump GetStartInfo equal sourceFound false
 
 	set releaseStart @time
 	set error " "
@@ -107,18 +50,7 @@ Start:
 	op sub releaseWait @time releaseStart
 	jump Release greaterThanEq releaseWait releaseWaitMs
 
-CheckMule:
-	jump FindMule equal mule null
-	sensor muleDead mule @dead
-	jump FindMule equal muleDead true
-
-	sensor muleFlag mule @flag
-	jump SelectMaterial equal muleFlag procId
-	jump FindMule notEqual muleFlag 0
-	set @unit mule
-
 SelectMaterial:
-	set status "SELECTMATERIAL"
 	sensor buildType dropTarget @config
 	jump CheckDagger equal buildType @dagger
 	jump CheckCrawler equal buildType @crawler
@@ -178,19 +110,100 @@ CheckTitanium:
 	set material @titanium
 
 CheckStock:
-	jump NothingToDo equal needed 0
+	jump NothingToDo lessThanEq needed 0
 	sensor sourceStock source material
 	op sub available sourceStock sourceMin
-	jump NothingToDo lessThanEq available 0
-	op min amount available needed
-	jump Feed greaterThan amount 0	
+	jump NotEnough lessThanEq available 0
+	op min amount needed available
+	op min amount amount cap
+
+	jump Feed always
 
 NothingToDo:
-	set amount 0
 	set material null
+	set needed 0
+	jump Start always
+
+NotEnough:
+	set error "Not enough stock"
 	jump Start always
 
 Feed:
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump FindMule equal muleDead true
+
+	sensor muleFlag mule @flag
+	jump StartRun equal muleFlag procId
+	jump FindMule notEqual muleFlag 0
+	set @unit mule
+	jump StartRun always
+
+FindMule:
+	set releaseStart @time
+	set firstUnit null
+	set free 0
+	set minDistance 1000
+	set status "FIND"
+
+	FindLoop:
+		ubind unitType
+		jump NotFound equal @unit null
+		sensor unitDead @unit @dead
+		jump FindLoop equal unitDead true
+	
+		jump FinishCount equal firstUnit @unit
+		jump FlagProcess notEqual firstUnit null
+		set firstUnit @unit
+	
+	FlagProcess:
+		sensor flag @unit @flag
+		jump UseMule equal flag procId
+		jump FindLoop notEqual flag 0
+	
+	CheckDistance:
+		ucontrol stop
+		sensor x @unit @x
+		sensor y @unit @y
+		op sub xDiff @thisx x
+		op sub yDiff @thisy y
+		op len distance xDiff yDiff
+		jump CountFree equal status "FIND"
+		GetClosest:
+			op sub diff distance minDistance
+			op abs diff diff
+			jump FlagMule lessThan diff 3
+			jump FindLoop always
+		
+		CountFree:
+			op add free free 1
+			jump FindLoop greaterThan distance minDistance
+			set minDistance distance
+			jump FindLoop always
+	
+	FinishCount:
+		jump NotFound equal free 0
+		set error " "
+		set firstUnit null
+		jump FindMule equal status "FLAG"
+		set status "FLAG"
+		jump FindLoop always
+	
+	NotFound:
+		set error "No free units"
+		jump Start always
+	
+	FlagMule:
+		ucontrol flag procId
+	
+	UseMule:
+		set mule @unit
+		ucontrol boost true
+	
+	FindDone:
+		set error " "
+
 StartRun:
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
@@ -237,9 +250,9 @@ PickupFromSource:
 		set releaseStart @time
 		set pickupI 0
 		SourcePickupLoop:
-			ucontrol itemTake source material cap
+			ucontrol itemTake source material amount
 			sensor carried mule @totalItems
-			jump DropToTarget equal carried cap
+			jump DropToTarget greaterThanEq carried amount
 
 			op add pickupI pickupI 1
 			jump SourcePickupLoop lessThan pickupI 100 
@@ -289,12 +302,37 @@ FinishRun:
 
 Release:
 	set releaseStart @time
-	jump Start equal status "IDLE"
+	jump Start equal mule null
 	set status "RELEASE"
-	ucontrol stop
-	ucontrol flag 0
-	ucontrol boost false
-	ucontrol unbind
-	set mule null
-	set status "IDLE"
-	jump Start always
+	sensor carriedMat @unit @firstItem
+	jump ReleaseUnit equal carriedMat null
+
+	Dump:
+		ucontrol within sourceX sourceY dropRange isNearSource
+		jump SourceDump equal isNearSource true
+		ucontrol boost true
+		ucontrol approach sourceX sourceY dropRange
+		jump Dump always
+	
+		SourceDump:
+			set dropI 0
+			SourceDumpLoop:
+				ucontrol itemDrop source cap
+				sensor carried @unit @totalItems
+				jump ReleaseUnit equal carried 0
+				op add dropI dropI 1
+				jump SourceDumpLoop lessThan dropI 100
+	
+			# drop to air if source is full
+			ucontrol itemDrop @air cap
+	
+	ReleaseUnit:
+		ucontrol stop
+		ucontrol flag 0
+		ucontrol boost false
+		ucontrol unbind
+		set mule null
+		set status "IDLE"
+		set releaseStart @time
+		jump Start always
+
