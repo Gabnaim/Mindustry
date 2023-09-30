@@ -1,6 +1,7 @@
 set name "Four Item Feeder"
 
 Initialize:
+	set status "INITIALIZE"
 	set unitType @mega
 	set sourceMin 500
 
@@ -19,7 +20,7 @@ Initialize:
 	set error " "
 
 	set dropRange 7
-	set releaseWaitSecs 5
+	set releaseWaitSecs 30
 
 	op shl procId @thisx 9
 	op add procId procId @thisy
@@ -103,6 +104,7 @@ FindMule:
 	
 	UseMule:
 		set mule @unit
+		ucontrol boost true
 	
 	FindDone:
 		set error " "
@@ -117,7 +119,6 @@ FindMule:
 	set error " "
 
 Start:
-	set status "CHECKMATERIALS"
 	op sub releaseWait @time releaseStart
 	jump Release greaterThanEq releaseWait releaseWaitMs
 
@@ -132,6 +133,7 @@ CheckMule:
 	set @unit mule
 
 SelectMaterial:
+	set status "SELECTMATERIAL"
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
 
@@ -175,23 +177,26 @@ NothingToDo:
 	jump Start always
 
 Feed:
-	set status "TRANSPORTING"
 StartRun:
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
 
 	jump DropToSource notEqual material carriedMat
+	jump PickupFromSource equal status "SOURCEDROP"
+	jump PickupFromSource equal status "TOSOURCEPICKUP"
 	jump PickupFromSource equal carried 0
 	jump DropToTarget always
 
 DropToSource:
 	ucontrol within sourceX sourceY dropRange isNearSource
 	jump SourceDrop equal isNearSource true
-	ucontrol approach sourceX sourceY dropRange
+	set status "TOSOURCEDROP"
 	ucontrol boost true
+	ucontrol approach sourceX sourceY dropRange
 	jump Start always
 
 	SourceDrop:
+	set status "SOURCEDROP"
 		set releaseStart @time
 		set dropI 0
 		ucontrol boost false
@@ -207,14 +212,15 @@ DropToSource:
 PickupFromSource:
 	ucontrol within sourceX sourceY dropRange isNearSource
 	jump SourcePickup equal isNearSource true
-	ucontrol approach sourceX sourceY dropRange
 	ucontrol boost true
+	ucontrol approach sourceX sourceY dropRange
+	set status "TOSOURCEPICKUP"
 	jump Start always
 
 	SourcePickup:
+		set status "SOURCEPICKUP"
 		set releaseStart @time
 		set pickupI 0
-		ucontrol boost false
 		SourcePickupLoop:
 			ucontrol itemTake source material cap
 			sensor carried mule @totalItems
@@ -228,37 +234,37 @@ PickupFromSource:
 DropToTarget:
 	ucontrol within dropX dropY dropRange isNearDrop
 	jump TargetDrop equal isNearDrop true
+	set status "TOTARGETDROP"
 	ucontrol boost true
 	ucontrol approach dropX dropY dropRange
 	jump Start always
 
 	TargetDrop:
+		set status "TARGETDROP"
 		set releaseStart @time
 		set dropI 0
-		ucontrol boost false
-		sensor carried mule @totalItems
 		TargetDropLoop:
-			ucontrol itemDrop dropTarget carried
+			ucontrol itemDrop dropTarget cap
 			sensor carried @unit @totalItems
 			jump Return equal carried 0
 			op add dropI dropI 1
 			jump TargetDropLoop lessThan dropI 100 
 
 Return:
-	jump PickupFromSource equal returnMaterial null
+	jump Start equal returnMaterial null
 	sensor returnStock dropTarget returnMaterial
-	jump PickupFromSource equal returnStock null
-	op min returnAmount returnStock cap
+	jump Start equal returnStock 0
 
 PickupFromTarget:
 	TargetPickup:
-		set releaseStart @time
+		set status "TARGETPICKUP"
 		set pickupI 0
-		ucontrol boost false
 		TargetPickupLoop:
-			ucontrol itemTake dropTarget returnMaterial returnAmount
+			ucontrol itemTake dropTarget returnMaterial cap
 			sensor carried mule @totalItems
-			jump Start equal carried returnAmount
+			jump Start equal carried cap
+			sensor returnStock dropTarget returnMaterial
+			jump Start equal returnStock 0
 
 			op add pickupI pickupI 1
 			jump TargetPickupLoop lessThan pickupI 100 
@@ -267,6 +273,7 @@ FinishRun:
 	jump Start always
 
 Release:
+	set releaseStart @time
 	jump Start equal status "IDLE"
 	set status "RELEASE"
 	ucontrol stop
