@@ -56,6 +56,9 @@ Start:
 	sensor baseId baseType @id
 	op add id baseId tier
 	lookup unit unitType id
+	jump CountUnits equal baseType lastType
+	set firstUnit null
+	set lastType baseType
 
 CountUnits:
 	set unitCount 0
@@ -63,6 +66,8 @@ CountUnits:
 	set firstUnit null
 
 	CountLoop:
+		sensor baseType factory @config
+		jump Start notEqual baseType lastType
 	Bind:
 		ubind unitType
 		jump FinishCount equal @unit null
