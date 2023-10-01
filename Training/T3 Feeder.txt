@@ -237,7 +237,6 @@ PickupFromSource:
 		SourcePickupLoop:
 			ucontrol itemTake source material amount
 			sensor carried mule @totalItems
-			sensor carriedMat mule @firstItem
 			jump DropToTarget greaterThanEq carried amount
 
 			op add pickupI pickupI 1
@@ -265,9 +264,6 @@ DropToTarget:
 
 	# return to source if full
 	jump DropToSource always
-
-FinishRun:
-	jump Start always
 
 Release:
 	set releaseStart @time

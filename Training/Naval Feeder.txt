@@ -28,7 +28,6 @@ Initialize:
 	GetDropCoords:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y 
-		sensor dropCap dropTarget @itemCapacity
 	
 	GetStartInfo:
 		ubind unitType
@@ -39,7 +38,6 @@ Initialize:
 	
 		ReadInfo:
 			sensor cap @unit @itemCapacity
-			sensor range @unit @range
 			ulocate building core false 0 sourceX sourceY sourceFound source
 			jump GetStartInfo equal sourceFound false
 
@@ -109,7 +107,6 @@ CheckStock:
 
 NothingToDo:
 	set material null
-	set needed 0
 	jump Start always
 
 NotEnough:
@@ -196,10 +193,8 @@ StartRun:
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
 
-	jump DropToSource notEqual material carriedMat
-	jump PickupFromSource equal status "SOURCEDROP"
-	jump PickupFromSource equal status "TOSOURCEPICKUP"
 	jump PickupFromSource equal carried 0
+	jump DropToSource notEqual material carriedMat
 	jump DropToTarget always
 
 DropToSource:
@@ -261,34 +256,12 @@ DropToTarget:
 		TargetDropLoop:
 			ucontrol itemDrop dropTarget cap
 			sensor carried @unit @totalItems
-			jump Return equal carried 0
+			jump Start equal carried 0
 			op add dropI dropI 1
 			jump TargetDropLoop lessThan dropI 100 
 
 	# return to source if full
 	jump DropToSource always
-
-Return:
-	jump Start equal returnMaterial null
-	sensor returnStock dropTarget returnMaterial
-	jump Start equal returnStock 0
-
-PickupFromTarget:
-	TargetPickup:
-		set status "TARGETPICKUP"
-		set pickupI 0
-		TargetPickupLoop:
-			ucontrol itemTake dropTarget returnMaterial cap
-			sensor carried mule @totalItems
-			jump Start equal carried cap
-			sensor returnStock dropTarget returnMaterial
-			jump Start equal returnStock 0
-
-			op add pickupI pickupI 1
-			jump TargetPickupLoop lessThan pickupI 100 
-
-FinishRun:
-	jump Start always
 
 Release:
 	set releaseStart @time
