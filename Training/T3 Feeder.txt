@@ -8,12 +8,11 @@ Initialize:
 	set items 3
 	set material1 @silicon
 	set stockLevel1 260
-	set material2 @metaglass
-	set stockLevel2 80
-	set material3 @titanium
-	set stockLevel3 160
-
-	set returnMaterial null
+	set material2 @titanium
+	set stockLevel2 160
+	set material3 @metaglass
+	set stockLevel3 80
+	
 	set error " "
 
 	set dropRange 7
@@ -39,9 +38,8 @@ Initialize:
 	GetDropCoords:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y 
-		sensor dropCap dropTarget @itemCapacity
 
-GetStartInfo:
+	GetStartInfo:
 		ubind unitType
 		jump ReadInfo notEqual @unit null
 		NoUnits:
@@ -50,7 +48,6 @@ GetStartInfo:
 	
 		ReadInfo:
 			sensor cap @unit @itemCapacity
-			sensor range @unit @range
 			ulocate building core false 0 sourceX sourceY sourceFound source
 			jump GetStartInfo equal sourceFound false
 
@@ -69,7 +66,6 @@ SelectMaterial:
 	set i 0
 	set minIndex -1
 	set minRate 1
-	set cannotUse 0
 	SelectLoop:
 		op add arrayReturn @counter 1
 		jump ArrayGet always 
@@ -82,7 +78,7 @@ SelectMaterial:
 		# if we are carrying material that is still needed,
 		# deliver it even if another stock is lower
 		jump Feed equal material carriedMat
-	
+		
 		op div stockRate dropLevel stockLevel
 		jump NextMaterial greaterThanEq stockRate minRate
 	
@@ -103,6 +99,8 @@ SelectMaterial:
 		sensor sourceLevel source material
 		op sub available sourceLevel sourceMin
 		jump NotEnoughStock lessThanEq available 0
+		sensor dropLevel dropTarget material
+		op sub needed stockLevel dropLevel
 		op min amount needed available
 		op min amount amount cap
 
@@ -111,7 +109,6 @@ SelectMaterial:
 	jump Feed always
 
 	NothingToDo:
-		set material null
 		jump Start always
 	
 	NotEnoughStock:
@@ -198,10 +195,8 @@ StartRun:
 	sensor carried mule @totalItems
 	sensor carriedMat mule @firstItem
 
-	jump DropToSource notEqual material carriedMat
-	jump PickupFromSource equal status "SOURCEDROP"
-	jump PickupFromSource equal status "TOSOURCEPICKUP"
 	jump PickupFromSource equal carried 0
+	jump DropToSource notEqual material carriedMat
 	jump DropToTarget always
 
 DropToSource:
@@ -219,7 +214,7 @@ DropToSource:
 		SourceDropLoop:
 			ucontrol itemDrop source cap
 			sensor carried @unit @totalItems
-			jump PickupFromSource equal carried 0
+			jump Start equal carried 0
 			op add dropI dropI 1
 			jump SourceDropLoop lessThan dropI 100
 
@@ -242,12 +237,13 @@ PickupFromSource:
 		SourcePickupLoop:
 			ucontrol itemTake source material amount
 			sensor carried mule @totalItems
+			sensor carriedMat mule @firstItem
 			jump DropToTarget greaterThanEq carried amount
 
 			op add pickupI pickupI 1
 			jump SourcePickupLoop lessThan pickupI 100 
-	# make it work when the core was upgraded
-	ulocate building core false 0 sourceX sourceY sourceFound source
+			# make it work when the core was upgraded
+			ulocate building core false 0 sourceX sourceY sourceFound source
 
 DropToTarget:
 	ucontrol within dropX dropY dropRange isNearDrop
@@ -263,31 +259,12 @@ DropToTarget:
 		TargetDropLoop:
 			ucontrol itemDrop dropTarget cap
 			sensor carried @unit @totalItems
-			jump Return equal carried 0
+			jump Start equal carried 0
 			op add dropI dropI 1
 			jump TargetDropLoop lessThan dropI 100 
 
 	# return to source if full
 	jump DropToSource always
-
-Return:
-	jump Start equal returnMaterial null
-	sensor returnStock dropTarget returnMaterial
-	jump Start equal returnStock 0
-
-PickupFromTarget:
-	TargetPickup:
-		set status "TARGETPICKUP"
-		set pickupI 0
-		TargetPickupLoop:
-			ucontrol itemTake dropTarget returnMaterial cap
-			sensor carried mule @totalItems
-			jump Start equal carried cap
-			sensor returnStock dropTarget returnMaterial
-			jump Start equal returnStock 0
-
-			op add pickupI pickupI 1
-			jump TargetPickupLoop lessThan pickupI 100 
 
 FinishRun:
 	jump Start always
@@ -345,5 +322,3 @@ ArrayGet:
 	set material material3
 	set stockLevel stockLevel3
 	set @counter arrayReturn
-
-	
