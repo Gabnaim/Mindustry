@@ -40,92 +40,25 @@ Initialize:
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y 
 
-FindMule:
-	set releaseStart @time
-	set firstUnit null
-	set free 0
-	set minDistance 1000
-	set status "FIND"
-
-	FindLoop:
-		ubind unitType
-		jump NotFound equal @unit null
-		sensor unitDead @unit @dead
-		jump FindLoop equal unitDead true
-	
-		jump FinishCount equal firstUnit @unit
-		jump FlagProcess notEqual firstUnit null
-		set firstUnit @unit
-	
-	FlagProcess:
-		sensor flag @unit @flag
-		jump UseMule equal flag procId
-		jump FindLoop notEqual flag 0
-	
-	CheckDistance:
-		ucontrol stop
-		sensor x @unit @x
-		sensor y @unit @y
-		op sub xDiff @thisx x
-		op sub yDiff @thisy y
-		op len distance xDiff yDiff
-		jump CountFree equal status "FIND"
-		GetClosest:
-			op sub diff distance minDistance
-			op abs diff diff
-			jump FlagMule lessThan diff 3
-			jump FindLoop always
-		
-		CountFree:
-			op add free free 1
-			jump FindLoop greaterThan distance minDistance
-			set minDistance distance
-			jump FindLoop always
-	
-	FinishCount:
-		jump NotFound equal free 0
-		set error " "
-		set firstUnit null
-		jump FindMule equal status "FLAG"
-		set status "FLAG"
-		jump FindLoop always
-	
-	NotFound:
-		set error "No free units"
-		jump FindMule always
-	
-	FlagMule:
-		ucontrol flag procId
-	
-	UseMule:
-		set mule @unit
-		ucontrol boost true
-	
-	FindDone:
-		set error " "
-
 	GetStartInfo:
-		sensor cap @unit @itemCapacity
-		sensor range @unit @range
-		ulocate building core false 0 sourceX sourceY sourceFound source
-		jump GetStartInfo equal sourceFound false
+		ubind unitType
+		jump ReadInfo notEqual @unit null
+		NoUnits:
+			set error "No units"
+			jump GetStartInfo always
+	
+		ReadInfo:
+			sensor cap @unit @itemCapacity
+			ulocate building core false 0 sourceX sourceY sourceFound source
+			jump GetStartInfo equal sourceFound false
 
 	set releaseStart @time
 	set error " "
+	set status "START"
 
 Start:
 	op sub releaseWait @time releaseStart
 	jump Release greaterThanEq releaseWait releaseWaitMs
-
-CheckMule:
-	jump FindMule equal mule null
-	sensor muleDead mule @dead
-	jump FindMule equal muleDead true
-
-	sensor muleFlag mule @flag
-	jump SelectMaterial equal muleFlag procId
-	jump FindMule notEqual muleFlag 0
-	set @unit mule
 
 SelectMaterial:
 	sensor carried mule @totalItems
