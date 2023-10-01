@@ -57,8 +57,10 @@ SelectMaterial:
 CheckRisso:	
 	sensor facSil dropTarget @silicon
 	sensor facGlass dropTarget @metaglass
+	op div silLevel facSil 40
+	op div glassLevel facGlass 70
 	set stockLevel 40
-	jump CheckSilicon lessThan facSil facGlass
+	jump CheckSilicon lessThan silLevel glassLevel
 	set stockLevel 70
 	jump CheckGlass always
 	
@@ -66,8 +68,8 @@ CheckRetusa:
 	sensor facSil dropTarget @silicon
 	sensor facGlass dropTarget @metaglass
 	sensor facTit dropTarget @titanium
-	op div silLevel facSil 30
-	op div glassLevel facGlass 50
+	op div silLevel facSil 60
+	op div glassLevel facGlass 100
 	op div titLevel facTit 40
 	
 	FindMin:
@@ -77,8 +79,10 @@ CheckRetusa:
 		set stockLevel 60
 		jump CheckSilicon lessThan silLevel titLevel
 	MinGlass:
-		set stockLevel 40
+		set stockLevel 100
 		jump CheckGlass lessThan glassLevel titLevel
+	MinTit:
+		set stockLevel 40
 		jump CheckTitanium always
 	
 CheckSilicon:
