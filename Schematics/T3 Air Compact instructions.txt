@@ -1,0 +1,7 @@
+Compact unit supported T3 ground factory. Uses two flares and a poly. (configurable) Enter the number of total units desired in the bottom right processor. It will limit training to that number.                                              
+                                          
+FEATURES: Binds closest unit. Releases units after 30 seconds idle time (configurable). Units will drop extra items to core when released, or air if core is full. Will not take items from core if below 500 (configurable).  Will not use units flagged by other processors.
+                                                               
+NOTES: Default configuration is sufficient near core. If further away, change T2 unit to poly and T3 unit to mega. If this is still too slow, then ask yourself why produce units so far from core when they can fly?
+                  
+-------- All code original by Freaky Mouse
