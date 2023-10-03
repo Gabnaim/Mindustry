@@ -1,0 +1,327 @@
+Initialize:
+	set status "INITIALIZE"
+	set unitType @flare
+	set maxUnits 4
+	set maxArrayLength 10
+	set maxDistance 30
+	set releaseWaitSecs 10
+
+	set error " "
+
+	set switch switch1
+	jump NoSwitch equal switch null
+	jump TooMany greaterThan maxUnits maxArrayLength
+	jump GetId always
+
+	TooMany:
+		set error "Max 10 units supported"
+		jump Error always
+	
+	NoSwitch:
+		set error "Need switch"
+		jump Error always
+
+Error:
+	# idle here until user looks at error and restarts
+	jump Error always
+
+	GetId:
+		op shl procId @thisx 9
+		op add procId procId @thisy
+
+	op mul releaseWaitMs releaseWaitSecs 1000
+
+Preflag:
+	set totalFlagged 0
+	set totalFree 0
+	set totalUnits 0
+	set firstUnit null
+	set flagged 0
+	set free 0
+	set units 0
+	set neededFlags 0
+	set status "COUNT"
+
+	PreflagLoop:
+		ubind unitType
+		jump PreflagLoop equal @unit null
+		sensor isDead @unit @dead
+		jump PreflagLoop equal isDead true
+
+		jump FinishCount equal firstUnit @unit
+		jump FlagProcess notEqual firstUnit null
+		set firstUnit @unit
+
+	FlagProcess:
+		sensor flag @unit @flag
+		jump ProcessFlagged equal flag procId
+		jump ProcessFree equal flag 0
+		jump NextCount always
+		
+	ProcessFlagged:
+		jump Unflag equal status "UNFLAG"
+		jump CountFlagged greaterThan flagged maxUnits
+
+		SaveFlagged: 
+			set unit @unit
+			set i flagged
+			op add arrayReturn @counter 1
+			jump ArraySet always
+
+		CountFlagged:
+			op add flagged flagged 1
+			jump NextCount always
+
+		Unflag:
+			ucontrol flag 0
+			set i flagged
+			set unit null
+			op add arrayReturn @counter 1
+			jump ArraySet always
+
+			op sub neededFlags neededFlags 1
+			op sub flagged flagged 1
+			jump FlagDone equal neededFlags 0
+			jump NextCount always
+
+	ProcessFree:
+		op add free free 1
+		jump NextCount notEqual status "FLAG"
+
+		CheckDistance:
+			sensor x @unit @x
+			sensor y @unit @y
+			op sub xDiff @thisx x
+			op sub yDiff @thisy y
+			op len distance xDiff yDiff
+			jump NextCount greaterThan distance maxDistance
+
+		Flag:
+			ucontrol flag procId
+			set i flagged
+			set unit @unit
+			op add arrayReturn @counter 1
+			jump ArraySet always
+			op add flagged flagged 1		
+			
+			op sub neededFlags neededFlags 1
+			jump FlagDone equal neededFlags 0
+	
+	NextCount:
+		op add units units 1
+		jump PreflagLoop always
+
+	FinishCount:
+		jump GetNextAction greaterThan totalUnits 0
+		set totalFlagged flagged
+		set totalFree free
+		set totalUnits units
+
+		GetNextAction:
+			set i 0
+			set flagged totalFlagged
+			set free 0
+			set units 0
+			set firstUnit null
+
+			jump FlagDone equal totalFlagged maxUnits
+			jump FlagDone equal status "FLAG"
+			jump FlagDone equal status "UNFLAG"
+
+
+			jump NeedFlags lessThan totalFlagged maxUnits
+			op sub neededFlags totalFlagged maxUnits
+			set status "UNFLAG"
+			jump PreflagLoop always
+
+			NeedFlags:
+				op sub neededFlags maxUnits totalFlagged
+				op min neededFlags neededFlags totalFree
+				jump FlagDone lessThanEq neededFlags 0
+				set status "FLAG"
+				jump PreflagLoop always
+
+	FlagDone:
+		set status "IDLE"
+		jump Preflag equal totalFlagged 0
+
+	GetStartUnit:
+		# get an already flagged unit
+		ubind unitType
+		jump GetStartUnit equal @unit null
+		sensor isDead @unit @dead
+		jump GetStartUnit equal isDead true
+		sensor flag @unit @flag
+		jump GetStartUnit notEqual flag procId
+
+		ucontrol approach @thisx @thisy 5
+
+	set status "IDLE"
+	set i 0
+
+Start:
+CheckActive:
+	sensor active switch @enabled
+
+	jump ActiveChanged notEqual active lastActive
+	jump Reset equal active false
+
+	set start @time
+
+Process:
+	set status "PROCESSING"
+	ProcessLoop:
+		op add arrayReturn @counter 1
+		jump ArrayGet always
+		# ignore empty slots
+		jump Next equal unit null
+		
+		ubind unit
+
+DoStuff:
+	ucontrol within @thisx @thisy 10 isNear
+	jump Move equal isNear true
+	ucontrol approach @thisx @thisy 5
+	jump Next always
+
+	Move:
+		sensor x @unit @x
+		sensor y @unit @y
+		op add moveX x 12
+		op add moveY y 12
+		ucontrol move moveX moveY
+
+Next:
+	op add i i 1
+	jump Start lessThan i totalFlagged
+
+FinishGroup:
+	set i 0
+	jump Start always
+
+ActiveChanged:
+	set lastActive active
+	set releaseStart @time
+	jump Reset equal active false
+	jump Initialize always
+
+Reset:
+	jump Start equal status "IDLE"
+	op sub releaseWait @time releaseStart
+	jump Start lessThan releaseWait releaseWaitMs
+	jump StopAll notEqual status "RELEASING"
+
+ReleaseAll:
+	op sub releaseWait @time releaseStart
+	jump Start lessThan releaseWait releaseWaitMs
+	jump Stopping always
+
+StopAll:
+	set status "STOPPING"
+
+Stopping:
+	set i 0
+	op sub releaseX @thisx 2
+	op sub releaseY @thisy 5
+	StopLoop:
+		op add arrayReturn @counter 1
+		jump ArrayGet always
+		# ignore empty slots
+		jump StopNext equal unit null
+		
+		ubind unit
+		StopUnit:
+			sensor flag @unit @flag
+			jump RemoveFromArray notEqual flag procId
+
+			ucontrol stop
+			jump StopLoop equal status "STOPPING"
+
+			ucontrol flag 0
+			ucontrol boost true
+			ucontrol move releaseX releaseY
+
+			RemoveFromArray:
+				set unit null
+				op add arrayReturn @counter 1
+				jump ArraySet always
+
+		StopNext:
+			op add i i 1
+			jump StopLoop lessThan i arrayLength
+		
+	FinishStop:
+		jump FinishRelease equal status "RELEASING"
+		set status "RELEASING"
+		jump Start always
+
+	FinishRelease:
+		set status "IDLE"
+		jump Start always
+
+
+ArraySet:
+	# storing the i values is for debugging
+	# can take out when debugged
+	op mul offset i 3
+	op add offset offset 1
+	op add arrayLoc @counter offset
+	set @counter arrayLoc
+
+	set unit0 unit
+	set i0 i
+	set @counter arrayReturn
+	set unit1 unit
+	set i1 i
+	set @counter arrayReturn
+	set unit2 unit
+	set i2 i
+	set @counter arrayReturn
+	set unit3 unit
+	set i3 i
+	set @counter arrayReturn
+	set unit4 unit
+	set i4 i
+	set @counter arrayReturn
+	set unit5 unit
+	set i5 i
+	set @counter arrayReturn
+	set unit6 unit
+	set i6 i
+	set @counter arrayReturn
+	set unit7 unit
+	set i7 i
+	set @counter arrayReturn
+	set unit8 unit
+	set i8 i
+	set @counter arrayReturn
+	set unit9 unit
+	set i9 i
+	set @counter arrayReturn
+
+ArrayGet:
+	op mul offset i 2
+	op add offset offset 1
+	op add arrayLoc @counter offset
+	set @counter arrayLoc
+
+	set unit unit0
+	set @counter arrayReturn
+	set unit unit1
+	set @counter arrayReturn
+	set unit unit2
+	set @counter arrayReturn
+	set unit unit3
+	set @counter arrayReturn
+	set unit unit4
+	set @counter arrayReturn
+	set unit unit5
+	set @counter arrayReturn
+	set unit unit6
+	set @counter arrayReturn
+	set unit unit7
+	set @counter arrayReturn
+	set unit unit8
+	set @counter arrayReturn
+	set unit unit9
+	set @counter arrayReturn
