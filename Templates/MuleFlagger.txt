@@ -1,3 +1,5 @@
+set name "Mule Flagger"
+
 Initialize:
 	set unitType @flare
 	set switch switch1
@@ -9,6 +11,28 @@ Initialize:
 	op shl procId @thisx 9
 	op add procId procId @thisy
 	op mul releaseWaitMs releaseWaitSecs 1000
+
+	op add nearX @thisx 1
+	op add nearY @thisy 1
+	op add farX @thisx 15
+	op add farY @thisy 15
+
+	set releaseStart @time
+
+Start:
+	sensor active switch @enabled
+	jump Reset equal active false
+
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump FindMule equal muleDead true
+
+	sensor muleFlag mule @flag
+	jump StartRun equal muleFlag procId
+	jump FindMule notEqual muleFlag procId
+	ubind mule
+	jump StartRun always
 
 FindMule:
 	set firstUnit null
@@ -71,61 +95,42 @@ FindMule:
 	
 	FindDone:
 		set error " "
-	
-Start:
-CheckActive:
-	sensor active switch @enabled
-	jump ActiveChanged notEqual active lastActive
-	jump Reset equal active false
 
-CheckMule:
-	jump FindMule equal mule null
-	sensor muleDead mule @dead
-	jump FindMule equal muleDead true
-
-	sensor muleFlag mule @flag
-	jump DoStuff equal muleFlag procId
-	jump FindMule notEqual muleFlag 0
-	set @unit mule
-
-DoStuff:
-	set status "PROCESSING"
-	ucontrol within @thisx @thisy 10 isNear
-	jump Move equal isNear true
-	ucontrol approach @thisx @thisy 5
-	jump Next always
-
-	Move:
-		sensor x @unit @x
-		sensor y @unit @y
-		op add moveX x 12
-		op add moveY y 12
-		ucontrol move moveX moveY
-
-Next:
-	jump Start always
-
-ActiveChanged:
-	set lastActive active
+StartRun:
 	set releaseStart @time
-	jump Initialize equal active true
-	ucontrol stop 
-	set status "RELEASEWAIT"
+	jump MoveFar equal status "MOVEFAR"
+
+	MoveNear:
+		ucontrol within nearX nearY 3 isNear
+		jump MoveFar equal isNear true
+		ucontrol approach nearX nearY 3
+		set status "MOVENEAR"
+		jump Next always
+
+	MoveFar:
+		ucontrol within farX farY 3 isFar
+		jump MoveNear equal isFar true
+		ucontrol approach farX farY 3
+		set status "MOVEFAR"
+		jump Next always
+
+	Next:
+		jump Start always
 
 Reset:
-	jump Start equal status "IDLE"
+	jump Start equal mule null
 	op sub releaseWait @time releaseStart
 	jump Start lessThan releaseWait releaseWaitMs
 
 Release:
 	set status "RELEASE"
-	ucontrol stop
-	ucontrol flag 0
-	ucontrol boost false
-	ucontrol unbind
-	set mule null
-	set status "IDLE"
-	jump Start always
-
-
-
+	
+	ReleaseUnit:
+		ucontrol stop
+		ucontrol flag 0
+		ucontrol boost false
+		ucontrol unbind
+		set mule null
+		set status "IDLE"
+		set releaseStart @time
+		jump Start always
