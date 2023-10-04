@@ -1,0 +1,35 @@
+Initialize:
+	set name "Refill Stock"
+	set error " "
+	set minStock 2000
+	GetLinks:
+		set l 0
+		GetDropTarget:
+		set l 0
+		LinkLoop:
+			getlink link l
+			sensor type link @type
+			sensor buildingCap link @itemCapacity
+			jump FoundTarget greaterThanEq buildingCap 10
+			jump FoundSource equal @type @item-source
+			jump NextLink always
+		FoundTarget:
+			set target link
+			jump NextLink always
+		FoundSource:
+			set source link
+		NextLink:
+			op add l l 1
+			jump LinkLoop lessThan l @links
+			jump GetLinks always
+
+	sensor cap target @itemCapacity
+	op min minStock minStock cap
+
+Start:
+	sensor material source @config
+	jump Start equal material null
+	sensor stock target material
+	op lessThan open material minStock
+	jump Start always
+	
