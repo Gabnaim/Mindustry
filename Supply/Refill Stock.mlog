@@ -33,7 +33,7 @@ Start:
 	sensor material source @config
 	jump Start equal material null
 	sensor stock target material
-	op lessThan open material minStock
+	op lessThan open stock minStock
 	control enabled source open
 	jump Start always
 	
