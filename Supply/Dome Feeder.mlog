@@ -4,6 +4,7 @@ Initialize:
 	set unitType @flare
 	set sourceMin 500
 	set error " "
+	set status "INITIALIZE"
 
 	set dropRange 7
 	set releaseWaitSecs 30
@@ -57,6 +58,7 @@ Initialize:
 
 		op mul useInTravel travelTime usagePerSec
 		op ceil refillAmount useInTravel
+		op add checkRange dropRange 1
 
 	set releaseStart @time
 	set error " "
@@ -174,8 +176,8 @@ StartRun:
 
 DropToSource:
 	ucontrol approach sourceX sourceY dropRange
-	ucontrol within sourceX sourceY dropRange isNearSource
-	jump Start equal isNearSource false
+	ucontrol within sourceX sourceY checkRange isNear
+	jump Start equal isNear false
 
 	SourceDrop:
 		ucontrol itemDrop source 99
@@ -188,19 +190,19 @@ DropToSource:
 
 PickupFromSource:
 	ucontrol approach sourceX sourceY dropRange
-	ucontrol within sourceX sourceY dropRange isNearSource
+	ucontrol within sourceX sourceY checkRange isNear
 	set releaseStart @time
-	jump Start equal isNearSource false
+	jump Start equal isNear false
 
 	SourcePickup:
 		ucontrol itemTake source material amount
 
 DropToTarget:
 	ucontrol approach dropX dropY dropRange
-	ucontrol within dropX dropY dropRange isNearDrop
+	ucontrol within dropX dropY checkRange isNear
 	set releaseStart @time
 	ulocate building core false 0 sourceX sourceY sourceFound source
-	jump Start equal isNearDrop false
+	jump Start equal isNear false
 
 	TargetDrop:
 		ucontrol itemDrop dropTarget 99
@@ -215,10 +217,9 @@ Release:
 	jump ReleaseUnit equal carriedMat null
 
 	Dump:
-		ucontrol within sourceX sourceY dropRange isNearSource
-		jump SourceDump equal isNearSource true
 		ucontrol approach sourceX sourceY dropRange
-		jump Dump always
+		ucontrol within sourceX sourceY dropRange isNear
+		jump Dump equal isNear false
 	
 		SourceDump:
 			ucontrol itemDrop source 99
