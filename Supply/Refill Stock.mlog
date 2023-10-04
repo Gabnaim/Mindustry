@@ -4,24 +4,27 @@ Initialize:
 	set minStock 2000
 	GetLinks:
 		set l 0
+		set found 0
 		GetDropTarget:
 		set l 0
 		LinkLoop:
 			getlink link l
 			sensor type link @type
 			sensor buildingCap link @itemCapacity
+			jump FoundSource equal type @item-source
 			jump FoundTarget greaterThanEq buildingCap 10
-			jump FoundSource equal @type @item-source
 			jump NextLink always
 		FoundTarget:
 			set target link
+			op add found found 1
 			jump NextLink always
 		FoundSource:
 			set source link
+			op add found found 1
 		NextLink:
 			op add l l 1
 			jump LinkLoop lessThan l @links
-			jump GetLinks always
+			jump GetLinks lessThan found 2
 
 	sensor cap target @itemCapacity
 	op min minStock minStock cap
@@ -31,5 +34,6 @@ Start:
 	jump Start equal material null
 	sensor stock target material
 	op lessThan open material minStock
+	control enabled source open
 	jump Start always
 	
