@@ -173,13 +173,11 @@ StartRun:
 	jump DropToTarget always
 
 DropToSource:
-	ucontrol within sourceX sourceY dropRange isNearSource
-	jump SourceDrop equal isNearSource true
 	ucontrol approach sourceX sourceY dropRange
-	jump Start always
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump Start equal isNearSource false
 
 	SourceDrop:
-		set releaseStart @time
 		ucontrol itemDrop source 99
 		sensor carried @unit @totalItems
 		jump Start equal carried 0
@@ -189,24 +187,23 @@ DropToSource:
 		jump Start always
 
 PickupFromSource:
-	ucontrol within sourceX sourceY dropRange isNearSource
-	jump SourcePickup equal isNearSource true
 	ucontrol approach sourceX sourceY dropRange
-	jump Start always
+	ucontrol within sourceX sourceY dropRange isNearSource
+	set releaseStart @time
+	jump Start equal isNearSource false
 
 	SourcePickup:
-		set releaseStart @time
 		ucontrol itemTake source material amount
 
 DropToTarget:
-	ucontrol within dropX dropY dropRange isNearDrop
-	jump TargetDrop equal isNearDrop true
 	ucontrol approach dropX dropY dropRange
-	jump StartRun always
+	ucontrol within dropX dropY dropRange isNearDrop
+	set releaseStart @time
+	ulocate building core false 0 sourceX sourceY sourceFound source
+	jump Start equal isNearDrop false
 
 	TargetDrop:
 		ucontrol itemDrop dropTarget 99
-		ulocate building core false 0 sourceX sourceY sourceFound source
 		set selectMaterial true
 		jump Start always
 
