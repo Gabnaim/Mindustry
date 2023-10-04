@@ -1,5 +1,5 @@
 Initialize:
-	set sourceFile "Surge Stock Checker.txt"
+	set name "Surge Stock Checker"
 	set error " "
 	set minSupply 500
 	GetLinkedCore:
