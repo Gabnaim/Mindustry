@@ -1,0 +1,252 @@
+set name "Dome Feeder"
+
+Initialize:
+	set unitType @flare
+	set sourceMin 500
+	set error " "
+
+	set dropRange 7
+	set releaseWaitSecs 30
+
+	op shl procId @thisx 9
+	op add procId procId @thisy
+	op mul releaseWaitMs releaseWaitSecs 1000
+
+	GetDropTarget:
+		set l 0
+		LinkLoop:
+			getlink link l
+			sensor type link @type
+			jump Found equal type @overdrive-dome
+		NextLink:
+			op add l l 1
+			jump LinkLoop lessThan l @links
+			jump GetDropTarget always
+		Found:
+			set dropTarget link
+	
+	GetDropCoords:
+		sensor dropX dropTarget @x
+		sensor dropY dropTarget @y 
+
+	GetStartInfo:
+		ubind unitType
+		jump ReadInfo notEqual @unit null
+		NoUnits:
+			set error "No units"
+			jump GetStartInfo always
+	
+		ReadInfo:
+			sensor cap @unit @itemCapacity
+			ulocate building core false 0 sourceX sourceY sourceFound source
+			jump GetStartInfo equal sourceFound false
+
+	set releaseStart @time
+	set error " "
+
+Start:
+	op sub releaseWait @time releaseStart
+	jump Release greaterThanEq releaseWait releaseWaitMs
+
+SelectMaterial:
+	set stockLevel 10
+	sensor silicon dropTarget @silicon
+	sensor phase dropTarget @phase-fabric
+	jump CheckPhase lessThan phase silicon
+	
+CheckSilicon:
+	op sub needed stockLevel silicon
+	set material @silicon
+	jump CheckStock always
+	
+CheckPhase:
+	op sub needed stockLevel phase
+	set material @phase-fabric
+
+CheckStock:
+	jump NothingToDo equal needed 0
+	sensor sourceStock source material
+	op sub available sourceStock sourceMin
+	jump NotEnough lessThanEq available 0
+	jump Feed always
+
+NothingToDo:
+	set material null
+	jump Start always
+
+NotEnough:
+	set error "Not enough stock"
+	jump Start always
+
+Feed:
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump FindMule equal muleDead true
+
+	sensor muleFlag mule @flag
+	jump StartRun equal muleFlag procId
+	jump FindMule notEqual muleFlag 0
+	RecycleMule:
+		ubind mule
+		ucontrol flag procId
+		jump StartRun always
+
+FindMule:
+	set releaseStart @time
+	set firstUnit null
+	set free 0
+	set minDistance 1000
+	set status "FIND"
+
+	FindLoop:
+		ubind unitType
+		jump NotFound equal @unit null
+		sensor unitDead @unit @dead
+		jump FindLoop equal unitDead true
+	
+		jump FinishCount equal firstUnit @unit
+		jump FlagProcess notEqual firstUnit null
+		set firstUnit @unit
+	
+	FlagProcess:
+		sensor flag @unit @flag
+		jump UseMule equal flag procId
+		jump FindLoop notEqual flag 0
+	
+	CheckDistance:
+		sensor x @unit @x
+		sensor y @unit @y
+		op sub xDiff @thisx x
+		op sub yDiff @thisy y
+		op len distance xDiff yDiff
+		jump CountFree equal status "FIND"
+		GetClosest:
+			op sub diff distance minDistance
+			op abs diff diff
+			jump FlagMule lessThan diff 3
+			jump FindLoop always
+		
+		CountFree:
+			op add free free 1
+			jump FindLoop greaterThan distance minDistance
+			set minDistance distance
+			jump FindLoop always
+	
+	FinishCount:
+		jump NotFound equal free 0
+		set error " "
+		set firstUnit null
+		jump FindMule equal status "FLAG"
+		set status "FLAG"
+		jump FindLoop always
+	
+	NotFound:
+		set error "No free units"
+		jump Start always
+	
+	FlagMule:
+		ucontrol flag procId
+	
+	UseMule:
+		set mule @unit
+		ucontrol boost true
+	
+	FindDone:
+		set error " "
+
+StartRun:
+	set status "FEED"
+	sensor carried mule @totalItems
+	sensor carriedMat mule @firstItem
+
+	jump PickupFromSource equal carried 0
+	jump DropToSource notEqual material carriedMat
+	jump DropToTarget always
+
+DropToSource:
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump SourceDrop equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	jump Start always
+
+	SourceDrop:
+		set status "SOURCEDROP"
+		set releaseStart @time
+		set dropI 0
+		SourceDropLoop:
+			ucontrol itemDrop source 99
+			sensor carried @unit @totalItems
+			jump Start equal carried 0
+			op add dropI dropI 1
+			jump SourceDropLoop lessThan dropI 100
+
+		# drop to air if source is full
+		ucontrol itemDrop @air cap
+		jump Start always
+
+PickupFromSource:
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump SourcePickup equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	jump Start always
+
+	SourcePickup:
+		set releaseStart @time
+		set pickupI 0
+		SourcePickupLoop:
+			ucontrol itemTake source material cap
+			sensor carried mule @totalItems
+			jump DropToTarget greaterThanEq carried cap
+
+			op add pickupI pickupI 1
+			jump SourcePickupLoop lessThan pickupI 100 
+			# make it work when the core was upgraded
+		ulocate building core false 0 sourceX sourceY sourceFound source
+
+DropToTarget:
+	ucontrol within dropX dropY dropRange isNearDrop
+	jump TargetDrop equal isNearDrop true
+	ucontrol boost true
+	ucontrol approach dropX dropY dropRange
+	jump Start always
+
+	TargetDrop:
+		ucontrol itemDrop dropTarget 99
+		jump Start always
+
+Release:
+	set releaseStart @time
+	jump Start equal status "IDLE"
+	set status "RELEASE"
+	sensor carriedMat @unit @firstItem
+	jump ReleaseUnit equal carriedMat null
+
+	Dump:
+		ucontrol within sourceX sourceY dropRange isNearSource
+		jump SourceDump equal isNearSource true
+		ucontrol boost true
+		ucontrol approach sourceX sourceY dropRange
+		jump Dump always
+	
+		SourceDump:
+			set dropI 0
+			SourceDumpLoop:
+				ucontrol itemDrop source 99
+				sensor carried @unit @totalItems
+				jump ReleaseUnit equal carried 0
+				op add dropI dropI 1
+				jump SourceDumpLoop lessThan dropI 100
+	
+			# drop to air if source is full
+			ucontrol itemDrop @air cap
+	
+	ReleaseUnit:
+		ucontrol stop
+		ucontrol flag 0
+		ucontrol boost false
+		ucontrol unbind
+		set status "IDLE"
+		set releaseStart @time
+		jump Start always
+
