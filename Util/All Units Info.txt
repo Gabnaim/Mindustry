@@ -8,6 +8,8 @@ Initialize:
 	op or showLine showLine showHealth
 
 Start:
+	jump GetUnitType greaterThan unitIndex 0
+	print "[cyan]Flag[] - [yellow]Carried[] - [green]Health[]\n"
 GetUnitType:
 	lookup unit unitType unitIndex
 	set firstUnit null
@@ -32,8 +34,9 @@ ProcessUnit:
 		sensor flag @unit @flag
 		jump PrintCarried equal flag 0
 		set hasData true
+		print "[cyan]"
 		print flag
-		print " "
+		print "[] "
 	
 	PrintCarried:
 		jump PrintHealth equal showCarried false
@@ -41,10 +44,11 @@ ProcessUnit:
 		jump PrintHealth equal carried 0
 		sensor material @unit @firstItem
 		set hasData true
+		print "[yellow]"
 		print carried
 		print " "
 		print material
-		print " "
+		print "[] "
 
 	PrintHealth:
 		jump PrintEnd equal showHealth false
@@ -54,8 +58,9 @@ ProcessUnit:
 		op mul health health 100
 		op idiv healthPct health maxHealth
 		set hasData true
+		print "[green]"
 		print healthPct
-		print "%"
+		print "%[] "
 		
 	PrintEnd:
 		jump FinishUnit equal hasData false
@@ -66,10 +71,11 @@ FinishUnit:
 	jump BindUnit always
 
 FinishGroup:
+	print "[white]------"
 	print unitType
 	print ": "
 	print units
-	print "\n"
+	print "------[]\n"
 
 NextUnitType:
 	op add unitIndex unitIndex 1
