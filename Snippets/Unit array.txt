@@ -66,7 +66,13 @@ Count:
 		jump NextCount always
 		
 	CountFlagged:
-		op add flagged flagged 1
+		jump NextCount greaterThanEq flagged maxUnits
+		SaveFlagged: 
+			set unit @unit
+			set arrayIndex flagged
+			op add arrayReturn @counter 1
+			jump ArraySet always
+			op add flagged flagged 1
 		jump NextCount always
 
 	CountFree:
@@ -85,12 +91,12 @@ Count:
 		jump FlagDone always
 
 Flag:
-	op sub neededFlags maxUnits totalFlagged
+	op sub neededFlags maxUnits flagged
 	op min neededFlags neededFlags free
+	jump FlagDone lessThanEq neededFlags 0
 
 	set status "FLAG"
 	set firstUnit null
-	set flagged 0
 
 	FlagLoop:
 		ubind unitType
@@ -103,19 +109,9 @@ Flag:
 
 	FlagProcess:
 		sensor flag @unit @flag
-		jump ProcessFlagged equal flag procId
-		jump ProcessFree equal flag 0
-		jump NextFlag always
-		
-	ProcessFlagged:
-		set unit @unit
-		set arrayIndex flagged
-		op add arrayReturn @counter 1
-		jump ArraySet always
-		op add flagged flagged 1
-	jump NextFlag always
+		jump NextFlag notEqual flag 0
 
-	ProcessFree:
+	ProcessFree: 
 		sensor controlled @unit @controlled
 		jump NextFlag greaterThanEq controlled 2
 
@@ -127,7 +123,7 @@ Flag:
 			op len distance xDiff yDiff
 			jump NextFlag greaterThan distance maxDistance
 
-		Flag:
+		FlagUnit:
 			ucontrol flag procId
 			set arrayIndex flagged
 			set unit @unit
@@ -143,8 +139,8 @@ Flag:
 		jump FlagDone always
 
 Unflag:
-	op sub neededFlags maxUnits totalFlagged
-	op min neededFlags neededFlags free
+	op sub neededFlags flagged maxUnits
+	jump FlagDone lessThanEq neededFlags 0
 
 	set status "UNFLAG"		
 	set firstUnit null
@@ -162,19 +158,11 @@ Unflag:
 	UnflagProcess:
 		sensor flag @unit @flag
 		jump NextUnflag notEqual flag procId
-		jump UnflagUnit greaterThanEq flagged maxUnits
-
-		SaveFlagged: 
-			set unit @unit
-			set arrayIndex flagged
-			op add arrayReturn @counter 1
-			jump ArraySet always
-			op add flagged flagged 1
-		jump NextFlag always
 
 	UnflagUnit:
 		ucontrol flag 0
 		op sub neededFlags neededFlags 1
+		op sub flagged flagged 1
 	
 	NextUnflag:
 		jump UnflagLoop greaterThan neededFlags 0
@@ -231,7 +219,7 @@ StartRun:
 
 	Next:
 		op add arrayIndex arrayIndex 1
-		jump Start lessThan arrayIndex totalFlagged
+		jump Start lessThan arrayIndex flagged
 
 FinishGroup:
 	set arrayIndex 0
@@ -257,8 +245,7 @@ Stop:
 
 		StopNext:
 			op add arrayIndex arrayIndex 1
-			jump StopLoop lessThan arrayIndex arrayLength
-		
+			jump StopLoop lessThan arrayIndex maxUnits
 	FinishStop:
 		set status "RELEASING"
 		jump Start always
@@ -278,7 +265,7 @@ Release:
 
 		ReleaseNext:
 			op add arrayIndex arrayIndex 1
-			jump ReleaseLoop lessThan arrayIndex arrayLength
+			jump ReleaseLoop lessThan arrayIndex maxUnits
 		
 	FinishRelease:
 		set status "IDLE"
@@ -289,7 +276,6 @@ ArraySet:
 	# storing the arrayIndex values is for debugging
 	# can take out when debugged
 	op mul offset arrayIndex 3
-	op add offset offset 1
 	op add @counter @counter offset
 
 	set unit0 unit
@@ -325,7 +311,6 @@ ArraySet:
 
 ArrayGet:
 	op mul offset arrayIndex 2
-	op add offset offset 1
 	op add @counter @counter offset
 
 	set unit unit0
