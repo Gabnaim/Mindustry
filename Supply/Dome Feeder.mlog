@@ -52,12 +52,13 @@ Initialize:
 		op sub dropDistX dropX sourceX
 		op sub dropDistY dropY sourceY
 		op len dropDist dropDistX dropDistY
+
 		op sub travelDist dropDist dropRange
 		op div travelTime travelDist speed
 		op add travelTime travelTime transferTime
+		op mul usageDuringTravel travelTime usagePerSec
 
-		op mul useInTravel travelTime usagePerSec
-		op ceil refillAmount useInTravel
+		op ceil refillAmount usageDuringTravel
 		op add checkRange dropRange 1
 
 	set releaseStart @time
@@ -71,6 +72,7 @@ Start:
 CheckTarget:
 	sensor targetDead dropTarget @dead
 	jump TargetDead equal targetDead true
+
 	jump Feed equal selectMaterial false
 
 SelectMaterial:
@@ -112,6 +114,7 @@ NotEnough:
 	jump Start always
 
 Feed:
+	set error " "
 CheckMule:
 	jump FindMule equal mule null
 	sensor muleDead mule @dead
@@ -194,8 +197,16 @@ PickupFromSource:
 	set releaseStart @time
 	jump Start equal isNear false
 
-	SourcePickup:
+	set pickupI 0
+	SourcePickupLoop:
 		ucontrol itemTake source material amount
+		sensor carried mule @totalItems
+		jump DropToTarget greaterThanEq carried amount
+
+		op add pickupI pickupI 1
+		jump SourcePickupLoop lessThan pickupI 10
+
+	jump Start always
 
 DropToTarget:
 	ucontrol approach dropX dropY dropRange
@@ -204,10 +215,16 @@ DropToTarget:
 	ulocate building core false 0 sourceX sourceY sourceFound source
 	jump Start equal isNear false
 
-	TargetDrop:
+	set dropI 0
+	TargetDropLoop:
 		ucontrol itemDrop dropTarget 99
 		set selectMaterial true
-		jump Start always
+		sensor carried @unit @totalItems
+		jump Start equal carried 0
+		op add dropI dropI 1
+		jump TargetDropLoop lessThan dropI 10
+
+	jump Start always
 
 Release:
 	set releaseStart @time
