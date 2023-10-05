@@ -157,7 +157,6 @@ PrintValues:
 	
 ArraySet:
 	op mul offset i 2
-	op add offset offset 1
 	op add @counter @counter offset
 
 	set value0 value
@@ -183,7 +182,6 @@ ArraySet:
 
 ArrayGet:
 	op mul offset i 2
-	op add offset offset 1
 	op add @counter @counter offset
 
 	set value value0
