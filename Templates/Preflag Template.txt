@@ -17,7 +17,13 @@ Initialize:
 	op sub releaseY @thisy 5
 	op mul releaseWaitMs releaseWaitSecs 1000
 
+	op add nearX @thisx 1
+	op add nearY @thisy 1
+	op add farX @thisx 15
+	op add farY @thisy 15
+
 Preflag:
+	set flagStart @time
 	set totalFlagged 0
 	set totalFree 0
 	set totalUnits 0
@@ -113,6 +119,8 @@ Preflag:
 		sensor flag @unit @flag
 		jump GetStartUnit notEqual flag procId
 
+		op sub flagTime @time flagStart
+
 		ucontrol approach @thisx @thisy 5
 
 	set status "IDLE"
@@ -131,7 +139,7 @@ BindUnit:
 	jump FinishGroup equal firstUnit @unit
 	jump ProcessUnit notEqual firstUnit null
 	set firstUnit @unit
-	
+	set cycleStart @time
 ProcessUnit:
 	sensor isDead @unit @dead
 	jump BindUnit equal isDead true
@@ -141,24 +149,21 @@ ProcessUnit:
 
 DoStuff:
 	set status "PROCESSING"
-	op add used used 1
-	ucontrol within @thisx @thisy 10 isNear
-	jump Move equal isNear true
-	ucontrol approach @thisx @thisy 5
-	jump Next always
+	MoveNear:
+		ucontrol approach nearX nearY 3
+		ucontrol within nearX nearY 4 isNear
+		jump Next equal isNear false
 
-	Move:
-		sensor x @unit @x
-		sensor y @unit @y
-		op add moveX x 12
-		op add moveY y 12
-		ucontrol move moveX moveY
-
+	MoveFar:
+		ucontrol approach farX farY 3
+		ucontrol within farX farY 4 isFar
+		jump MoveNear equal isFar true
 Next:
 	jump Start always
 
 FinishGroup:
 	set firstUnit null
+	op sub cycleTime @time cycleStart
 	jump Start always
 
 ActiveChanged:
