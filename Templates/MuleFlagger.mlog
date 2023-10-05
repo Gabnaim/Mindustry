@@ -20,8 +20,11 @@ Initialize:
 	set releaseStart @time
 
 Start:
+	op sub releaseWait @time releaseStart
+	jump Release greaterThanEq releaseWait releaseWaitMs
+	
 	sensor active switch @enabled
-	jump Reset equal active false
+	jump Start equal active false
 
 CheckMule:
 	jump FindMule equal mule null
@@ -30,14 +33,15 @@ CheckMule:
 
 	sensor muleFlag mule @flag
 	jump StartRun equal muleFlag procId
-	jump FindMule notEqual muleFlag procId
-	ubind mule
-	jump StartRun always
+	jump FindMule notEqual muleFlag 0
+	RecycleMule:
+		ubind mule
+		ucontrol flag procId
+		jump StartRun always
 
 FindMule:
 	set firstUnit null
 	set free 0
-	set minDistance 1000
 	set status "FIND"
 
 	FindLoop:
@@ -54,38 +58,17 @@ FindMule:
 		sensor flag @unit @flag
 		jump UseMule equal flag procId
 		jump FindLoop notEqual flag 0
-	
-	CheckDistance:
-		ucontrol stop
-		sensor x @unit @x
-		sensor y @unit @y
-		op sub xDiff @thisx x
-		op sub yDiff @thisy y
-		op len distance xDiff yDiff
-		jump CountFree equal status "FIND"
-		GetClosest:
-			op sub diff distance minDistance
-			op abs diff diff
-			jump FlagMule lessThan diff 3
-			jump FindLoop always
-		
-		CountFree:
-			op add free free 1
-			jump FindLoop greaterThan distance minDistance
-			set minDistance distance
-			jump FindLoop always
+		sensor controlled @unit @controlled
+		jump UseMule lessThan controlled 2
+		jump FindLoop always
 	
 	FinishCount:
-		jump NotFound equal free 0
-		set error " "
-		set firstUnit null
-		jump FindMule equal status "FLAG"
-		set status "FLAG"
-		jump FindLoop always
+		jump NotFound equal mule null
+		jump FindDone always
 	
 	NotFound:
 		set error "No free units"
-		jump FindMule always
+		jump Start always
 	
 	FlagMule:
 		ucontrol flag procId
@@ -101,36 +84,45 @@ StartRun:
 	jump MoveFar equal status "MOVEFAR"
 
 	MoveNear:
-		ucontrol within nearX nearY 3 isNear
-		jump MoveFar equal isNear true
 		ucontrol approach nearX nearY 3
+		ucontrol within nearX nearY 4 isNear
 		set status "MOVENEAR"
-		jump Next always
+		jump Next equal isNear false
 
 	MoveFar:
-		ucontrol within farX farY 3 isFar
-		jump MoveNear equal isFar true
 		ucontrol approach farX farY 3
+		ucontrol within farX farY 4 isFar
 		set status "MOVEFAR"
-		jump Next always
+		jump MoveNear equal isFar true
 
 	Next:
 		jump Start always
 
-Reset:
-	jump Start equal mule null
-	op sub releaseWait @time releaseStart
-	jump Start lessThan releaseWait releaseWaitMs
-
 Release:
+	set releaseStart @time
+	jump Start equal status "IDLE"
 	set status "RELEASE"
+	sensor carriedMat @unit @firstItem
+	jump ReleaseUnit equal carriedMat null
+
+	Dump:
+		ucontrol approach sourceX sourceY dropRange
+		ucontrol within sourceX sourceY dropRange isNear
+		jump Dump equal isNear false
+	
+		SourceDump:
+			ucontrol itemDrop source 99
+			sensor carried @unit @totalItems
+			jump ReleaseUnit equal carried 0
+			# drop to air if source is full
+			ucontrol itemDrop @air cap
 	
 	ReleaseUnit:
 		ucontrol stop
 		ucontrol flag 0
 		ucontrol boost false
 		ucontrol unbind
-		set mule null
 		set status "IDLE"
 		set releaseStart @time
 		jump Start always
+
