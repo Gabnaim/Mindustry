@@ -104,8 +104,10 @@ CheckMule:
 	sensor muleFlag mule @flag
 	jump StartRun equal muleFlag procId
 	jump FindMule notEqual muleFlag 0
-	set @unit mule
-	jump StartRun always
+	RecycleMule:
+		ubind mule
+		ucontrol flag procId
+		jump StartRun always
 
 FindMule:
 	set releaseStart @time
@@ -253,21 +255,14 @@ Release:
 	jump ReleaseUnit equal carriedMat null
 
 	Dump:
-		ucontrol within sourceX sourceY dropRange isNearSource
-		jump SourceDump equal isNearSource true
-		ucontrol boost true
 		ucontrol approach sourceX sourceY dropRange
-		jump Dump always
+		ucontrol within sourceX sourceY dropRange isNear
+		jump Dump equal isNear false
 	
 		SourceDump:
-			set dropI 0
-			SourceDumpLoop:
-				ucontrol itemDrop source cap
-				sensor carried @unit @totalItems
-				jump ReleaseUnit equal carried 0
-				op add dropI dropI 1
-				jump SourceDumpLoop lessThan dropI 100
-	
+			ucontrol itemDrop source 99
+			sensor carried @unit @totalItems
+			jump ReleaseUnit equal carried 0
 			# drop to air if source is full
 			ucontrol itemDrop @air cap
 	
