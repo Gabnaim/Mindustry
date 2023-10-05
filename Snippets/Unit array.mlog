@@ -32,74 +32,64 @@ Preflag:
 #-------------------------------------------------
 	set flagStart @time
 	Count:
-		set firstUnit null
+		set status "COUNT"
 		set flagged 0
 		set free 0
 		set units 0
-		set status "COUNT"
-	
+		
+		ubind unitType
+		jump NoUnits equal @unit null
+		set firstUnit @unit
+		jump CountProcess always
+		
 		CountLoop:
 			ubind unitType
-			jump NoUnits equal @unit null
-			sensor isDead @unit @dead
-			jump CountLoop equal isDead true
-	
 			jump FinishCount equal firstUnit @unit
-			jump CountProcess notEqual firstUnit null
-			set firstUnit @unit
 	
 		CountProcess:
+			sensor isDead @unit @dead
+			jump CountLoop equal isDead true
 			sensor flag @unit @flag
-			jump CountFlagged equal flag procId
 			jump CountFree equal flag 0
-			jump NextCount always
-			
-		CountFlagged:
-			jump DoCountFlagged greaterThanEq flagged maxUnits
+			jump NextCount notEqual flag procId
+			jump CountFlagged greaterThanEq flagged maxUnits
+
 			SaveFlagged: 
 				set unit @unit
 				set arrayIndex flagged
 				op add arrayReturn @counter 1
 				jump ArraySet always
 	
-			DoCountFlagged:
+			CountFlagged:
 				op add flagged flagged 1
 				jump NextCount always
 	
-		CountFree:
-			sensor controlled @unit @controlled
-			jump NextCount greaterThanEq controlled 2
-			op add free free 1
+			CountFree:
+				op add free free 1
 		
 		NextCount:
 			op add units units 1
 			jump CountLoop always
 	
 		FinishCount:
-			jump NoUnits equal units 0
-			jump Flag lessThan flagged maxUnits
+			jump FlagDone equal flagged maxUnits
 			jump Unflag greaterThan flagged maxUnits
-			jump FlagDone always
 	
 	Flag:
-		op sub toFlag maxUnits flagged
-		op min toFlag toFlag free
-		jump FlagDone lessThanEq toFlag 0
+		jump FlagDone equal free 0
 	
 		set status "FLAG"
-		set firstUnit null
-		set tooFar 0
+		ubind unitType
+		set firstUnit @unit
+		jump FlagProcess always
 	
 		FlagLoop:
 			ubind unitType
-			sensor isDead @unit @dead
-			jump FlagLoop equal isDead true
-	
-			jump FinishFlag equal firstUnit @unit
-			jump FlagProcess notEqual firstUnit null
-			set firstUnit @unit
+			jump FlagDone equal firstUnit @unit
 	
 		FlagProcess:
+			sensor isDead @unit @dead
+			jump FlagLoop equal isDead true
 			sensor flag @unit @flag
 			jump NextFlag notEqual flag 0
 	
@@ -113,9 +103,7 @@ Preflag:
 				op sub xDiff @thisx x
 				op sub yDiff @thisy y
 				op len distance xDiff yDiff
-				jump FlagUnit lessThanEq distance maxDistance
-				op add tooFar tooFar 1
-				jump NextFlag always
+				jump NextFlag greaterThan distance maxDistance
 	
 			FlagUnit:
 				ucontrol flag procId
@@ -123,51 +111,42 @@ Preflag:
 				set unit @unit
 				op add arrayReturn @counter 1
 				jump ArraySet always
-				op sub toFlag toFlag 1
 				op add flagged flagged 1
 		
 		NextFlag:
-			jump FlagLoop greaterThan toFlag 0
-	
+			jump FlagLoop lessThan flagged maxUnits
+		
 		FinishFlag:
 			jump FlagDone always
 	
 	Unflag:
-		op sub toUnflag flagged maxUnits
-		jump FlagDone lessThanEq toUnflag 0
-	
 		set status "UNFLAG"		
-		set firstUnit null
+
+		ubind unitType
+		set firstUnit @unit
+		jump UnflagProcess always
 	
 		UnflagLoop:
 			ubind unitType
-			sensor isDead @unit @dead
-			jump UnflagLoop equal isDead true
-	
-			jump FinishUnflag equal firstUnit @unit
-			jump UnflagProcess notEqual firstUnit null
-			set firstUnit @unit
+			jump FlagDone equal firstUnit @unit
 	
 		UnflagProcess:
+			sensor isDead @unit @dead
+			jump UnflagLoop equal isDead true
 			sensor flag @unit @flag
 			jump NextUnflag notEqual flag procId
 	
 		UnflagUnit:
 			ucontrol flag 0
-			op sub toUnflag toUnflag 1
 			op sub flagged flagged 1
 		
 		NextUnflag:
 			jump UnflagLoop greaterThan flagged maxUnits
 		
-		FinishUnflag:
-			jump FlagDone always
-	
 		FlagDone:
 			
-
 	GetStartUnit:
-		jump SetFinishTime equal maxUnits 0
+		jump SetFinishTime equal flagged 0
 		set arrayIndex 0
 		op add arrayReturn @counter 1
 		jump ArrayGet always
