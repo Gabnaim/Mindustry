@@ -158,25 +158,29 @@ Preflag:
 			op sub flagged flagged 1
 		
 		NextUnflag:
-			jump UnflagLoop lessThanEq flagged maxUnits
+			jump UnflagLoop greaterThan flagged maxUnits
 		
 		FinishUnflag:
 			jump FlagDone always
 	
 		FlagDone:
+			
 
 	GetStartUnit:
+		jump SetFinishTime equal maxUnits 0
 		set arrayIndex 0
 		op add arrayReturn @counter 1
 		jump ArrayGet always
 		jump Preflag equal unit null
+
+	SetFinishTime:
 		op sub flagTime @time flagStart
-	
 		ucontrol approach @thisx @thisy 5
 
 	set status "START"
 	set arrayIndex 0
 	set releaseStart @time
+	sensor lastActive switch @enabled
 
 Start:
 	sensor active switch @enabled
