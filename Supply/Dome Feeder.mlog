@@ -133,27 +133,29 @@ FindMule:
 	set mule null
 	set status "FIND"
 
+	ubind unitType
+	jump NotFound equal @unit null
+	set firstUnit @unit
+	jump FlagProcess always
+
 	FindLoop:
 		ubind unitType
-		jump NotFound equal @unit null
-		sensor unitDead @unit @dead
-		jump FindLoop equal unitDead true
-	
-		jump FinishCount equal firstUnit @unit
-		jump FlagProcess notEqual firstUnit null
-		set firstUnit @unit
+		jump FinishFind equal firstUnit @unit
 	
 	FlagProcess:
+		sensor unitDead @unit @dead
+		jump FindLoop equal unitDead true
+
 		sensor flag @unit @flag
 		jump UseMule equal flag procId
 		jump FindLoop notEqual flag 0
+
 		sensor controlled @unit @controlled
-		jump UseMule lessThan controlled 2
+		jump FlagMule lessThan controlled 2
 		jump FindLoop always
 
-	FinishCount:
-		jump NotFound equal mule null
-		jump FindDone always
+	FinishFind:
+		jump FindDone notEqual mule null
 	
 	NotFound:
 		set error "No free units"
