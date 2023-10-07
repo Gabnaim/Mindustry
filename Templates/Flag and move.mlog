@@ -1,0 +1,117 @@
+Initialize:
+	set status "INITIALIZE"
+	set unitType @poly
+	set maxUnits 4
+
+	GetSwitch:
+		set switch switch1
+		jump GetSwitch equal switch null
+
+	GetId:
+		op shl procId @thisx 9
+		op add procId procId @thisy
+
+	op sub moveX @thisx 0
+	op sub moveY @thisy 8
+
+Start:
+	sensor active switch @enabled
+	jump Start equal active false
+
+#-------------------------------------------------
+Preflag:
+#-------------------------------------------------
+	Count:
+		set status "COUNT"
+		set flagged 0
+		set free 0
+		set units 0
+		
+		ubind unitType
+		jump Start equal @unit null
+		set firstUnit @unit
+		jump CountProcess always
+		
+		CountLoop:
+			ubind unitType
+			jump FinishCount equal firstUnit @unit
+	
+		CountProcess:
+			sensor isDead @unit @dead
+			jump CountLoop equal isDead true
+			sensor flag @unit @flag
+			jump CountFree equal flag 0
+			jump NextCount notEqual flag procId
+	
+			CountFlagged:
+				op add flagged flagged 1
+				jump NextCount always
+	
+			CountFree:
+				op add free free 1
+		
+		NextCount:
+			op add units units 1
+			jump CountLoop always
+	
+		FinishCount:
+			jump Start equal flagged maxUnits
+			jump Unflag greaterThan flagged maxUnits
+	
+	Flag:
+		jump Start equal free 0
+
+		ubind unitType
+		set firstUnit @unit
+		jump FlagProcess always
+	
+		FlagLoop:
+			ubind unitType
+			jump FinishFlag equal firstUnit @unit
+	
+		FlagProcess:
+			sensor isDead @unit @dead
+			jump FlagLoop equal isDead true
+			sensor flag @unit @flag
+			jump NextFlag notEqual flag 0
+	
+		ProcessFree: 
+			sensor controlled @unit @controlled
+			jump NextFlag greaterThanEq controlled 2
+	
+			FlagUnit:
+				ucontrol flag procId
+				op add flagged flagged 1
+				ucontrol move moveX moveY
+		
+		NextFlag:
+			jump FlagLoop lessThan flagged maxUnits
+		
+		FinishFlag:
+			jump Start always
+	
+	Unflag:
+
+		ubind unitType
+		set firstUnit @unit
+		jump UnflagProcess always
+	
+		UnflagLoop:
+			ubind unitType
+			jump FlagDone equal firstUnit @unit
+	
+		UnflagProcess:
+			sensor isDead @unit @dead
+			jump UnflagLoop equal isDead true
+			sensor flag @unit @flag
+			jump NextUnflag notEqual flag procId
+	
+		UnflagUnit:
+			ucontrol flag 0
+			op sub flagged flagged 1
+		
+		NextUnflag:
+			jump UnflagLoop greaterThan flagged maxUnits
+		
+		FlagDone:
+			jump Start always
