@@ -2,7 +2,7 @@ Initialize:
 	set status "INITIALIZE"
 	set unitType @flare
 	set maxUnits 4
-	set arrayLength 24
+	
 	set maxDistance 100 # do not bind if further away
 	set releaseWaitSecs 10
 
@@ -10,6 +10,8 @@ Initialize:
 
 	set switch switch1
 	jump NoSwitch equal switch null
+
+	set arrayLength 24
 	jump TooMany greaterThan maxUnits arrayLength
 
 	GetId:
@@ -151,21 +153,21 @@ Preflag:
 		
 		FlagDone:
 			op sub flagTime @time flagStart
+			jump Preflag equal maxUnits 0
+			jump NoUnits equal flagged 0
 			
 	GetStartUnit:
-		jump SetFinishTime equal flagged 0
 		set arrayIndex 0
 		op add arrayReturn @counter 1
 		jump ArrayGet always
 		jump Preflag equal unit null
-
-	SetFinishTime:
 		
 		ucontrol approach @thisx @thisy 5
 
 	set status "START"
 	set error " "
 	set arrayIndex 0
+	set tooFar 0
 	set releaseStart @time
 	sensor lastActive switch @enabled
 
@@ -286,7 +288,6 @@ Stop:
 		jump Start always
 
 Release:
-
 	set arrayIndex 0
 	ReleaseLoop:
 		op add arrayReturn @counter 1
@@ -311,7 +312,7 @@ Release:
 Errors:
 #-------------------------------------------------
 TooMany:
-	set error "Max 10 units supported"
+	set error "Max 24 units supported"
 	jump Error always
 	
 NoSwitch:
@@ -330,7 +331,6 @@ TooFar:
 Error:
 	# idle here until user looks at error and restarts
 	jump Error always
-
 
 #-------------------------------------------------
 Array:
