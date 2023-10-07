@@ -9,73 +9,76 @@ Initialize:
 
 Start:
 	jump GetUnitType greaterThan unitIndex 0
-	print "[cyan]Flag[] - [yellow]Carried[] - [green]Health[]\n"
+	print "Flag - Carried - Health\n"
+
 GetUnitType:
 	lookup unit unitType unitIndex
-	set firstUnit null
-	set units 0
-
-BindUnit:
+	
+ProcessUnitType:
 	ubind unitType
 	jump NextUnitType equal @unit null
-	sensor dead @unit @dead
-	jump BindUnit equal dead true
-  	jump FinishGroup equal firstUnit @unit
-	jump ProcessUnit notEqual firstUnit null
-	
-SetFirst:
+	set units 0
 	set firstUnit @unit
+	jump CountProcess always
 
-ProcessUnit:
-	jump FinishUnit equal showLine false
-	set hasData false
-	PrintFlag:
-		jump PrintCarried equal showFlag false
-		sensor flag @unit @flag
-		jump PrintCarried equal flag 0
-		set hasData true
-		print "[cyan]"
-		print flag
-		print "[] "
+	UnitLoop:
+		ubind unitType
+		jump FinishGroup equal firstUnit @unit
 	
-	PrintCarried:
-		jump PrintHealth equal showCarried false
-		sensor carried @unit @totalItems
-		jump PrintHealth equal carried 0
-		sensor material @unit @firstItem
-		set hasData true
-		print "[yellow]"
-		print carried
-		print " "
-		print material
-		print "[] "
-
-	PrintHealth:
-		jump PrintEnd equal showHealth false
-		sensor maxHealth @unit @maxHealth
-		sensor health @unit @health
-		jump PrintEnd equal health maxHealth
-		op mul health health 100
-		op idiv healthPct health maxHealth
-		set hasData true
-		print "[green]"
-		print healthPct
-		print "%[] "
+	CountProcess:
+		sensor dead @unit @dead
+		jump UnitLoop equal dead true
+	
+	ProcessUnit:
+		jump FinishUnit equal showLine false
+		set hasData false
+		PrintFlag:
+			jump PrintCarried equal showFlag false
+			sensor flag @unit @flag
+			jump PrintCarried equal flag 0
+			set hasData true
+			#print "[cyan]"
+			print flag
+			#print "[] "
+			print " "
 		
-	PrintEnd:
-		jump FinishUnit equal hasData false
-		print "\n"
+		PrintCarried:
+			jump PrintHealth equal showCarried false
+			sensor carried @unit @totalItems
+			jump PrintHealth equal carried 0
+			sensor material @unit @firstItem
+			set hasData true
+			print "[yellow]"
+			print carried
+			print " "
+			print material
+			print "[] "
 	
-FinishUnit:
-	op add units units 1
-	jump BindUnit always
-
-FinishGroup:
-	print "[white]------"
-	print unitType
-	print ": "
-	print units
-	print "------[]\n"
+		PrintHealth:
+			jump PrintEnd equal showHealth false
+			sensor maxHealth @unit @maxHealth
+			sensor health @unit @health
+			jump PrintEnd equal health maxHealth
+			op mul health health 100
+			op idiv healthPct health maxHealth
+			set hasData true
+			print "[green]"
+			print healthPct
+			print "%[] "
+			
+		PrintEnd:
+			jump FinishUnit equal hasData false
+			print "\n"
+		
+	FinishUnit:
+		op add units units 1
+		jump UnitLoop always
+	
+	FinishGroup:
+		print unitType
+		print ": "
+		print units
+		print "------\n"
 
 NextUnitType:
 	op add unitIndex unitIndex 1

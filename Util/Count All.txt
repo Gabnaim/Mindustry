@@ -8,33 +8,29 @@ Initialize:
 		jump Start equal useMemory false
 		jump GetMemory equal memory null
 
+Start:
 	set unitTypes 0
 	set unitIndex 0
 
-Start:
-GetUnitType:
+ProcessUnitType:
 	lookup unit unitType unitIndex
-	set firstUnit null
-	set units 0
 
-GetNextUnit:
-BindUnit:
 	ubind unitType
 	jump NextUnitType equal @unit null
-	sensor isDead @unit @dead
-	jump GetNextUnit equal isDead true
 
-	jump FinishGroup equal firstUnit @unit
-  	jump StartGroup equal firstUnit null
-	sensor firstDead firstUnit @dead
-	jump ProcessUnit equal firstDead false
-
-StartGroup:
+	set units 0
 	set firstUnit @unit
+	jump CountProcess always
 
-ProcessUnit:
-	op add units units 1
-	jump GetNextUnit always
+	UnitLoop:
+		ubind unitType
+		jump FinishGroup equal firstUnit @unit
+	
+	CountProcess:
+		sensor dead @unit @dead
+		jump UnitLoop equal dead true
+		op add units units 1
+		jump UnitLoop always
 
 FinishGroup:
 	print unitType
@@ -46,12 +42,10 @@ FinishGroup:
 
 NextUnitType:
 	op add unitIndex unitIndex 1
-	jump GetUnitType lessThanEq unitIndex maxUnitIndex
+	jump ProcessUnitType lessThanEq unitIndex maxUnitIndex
 	
 Finish:
 	set totalTypes unitTypes
 	write totalTypes memory TOTAL_ADDR
-	set unitTypes 0
-	set unitIndex 0
 	printflush message1
 	jump Start always

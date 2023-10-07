@@ -4,7 +4,6 @@ print "Prints flag, health, and carried item type and quantity of each unit of t
 printflush message1
 
 Initialize:
-	printflush message1
 	set useMemory true
 	set unitType @poly
 	set UNIT_TYPE_ADDR 0
