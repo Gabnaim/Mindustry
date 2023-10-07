@@ -198,12 +198,15 @@ FindRecruit:
 
 	ubind unitType
 	jump NoUnits equal @unit null
+	set tooFar 0
 	set firstUnit @unit
 	jump ProcessRecruit always
 
 	FindLoop:
 		ubind unitType
-		jump Next equal firstUnit @unit
+		jump NoReserves equal firstUnit @unit
+		sensor isFirstDead firstUnit @dead
+		jump NoReserves equal isFirstDead true
 	
 	ProcessRecruit:
 		sensor isDead @unit @dead
@@ -222,6 +225,7 @@ FindRecruit:
 			op sub yDiff @thisy y
 			op len distance xDiff yDiff
 			jump Reflag lessThanEq distance maxDistance
+			op add tooFar tooFar 1
 		jump FindLoop always
 	
 	Reflag:
@@ -229,6 +233,15 @@ FindRecruit:
 		set unit @unit
 		op add arrayReturn @counter 1
 		jump ArraySet always
+		op add flagged flagged 1
+		jump FindDone always
+	
+	NoReserves:
+		jump Next equal unit null
+		set unit null
+		op add arrayReturn @counter 1
+		jump ArraySet always
+		jump Next always
 
 	FindDone:
 
@@ -247,13 +260,13 @@ DoStuff:
 		ucontrol within farX farY 4 isFar
 		jump MoveNear equal isFar true
 
-	Next:
-		op add arrayIndex arrayIndex 1
-		jump Start lessThan arrayIndex maxUnits
+Next:
+	op add arrayIndex arrayIndex 1
+	jump Start lessThan arrayIndex maxUnits
 
-	FinishGroup:
-		set arrayIndex 0
-		jump Start always
+FinishGroup:
+	set arrayIndex 0
+	jump Start always
 
 #--------------------------------------------------
 WrapUp:
