@@ -1,8 +1,10 @@
 Initialize:
+	printflush message1
 	set useMemory true
 	set maxUnitIndex 37 #Serpulo
 	set TOTAL_ADDR 38
-	printflush message1
+	set maxUnits 150 #if unitcount is going nuts, we should reset
+	
 	GetMemory:
 		set memory cell1
 		jump Start equal useMemory false
@@ -17,7 +19,6 @@ ProcessUnitType:
 
 	ubind unitType
 	jump NextUnitType equal @unit null
-
 	set units 0
 	set firstUnit @unit
 	jump CountProcess always
@@ -25,6 +26,8 @@ ProcessUnitType:
 	UnitLoop:
 		ubind unitType
 		jump FinishGroup equal firstUnit @unit
+		sensor isFirstDead firstUnit @dead
+		jump FinishGroup equal isFirstDead true
 	
 	CountProcess:
 		sensor dead @unit @dead

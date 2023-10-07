@@ -1,11 +1,11 @@
 Initialize:
 	printflush message1
-	set maxIndex 37 #Serpulo
 	set showFlag true
 	set showCarried true
 	set showHealth true
 	op or showLine showFlag showCarried
 	op or showLine showLine showHealth
+	set maxIndex 37 #Serpulo
 
 Start:
 	jump GetUnitType greaterThan unitIndex 0
@@ -24,6 +24,8 @@ ProcessUnitType:
 	UnitLoop:
 		ubind unitType
 		jump FinishGroup equal firstUnit @unit
+		sensor isFirstDead firstUnit @dead
+		jump FinishGroup equal isFirstDead true
 	
 	CountProcess:
 		sensor dead @unit @dead
