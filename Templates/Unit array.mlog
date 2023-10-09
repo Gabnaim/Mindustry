@@ -162,6 +162,7 @@ Preflag:
 		jump ArrayGet always
 		jump Preflag equal unit null
 		
+		ubind unit
 		ucontrol approach @thisx @thisy 5
 
 	set status "START"
@@ -179,6 +180,8 @@ Start:
 	sensor active switch @enabled
 	jump ActiveChanged notEqual active lastActive
 	jump Reset equal active false
+	op sub releaseWait @time releaseStart
+	jump Reset greaterThanEq releaseWait releaseWaitMs
 
 CheckUnit:
 	op add arrayReturn @counter 1
@@ -275,6 +278,7 @@ WrapUp:
 ActiveChanged:
 	set lastActive active
 	jump Initialize equal active true
+	jump Stop always
 
 Reset:
 	jump Start equal status "IDLE"
@@ -457,3 +461,25 @@ ArrayGet:
 	set @counter arrayReturn
 	set unit unit23
 	set @counter arrayReturn
+
+DebugMove:
+	jump Start equal status "IDLE"
+	set status "DEBUGMOVE"
+	set arrayIndex 0
+	DebugLoop:
+		op add arrayReturn @counter 1
+		jump ArrayGet always
+		jump DebugNext equal unit null
+		
+		ubind unit
+		sensor x unit @x
+		sensor y unit @y
+		op add debugX x 10
+		op add debugY y 2
+		ucontrol move debugX debugY
+
+		DebugNext:
+			op add arrayIndex arrayIndex 1
+			jump DebugLoop lessThan arrayIndex maxUnits
+		set status "IDLE"
+		jump Start always
