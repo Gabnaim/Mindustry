@@ -5,7 +5,7 @@ Initialize:
 	set takeAll false
 	set pickupHere true # if false, drop here
 	set coreTransport true # other side is core
-	set maxDistance 10
+	set maxDistance 200
 
 	# if coreTransport is false, coordinates of other target
     # are required
