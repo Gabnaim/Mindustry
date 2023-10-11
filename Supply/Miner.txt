@@ -6,7 +6,7 @@ Initialize:
 	set minedOre @scrap
 	set dropToCore false
 	set maxDistance 100 # do not bind if further away
-	set releaseWaitSecs 30
+	set releaseWaitSecs 300
 	
 	set useCoords false
 	set oreX 0
@@ -217,9 +217,9 @@ Preflag:
 	sensor lastActive switch @enabled
 
 #-------------------------------------------------
-Start:
+MainLoop:
 #-------------------------------------------------
-
+Start:
 	sensor active switch @enabled
 	jump ActiveChanged notEqual active lastActive
 	jump Reset equal active false
