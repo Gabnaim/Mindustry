@@ -4,7 +4,10 @@ Initialize:
 	set maxUnits 4
 	
 	set maxDistance 100 # do not bind if further away
-	set releaseWaitSecs 10
+
+	# How long to wait before releasing units
+	# If we idle often set it longer
+	set releaseWaitSecs 30
 
 	set error " "
 
@@ -173,7 +176,7 @@ Preflag:
 	sensor lastActive switch @enabled
 
 #--------------------------------------------------
-DoStuff:
+MainLoop:
 #--------------------------------------------------
 
 Start:
@@ -283,8 +286,6 @@ ActiveChanged:
 Reset:
 	jump Start equal status "IDLE"
 	jump Release equal status "RELEASING"
-	op sub releaseWait @time releaseStart
-	jump Start lessThan releaseWait releaseWaitMs
 
 Stop:
 	set status "STOPPING"
@@ -300,11 +301,9 @@ Stop:
 		StopNext:
 			op add arrayIndex arrayIndex 1
 			jump StopLoop lessThan arrayIndex maxUnits
-	FinishStop:
-		set status "RELEASING"
-		jump Start always
 
 Release:
+	set status "RELEASING"
 	set arrayIndex 0
 	ReleaseLoop:
 		op add arrayReturn @counter 1
@@ -312,7 +311,6 @@ Release:
 		jump ReleaseNext equal unit null
 		
 		ubind unit
-		ucontrol stop
 		ucontrol flag 0
 		ucontrol move releaseX releaseY
 
@@ -462,6 +460,8 @@ ArrayGet:
 	set unit unit23
 	set @counter arrayReturn
 
+# This is only called when I want to see which units
+# are stored in the array. Remove for release code
 DebugMove:
 	jump Start equal status "IDLE"
 	set status "DEBUGMOVE"
