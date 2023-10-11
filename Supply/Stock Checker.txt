@@ -1,8 +1,9 @@
 set sourceFile "Stock Checker.txt"
-# Checks if the material in the cire is within limits.
+# Checks if the material in the source is within limits.
 # If not, it disables anything linked to it
 Initialize:
-	set material @surge-alloy
+	set useCore false
+	set material @blast-compound
 	
 	GetLimits:
 		set sourceMin 0
@@ -10,20 +11,47 @@ Initialize:
 		set autoMax true
 		jump GetLimits greaterThan sourceMin sourceMax
 
+	jump GetCore equal useCore true
+	
 	GetLinks:
-		jump GetLinks lessThan @links 1
+		jump GetLinks lessThan @links 2
+		set i 0
+		LinkLoop:
+			getlink link i
+			sensor type link @type
 
-	BindUnit:
+			jump FoundContainer equal type @container
+			jump FoundContainer equal type @vault
+			jump FoundContainer equal type @core-shard
+			jump FoundContainer equal type @core-foundation
+			jump FoundContainer equal type @core-nucleus
+			jump NextLink always
+
+			FoundContainer:
+				set source link
+				jump GetSourceLimit always
+			NextLink:
+				op add i i 1
+				jump LinkLoop lessThan i @links
+			jump GetLinks equal source null
+
+	GetCore:
+		jump GetCore equal @links 0
+
 		ubind @flare
 		jump LocateCore notEqual @unit null
+		ubind @mono
+		jump LocateCore notEqual @unit null
 		ubind @poly
-		jump BindUnit equal @unit null
+		jump GetCore equal @unit null
 
 	LocateCore:
 		ulocate building core false 0 coreX coreY coreFound core
+		jump GetCore equal coreFound false
 		set source core
 
-		sensor cap core @itemCapacity
+	GetSourceLimit:
+		sensor cap source @itemCapacity
 		jump Start equal autoMax false
 		op sub sourceMax cap 1 
 
@@ -33,16 +61,15 @@ Start:
 	op greaterThanEq withinMin stock sourceMin
 	op and isOpen withinMin withinMax 
 
-	LinkLoop:
-		set i 0
-		LoopThroughLinks:
-			getlink link i
-			jump Next equal link source
-			control enabled link isOpen
-			
-			Next:
-				op add i i 1
-				jump LoopThroughLinks lessThan i @links
+	set i 0
+	BuildingLoop:
+		getlink link i
+		jump NextBuilding equal link source
+		control enabled link isOpen
+		
+		NextBuilding:
+			op add i i 1
+			jump BuildingLoop lessThan i @links
 
 	jump Start always
 			
