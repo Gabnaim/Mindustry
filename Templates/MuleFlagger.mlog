@@ -2,11 +2,17 @@ set name "Mule Flagger"
 
 Initialize:
 	set unitType @flare
-	set switch switch1
-	set status "INITIALIZE"
-	jump Initialize equal switch null
+	set muleCount 2 # only one or two are supported
 	set releaseWaitSecs 5
+
+	set status "INITIALIZE"
 	set error " "
+
+	GetSwitch:
+		set switch switch1
+		jump GetSwitch equal switch null
+
+	op min muleCount muleCount 2
 
 	op shl procId @thisx 9
 	op add procId procId @thisy
@@ -18,13 +24,29 @@ Initialize:
 	op add farY @thisy 15
 
 	set releaseStart @time
-
-Start:
-	op sub releaseWait @time releaseStart
-	jump Release greaterThanEq releaseWait releaseWaitMs
+	sensor lastActive switch @enabled
+	set moveDebug true
 	
+Start:
 	sensor active switch @enabled
-	jump Start equal active false
+	jump ActiveChanged notEqual active lastActive
+	jump Reset equal active false
+	op sub releaseWait @time releaseStart
+	jump Reset greaterThanEq releaseWait releaseWaitMs
+
+SelectMule:
+	jump GetMule1 equal muleCount 1
+
+	# flip the mule switch
+	op notEqual useMule1 useMule1 true
+	jump GetMule2 equal useMule1 false
+	
+	GetMule1:
+		set useMule1 true
+		set mule mule1
+		jump CheckMule always
+	GetMule2:
+		set mule mule2
 
 CheckMule:
 	jump FindMule equal mule null
@@ -40,46 +62,85 @@ CheckMule:
 		jump StartRun always
 
 FindMule:
-	set firstUnit null
-	set free 0
 	set status "FIND"
+	set free 0
+	set flagged 0
+	set minDistance 1000
+
+	ubind unitType
+	jump Start equal @unit null
+	set firstUnit @unit
+	jump FlagProcess always
 
 	FindLoop:
 		ubind unitType
-		jump NoUnits equal @unit null
-		sensor unitDead @unit @dead
-		jump FindLoop equal unitDead true
-	
 		jump FinishCount equal firstUnit @unit
-		jump FlagProcess notEqual firstUnit null
-		set firstUnit @unit
+		jump FindDone greaterThanEq flagged muleCount
 	
 	FlagProcess:
+		sensor unitDead @unit @dead
+		jump FindLoop equal unitDead true
 		sensor flag @unit @flag
-		jump UseMule equal flag procId
+		jump FlagMules equal flag procId
 		jump FindLoop notEqual flag 0
+
 		sensor controlled @unit @controlled
-		jump UseMule lessThan controlled 2
-		jump FindLoop always
+		jump FindLoop greaterThanEq controlled 2
+
+	CheckDistance:
+		ucontrol stop
+		sensor x @unit @x
+		sensor y @unit @y
+		op sub xDiff @thisx x
+		op sub yDiff @thisy y
+		op len distance xDiff yDiff
+		jump CountFree equal status "FIND"
+		GetClosest:
+			op sub diff distance minDistance
+			op abs diff diff
+			jump FlagMule1 lessThan diff 3
+			jump FindLoop equal muleCount 1
+
+			op sub diff distance prevMin
+			op abs diff diff
+			jump FlagMule2 lessThan diff 3
+			jump FindLoop always
+		
+		CountFree:
+			op add free free 1
+			jump FindLoop greaterThan distance minDistance
+			set prevMin minDistance
+			set minDistance distance
+			jump FindLoop always
 	
 	FinishCount:
-		jump NotFound equal mule null
-		jump FindDone always
+		jump Start equal free 0
+		jump FindMule equal status "FLAG"
+		set status "FLAG"
+		jump FindLoop always
+
+	FlagMules:
+		jump FlagMule2 equal flagged 1
 	
-	NoUnits:
-		set error "No free units"
-		jump Start always
-	
-	FlagMule:
+	FlagMule1:
 		ucontrol flag procId
-	
-	UseMule:
-		set mule @unit
+		set mule1 @unit
+		op add flagged flagged 1
+		jump FindLoop lessThan flagged muleCount
+		jump FindDone always
+
+	FlagMule2:
+		ucontrol flag procId
+		set mule2 @unit
+		op add flagged flagged 1
+		jump FindLoop lessThan flagged muleCount
 	
 	FindDone:
 		set error " "
+		jump DebugMove equal moveDebug true
 
 StartRun:
+	ubind mule
 	set releaseStart @time
 	jump MoveFar equal status "MOVEFAR"
 
@@ -98,30 +159,67 @@ StartRun:
 	Next:
 		jump Start always
 
-Release:
+ActiveChanged:
+	set lastActive active
+	jump Stop equal active false
 	set releaseStart @time
-	jump Start equal status "IDLE"
-	set status "RELEASE"
-	sensor carriedMat @unit @firstItem
-	jump ReleaseUnit equal carriedMat null
+	jump Start always
 
-	Dump:
-		ucontrol approach sourceX sourceY dropRange
-		ucontrol within sourceX sourceY dropRange isNear
-		jump Dump equal isNear false
+Reset:
+	jump Start equal status "IDLE"
+	jump Release equal status "RELEASING"
+
+Stop:
+	set status "STOPPING"
+	ubind mule1
+	ucontrol stop
+	ubind mule2
+	ucontrol stop
+	set status "RELEASING"
+
+Release:
+	op sub releaseWait @time releaseStart
+	jump Start lessThan releaseWait releaseWaitMs
 	
-		SourceDump:
-			ucontrol itemDrop source 99
-			sensor carried @unit @totalItems
-			jump ReleaseUnit equal carried 0
-			# drop to air if source is full
-			ucontrol itemDrop @air cap
+	Unflag:
+		ubind unitType
+		set firstUnit @unit
+		jump UnflagProcess always
 	
-	ReleaseUnit:
-		ucontrol stop
-		ucontrol flag 0
-		ucontrol unbind
+		UnflagLoop:
+			ubind unitType
+			jump FinishRelease equal firstUnit @unit
+	
+		UnflagProcess:
+			sensor flag @unit @flag
+			jump UnflagLoop notEqual flag procId
+			ucontrol stop
+			ucontrol flag 0
+			ucontrol unbind
+			jump UnflagLoop always
+		
+	FinishRelease:
 		set status "IDLE"
 		set releaseStart @time
 		jump Start always
 
+DebugMove:
+	jump Start equal status "IDLE"
+	set status "DEBUGMOVE"
+		
+		ubind mule1
+		sensor x @unit @x
+		sensor y @unit @y
+		op add debugX x 10
+		op add debugY y 2
+		ucontrol move debugX debugY
+
+		ubind mule2
+		sensor x @unit @x
+		sensor y @unit @y
+		op add debugX x 10
+		op add debugY y 2
+		ucontrol move debugX debugY
+		
+		set debugMove false
+		jump StartRun always
