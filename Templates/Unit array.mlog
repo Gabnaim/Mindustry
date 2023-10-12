@@ -1,9 +1,22 @@
+# Test template for unit flagging and caching
+# Preflag will execute before switch is pressed and will:
+# - get back all flagged units by this proc
+# - unflag extra units flagged by this proc
+# After start, cached units are used and reflagged if needed
+# - if any cached unit is dead, Preflag is executed again
+#   and unused cache is cleared
+#
+# Some design choices I made:
+# - I skip 
+
 Initialize:
+	set name "Unit Array"
 	set status "INITIALIZE"
 	set unitType @flare
 	set maxUnits 4
 	
 	set maxDistance 100 # do not bind if further away
+						# set to 0 to skip
 
 	# How long to wait before releasing units
 	# If we idle often set it longer
@@ -17,20 +30,22 @@ Initialize:
 	set arrayLength 24
 	jump TooMany greaterThan maxUnits arrayLength
 
+	op mul releaseWaitMs releaseWaitSecs 1000
+
 	GetId:
 		op shl procId @thisx 9
 		op add procId procId @thisy
 
+	# these are all to make the units move to see what is flagged
 	op sub releaseX @thisx 2
 	op sub releaseY @thisy 5
 
-	op add nearX @thisx 20
+	op add nearX @thisx 5
 	op add nearY @thisy 0
-	op add farX @thisx 35
+	op add farX @thisx 20
 	op add farY @thisy 0
 
-	op mul releaseWaitMs releaseWaitSecs 1000
-	sensor lastActive switch @enabled
+	
 
 #-------------------------------------------------
 Preflag:
@@ -101,9 +116,11 @@ Preflag:
 	
 		ProcessFree: 
 			sensor controlled @unit @controlled
+			jump CheckDistance equal controlled 0
 			jump NextFlag greaterThanEq controlled 2
 	
 			CheckDistance:
+				jump FlagUnit lessThanEq maxDistance 0
 				sensor x @unit @x
 				sensor y @unit @y
 				op sub xDiff @thisx x
@@ -156,10 +173,27 @@ Preflag:
 		
 		FlagDone:
 			op sub flagTime @time flagStart
-			jump Preflag equal maxUnits 0
-			jump NoUnits equal flagged 0
+
+
+	# ClearArray will only be called if we are rebinding
+	# after a cached unit died. We might have less units than before
+	ClearArray:
+		jump ClearDone equal flagged maxUnits
+		set arrayIndex flagged 
+		set unit null
+		ClearLoop:
+			op add arrayReturn @counter 1
+			jump ArraySet always
+			op add arrayIndex arrayIndex 1
+			jump ClearLoop lessThan arrayIndex maxUnits
+		ClearDone:
+
+	# GetStartUnit is not necessary for basic logic, but I often use one
+	# to get unit info or locate ore
+	# I want it to be a cached unit so this code makes it visible
 			
 	GetStartUnit:
+		jump Preflag equal maxUnits 0
 		set arrayIndex 0
 		op add arrayReturn @counter 1
 		jump ArrayGet always
@@ -168,10 +202,9 @@ Preflag:
 		ubind unit
 		ucontrol approach @thisx @thisy 5
 
-	set status "START"
+	set status "IDLE"
 	set error " "
 	set arrayIndex 0
-	set tooFar 0
 	set releaseStart @time
 	sensor lastActive switch @enabled
 
@@ -199,57 +232,13 @@ CheckUnit:
 	jump DoStuff always
 
 Rebind:
-FindRecruit:
-	set status "FIND"
-
-	ubind unitType
-	jump NoUnits equal @unit null
-	set tooFar 0
-	set firstUnit @unit
-	jump ProcessRecruit always
-
-	FindLoop:
-		ubind unitType
-		jump NoReserves equal firstUnit @unit
-		sensor isFirstDead firstUnit @dead
-		jump NoReserves equal isFirstDead true
+	jump Preflag always
 	
-	ProcessRecruit:
-		sensor isDead @unit @dead
-		jump FindLoop equal isDead true
-
-		sensor flag @unit @flag
-		jump FindLoop notEqual flag 0
-
-		sensor controlled @unit @controlled
-		jump FindLoop greaterThanEq controlled 2
-
-		CheckRecruitDistance:
-			sensor x @unit @x
-			sensor y @unit @y
-			op sub xDiff @thisx x
-			op sub yDiff @thisy y
-			op len distance xDiff yDiff
-			jump Reflag lessThanEq distance maxDistance
-			op add tooFar tooFar 1
-		jump FindLoop always
-	
-	Reflag:
-		ucontrol flag procId
-		set unit @unit
-		op add arrayReturn @counter 1
-		jump ArraySet always
-		op add flagged flagged 1
-		jump FindDone always
-	
-	NoReserves:
-		jump Next equal unit null
-		set unit null
-		op add arrayReturn @counter 1
-		jump ArraySet always
-		jump Next always
-
-	FindDone:
+Reflag:
+	ubind unit
+	ucontrol flag procId
+	op add arrayReturn @counter 1
+	jump ArraySet always
 
 DoStuff:	
 	ubind unit
@@ -280,8 +269,10 @@ WrapUp:
 
 ActiveChanged:
 	set lastActive active
-	jump Initialize equal active true
-	jump Stop always
+	jump Stop equal active false
+	set releaseStart @time
+	set arrayIndex 0
+	jump Start always
 
 Reset:
 	jump Start equal status "IDLE"
@@ -301,9 +292,12 @@ Stop:
 		StopNext:
 			op add arrayIndex arrayIndex 1
 			jump StopLoop lessThan arrayIndex maxUnits
+		set status "RELEASING"
+		set arrayIndex 0
 
 Release:
-	set status "RELEASING"
+	op sub releaseWait @time releaseStart
+	jump Start lessThan releaseWait releaseWaitMs
 	set arrayIndex 0
 	ReleaseLoop:
 		op add arrayReturn @counter 1
@@ -321,6 +315,7 @@ Release:
 	FinishRelease:
 		set status "IDLE"
 		set releaseStart @time
+		set arrayIndex 0
 		jump Start always
 
 #-------------------------------------------------
