@@ -1,4 +1,4 @@
-set sourceFile "Unit Type Input.txt"
+set name "Unit Type Input"
 
 print "Gets unit type from two linked sorters and writes it to a memory cell. "
 print "Choose the base unit from input1. "
