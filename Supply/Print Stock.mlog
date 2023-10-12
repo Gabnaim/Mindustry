@@ -1,0 +1,49 @@
+Initialize:
+	GetLinks:
+		jump GetLinks lessThan @links 2
+		set i 0
+		LinkLoop:
+			getlink link i
+			sensor type link @type
+
+			jump FoundContainer equal type @container
+			jump FoundContainer equal type @vault
+			jump FoundContainer equal type @core-shard
+			jump FoundContainer equal type @core-foundation
+			jump FoundContainer equal type @core-nucleus
+			jump FoundMessage equal type @message
+			jump NextLink always
+
+			FoundContainer:
+				set source link
+				jump NextLink always
+			FoundMessage:
+				set message link
+			NextLink:
+				op add i i 1
+				jump LinkLoop lessThan i @links
+			jump GetLinks equal source null
+			jump GetLinks equal message null
+
+	printflush message
+	set i 0
+
+Start:
+	ItemLoop:
+		lookup item material i
+		sensor stock source material
+		jump Next equal stock 0
+		print material
+		print ": "
+		print stock
+		print "\n"
+	Next:
+		op add i i 1
+		jump ItemLoop lessThan i 16
+
+	FinishGroup:
+		printflush message
+		jump GetLinks lessThan @links 2
+		set i 0
+		jump Start always
+	
