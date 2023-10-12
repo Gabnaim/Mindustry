@@ -1,0 +1,6 @@
+Unit Utilities. Great for debugging.                        
+1. Unit selector (right four tiles): Select unit type using the two sorters. Left sorter: base unit, Right sorter: tier.
+2. Top switch: unflag all units of the selected type. Also dumps items.
+3. Left top message: print unit info (flag, health, items - each can be turned off).  
+4. Left bottom message: count all unit types.
+5. Bottom switch: move all unflagged 10 tiles below. Also dumps items.
