@@ -1,16 +1,20 @@
+set name "Poly Logic"
+
 Initialize:
-	set sourceFile "Poly Logic.txt"
 	set unitType @poly
 	set withdrawDistance 23
 	set defendRadius 23
 	set miningRange 8.5
+	set dropRange 8.5
+	set status "INITIALIZE"
 
-	set maxTick 360 #break loop after 6 seconds idle
+	op add checkRange miningRange 1
 	
 	GetStartInfo:
 		ubind unitType
 		jump GetStartInfo equal @unit null
 		ulocate building core false 0 coreX coreY coreFound core
+		jump GetStartInfo equal coreFound false
 		sensor maxStock core @itemCapacity
 		sensor cap @unit @itemCapacity
 		sensor range @unit @range
@@ -23,21 +27,41 @@ Initialize:
 		set switch switch1
 		jump GetLinks equal switch null
 	
-	set status "START"
+	set status "IDLE"
+	sensor lastActive switch @enabled
+	set i 0
+	set totalUnits 0
 	
 Start:
+	sensor active switch @enabled
+	jump ActiveChanged notEqual active lastActive
+	jump Start equal active false
+
+	set i 0
+	ubind unitType
+	jump Start equal @unit null
+	set firstUnit @unit
+	jump ProcessUnit always
+	
+MainLoop:
 CheckActive:
 	sensor active switch @enabled
+	jump ActiveChanged notEqual active lastActive
 	jump Start equal active false
 
 BindUnit:
 	ubind unitType
-	jump Start equal @unit null
-	sensor isDead @unit @dead
-	jump Start equal isDead true
-	sensor flag @unit @flag
-	jump Start notEqual flag 0
+	jump FinishGroup equal @unit firstUnit
+	sensor firstDead firstUnit @dead
+	jump FinishGroup equal firstDead true
 
+ProcessUnit:
+	sensor isDead @unit @dead
+	jump BindUnit equal isDead true
+	sensor flag @unit @flag
+	jump BindUnit notEqual flag 0
+	ucontrol boost true
+	
 SelectAction:
 	op add checkEnemyReturn @counter 1
 	jump CheckEnemy always
@@ -114,17 +138,14 @@ Withdraw:
 	set status "WITHDRAW"
 	ucontrol target 0 0 0
 	ucontrol targetp null 0
-	ucontrol within coreX coreY withdrawDistance isNearCore
-	jump Start equal isNearCore true
-	ucontrol approach coreX coreY withdrawDistance
-	jump Start always
+	ucontrol move coreX coreY 
+	jump Next always
 
 Mine:
 	set status "MINE"
-	sensor isMining @unit @mining
 	sensor carried @unit @totalItems
-	sensor carriedItem @unit @firstItem
 	jump DropItems equal carried cap
+	#jump FindOre greaterThan i 0
 
 	CheckStock:
 		sensor copper core @copper
@@ -150,35 +171,80 @@ Mine:
 	
 	FindOre:
 		jump MoveToOre equal carried 0
+		sensor carriedItem @unit @firstItem
 		jump DropItems notEqual carriedItem minedOre
-		jump Start equal isMining true
 	
 	MoveToOre:
-		ucontrol within oreX oreY miningRange isNearMine
+		ucontrol within oreX oreY checkRange isNearMine
 		jump MineOre equal isNearMine true
-		ucontrol mine oreX oreY
 		ucontrol approach oreX oreY miningRange
-	
+		jump Next always
 	MineOre:
 		ucontrol mine oreX oreY
-		jump Start always
+		jump Next always
 
 	DropItems:
-		ucontrol within coreX coreY miningRange isNearDrop
-		jump DropLoop equal isNearDrop true
-		ucontrol boost true
-		ucontrol approach coreX coreY miningRange
-		jump Start always
+		ucontrol approach coreX coreY dropRange
+		ucontrol within coreX coreY checkDropRange isNearDrop
+		jump Next equal isNearDrop false
 	
 		DropLoop:
 			set dropI 0
-			ucontrol boost false
-			sensor carried @unit @totalItems
 			LoopUntilEmpty:
 				ucontrol itemDrop core carried
 				sensor carried @unit @totalItems
-				jump Start equal carried 0
+				jump Next equal carried 0
 				op add dropI dropI 1
 				jump LoopUntilEmpty lessThan dropI 100
-			jump Start always
+			
+	ulocate building core false 0 coreX coreY coreFound core 
+	jump Next always
+
+Next:
+	op add i i 1
+	jump MainLoop always
+
+FinishGroup:
+	set totalUnits i
+	op div checkOffset totalUnits 2
+	op add checkDropRange dropRange checkOffset
+	jump Start always
+
+ActiveChanged:
+	set lastActive active
+	jump Stop equal active false
+	jump Start always
+
+Stop:
+	set status "STOP"
+	ubind unitType
+	jump FinishStop equal @unit null
+	set firstUnit @unit
+	jump StopProcess always
+
+	StopLoop:
+		ubind unitType
+		jump FinishStop equal firstUnit @unit
 	
+		StopProcess:
+			sensor flag @unit @flag
+			jump StopLoop notEqual flag 0
+
+		Dump:
+			ucontrol approach coreX coreY dropRange
+			ucontrol within coreX coreY dropRange isNearDrop
+			jump Dump equal isNearDrop false
+
+			ucontrol itemDrop core 999
+			sensor carried @unit @totalItems
+			jump StopUnit equal carried 0
+			ucontrol itemDrop @air 999
+
+		StopUnit:
+			ucontrol stop
+			ucontrol unbind
+			jump StopLoop always
+
+	FinishStop:
+		set status "IDLE"
+		jump Start always
