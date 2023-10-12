@@ -1,27 +1,16 @@
-# Test template for unit flagging and caching
-# Preflag will execute before switch is pressed and will:
-# - get back all flagged units by this proc
-# - unflag extra units flagged by this proc
-# After start, cached units are used and reflagged if needed
-# - if any cached unit is dead, Preflag is executed again
-#   and unused cache is cleared
-#
-# Some design choices I made:
-# - I skip 
+set name "Unit Array"
 
 Initialize:
-	set name "Unit Array"
-	set status "INITIALIZE"
-	set unitType @flare
-	set maxUnits 4
+	UserConfig:
+		set unitType @flare
+		set maxUnits 4	
+		set maxDistance 100 # do not bind if further away
+							# set to 0 to skip
 	
-	set maxDistance 100 # do not bind if further away
-						# set to 0 to skip
+		# How long to wait before releasing units
+		set releaseWaitSecs 30
 
-	# How long to wait before releasing units
-	# If we idle often set it longer
-	set releaseWaitSecs 30
-
+	set status "INITIALIZE"
 	set error " "
 
 	set switch switch1
@@ -36,16 +25,15 @@ Initialize:
 		op shl procId @thisx 9
 		op add procId procId @thisy
 
-	# these are all to make the units move to see what is flagged
-	op sub releaseX @thisx 2
-	op sub releaseY @thisy 5
-
-	op add nearX @thisx 5
-	op add nearY @thisy 0
-	op add farX @thisx 20
-	op add farY @thisy 0
-
-	
+	# this is for the test logic to make flagged visible
+	# Remove for release code
+	WiggleSetup:
+		op sub releaseX @thisx 2
+		op sub releaseY @thisy 5
+		op add nearX @thisx 5
+		op add nearY @thisy 0
+		op add farX @thisx 20
+		op add farY @thisy 0
 
 #-------------------------------------------------
 Preflag:
@@ -174,9 +162,6 @@ Preflag:
 		FlagDone:
 			op sub flagTime @time flagStart
 
-
-	# ClearArray will only be called if we are rebinding
-	# after a cached unit died. We might have less units than before
 	ClearArray:
 		jump ClearDone equal flagged maxUnits
 		set arrayIndex flagged 
@@ -187,10 +172,6 @@ Preflag:
 			op add arrayIndex arrayIndex 1
 			jump ClearLoop lessThan arrayIndex maxUnits
 		ClearDone:
-
-	# GetStartUnit is not necessary for basic logic, but I often use one
-	# to get unit info or locate ore
-	# I want it to be a cached unit so this code makes it visible
 			
 	GetStartUnit:
 		jump Preflag equal maxUnits 0
@@ -243,6 +224,10 @@ Reflag:
 DoStuff:	
 	ubind unit
 	set releaseStart @time
+
+----# start unit logic here 
+
+	# test logic is only to make flagged units visible
 	set status "MOVING"
 
 	MoveNear:
@@ -254,6 +239,8 @@ DoStuff:
 		ucontrol approach farX farY 3
 		ucontrol within farX farY 4 isFar
 		jump MoveNear equal isFar true
+
+----# end unit logic
 
 Next:
 	op add arrayIndex arrayIndex 1
