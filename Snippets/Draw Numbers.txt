@@ -1,0 +1,71 @@
+Initialize:
+	set status "INITIALIZE"
+	set display display1
+	set error " "
+	set size 176
+	set margin 6
+	set stroke 2
+	set segmentSize 8 
+	set charSpacing 2
+	set rowSpacing 4
+
+	op add midOffset segmentSize stroke
+	op mul fullOffset midOffset 2
+	op add charHeight fullOffset stroke	
+	op add charWidth segmentSize stroke
+	op add charWidth charWidth stroke
+	op add charOffset charWidth charSpacing 
+	op add rowOffset charHeight rowSpacing
+	
+	set topX 0
+	set topY size
+	op add startX topX margin
+	op sub startY topY margin
+
+	set curX startX
+	set curY startY
+
+	draw clear 176 196 222
+	draw color 254 254 0 255
+	draw stroke stroke
+
+Start:
+	jump Start equal status "FINISHED"
+	set status "DRAWING"
+
+PrecalcLine:
+	op sub midY curY midOffset
+	op sub bottY midY midOffset
+
+Draw0:
+	op add rightX curX midOffset
+	draw line curX curY curX bottY
+	draw line curX curY rightX curY
+	draw line rightX curY rightX bottY
+	draw line curX bottY rightX bottY
+
+	op add curX curX charOffset
+
+Draw1:
+	op add rightX curX midOffset
+	draw line rightX curY rightX bottY
+
+	op add curX curX charOffset
+
+Draw2:
+	op add rightX curX midOffset
+	draw line curX curY rightX curY
+	draw line curX midY rightX midY
+	draw line curX bottY rightX bottY
+	
+	draw line curX midY curX bottY
+	draw line rightX midY rightX curY
+
+	op add curX curX charOffset
+	
+Done:
+	drawflush display
+	set status "FINISHED"
+	jump Start always
+
+	
