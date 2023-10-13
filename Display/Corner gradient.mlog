@@ -1,0 +1,34 @@
+set name "Corner Gradient"
+Initialize:
+	set display display1
+	set i 0
+	set step 2
+	set lineStep 3
+
+	draw clear 255 255 255
+	drawflush display
+
+	draw stroke lineStep
+
+Start:
+DrawGradient:
+	set x1 0
+	set x2 0
+	set y1 0
+	set y2 0
+
+GradientLoop:
+	# blue to cyan
+	draw color 0 i 255 255
+	op add x2 x2 lineStep
+	op add y1 y1 lineStep
+	draw line x1 y1 x2 y2
+	op add i i step
+	jump GradientLoop lessThanEq i 255
+
+FinishDraw:
+	drawflush display
+	set i 0
+End:
+	jump End always
+	

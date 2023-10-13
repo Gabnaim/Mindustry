@@ -1,0 +1,29 @@
+Initialize:
+	set display display1
+	set max 255
+	set numSteps 50
+	op div step max numSteps
+	set sides 4
+	set x 0
+	set y 0
+	set radius step
+	set rotation 2
+
+	draw clear 255 255 255
+	draw stroke step
+
+Start:
+	
+
+BlueToCyan:
+	set i 0
+	BCLoop:
+		draw color 0 i 255 255
+		op add radius radius 5
+		draw linePoly x y sides radius 90
+		drawflush display
+		op add i i step
+		jump BCLoop lessThanEq i max
+End:
+	jump End always
+
