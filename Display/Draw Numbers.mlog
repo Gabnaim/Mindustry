@@ -8,15 +8,8 @@ Initialize:
 	set segmentSize 8 
 	set charSpacing 2
 	set rowSpacing 4
+	set charHeight 16
 
-	op add midOffset segmentSize stroke
-	op mul fullOffset midOffset 2
-	op add charHeight fullOffset stroke	
-	op add charWidth segmentSize stroke
-	op add charWidth charWidth stroke
-	op add charOffset charWidth charSpacing 
-	op add rowOffset charHeight rowSpacing
-	
 	set topX 0
 	set topY size
 	op add startX topX margin
@@ -29,8 +22,20 @@ Initialize:
 	draw color 254 254 0 255
 	draw stroke stroke
 
+	
+
 Start:
 	jump Start equal status "FINISHED"
+
+CalcSizes:
+	op div stroke charHeight 10
+	op mul segmentSize stroke 4
+	op add midOffset segmentSize stroke
+	op mul fullOffset midOffset 2
+	op mul charWidth stroke 6
+	op add charOffset charWidth charSpacing
+	op add rowOffset charHeight rowSpacing
+
 	set status "DRAWING"
 
 PrecalcLine:
@@ -127,6 +132,8 @@ Draw9:
 
 	op add curX curX charOffset
 
+Next:
+	op add segmentSize segmentSize 1
 	
 
 Done:
