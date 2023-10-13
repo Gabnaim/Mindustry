@@ -1,0 +1,75 @@
+Initialize:
+
+	set display display1
+	set error " "
+	set size 176
+	set topX 0
+	set topY size
+	set margin 6
+	set lineHeight 16
+	set lineSpacing 4
+	set imageSize 16
+	set charSpacing 2
+
+	op add totalLineHeight lineHeight lineSpacing
+	op div imagePos imageSize 2
+
+	op add startX topX margin
+	op sub startY topY margin
+	op sub lastX size margin
+	set lastY margin
+
+	set lineStartX startX
+	set lineStartY startY
+	set curX lineStartX
+	set curY lineStartY
+	set line 0
+
+Start:
+	draw clear 100 100 100
+ImageLoop:
+	lookup item material i
+	
+	PrintImage:
+		op add imgEndX curX imageSize
+		jump NextLine greaterThan imgEndX lastX
+		op sub imgEndY curY imageSize
+		jump DoesNotFit lessThan imgEndY lastY
+		op add imgX curX imagePos
+		op sub imgY curY imagePos
+		draw image imgX imgY material imageSize
+	
+		MovePos:
+			op add curX curX imageSize
+			op add curX curX charSpacing
+			jump NextImage lessThan curX lastX
+	
+	NextLine:
+		op add line line 1
+		op mul lineOffsetY line totalLineHeight
+		op sub lineStartY startY lineOffsetY
+		set curX lineStartX
+		set curY lineStartY
+		jump PrintImage always
+	
+NextImage:
+	op add i i 1
+	jump ImageLoop lessThan i 16
+	set i 0
+	jump FinishDraw always
+
+DoesNotFit:
+	set error "does not fit"
+
+FinishDraw:
+	drawflush display
+
+ResetDisplay:
+	set lineStartX startX
+	set lineStartY startY
+	set curX lineStartX
+	set curY lineStartY
+	set line 0
+	jump Start always
+
+	
