@@ -1,17 +1,37 @@
 Initialize:
-
+	set status "INITIALIZE"
 	set display display1
 	set error " "
 	set size 176
 	set topX 0
 	set topY size
 	set margin 6
-	set lineHeight 16
-	set lineSpacing 4
+
+	set rows 8
+	set rowSpacing 4
+
+	set columns 2
+	set colSpacing 4
+
 	set imageSize 16
 	set charSpacing 2
+	
+	op mul totalMargin margin 2
+	op sub drawSize size totalMargin
 
-	op add totalLineHeight lineHeight lineSpacing
+	op sub rowSpaces rows 1
+	op mul totalRowSpacing rowSpacing rows
+	op sub rowAvailable drawSize totalRowSpacing
+	op div rowHeight rowAvailable rows
+	op add totalRowHeight rowHeight rowSpacing
+
+	op idiv rows drawSize totalRowHeight
+	op sub colSpaces columns 1
+	op mul totalColSpacing colSpaces colSpacing
+	op sub colAvailable drawSize totalColSpacing
+	op div colWidth colAvailable columns
+	op add totalColWidth colWidth colSpacing
+
 	op div imagePos imageSize 2
 
 	op add startX topX margin
@@ -19,44 +39,66 @@ Initialize:
 	op sub lastX size margin
 	set lastY margin
 
-	set lineStartX startX
-	set lineStartY startY
-	set curX lineStartX
-	set curY lineStartY
-	set line 0
+	set rowStartX startX
+	set rowStartY startY
+	op add rowEndX rowStartX colWidth
+
+	set curX rowStartX
+	set curY rowStartY
+	set row 0
+	set col 0
+
+	draw clear 176 196 222
+	draw color 255 255 255 255
 
 Start:
-	draw clear 100 100 100
+	jump Start equal status "FINISHED"
+	set status "DRAWING"
+
 ImageLoop:
 	lookup item material i
-	
-	PrintImage:
+	CheckRowEnd:
 		op add imgEndX curX imageSize
-		jump NextLine greaterThan imgEndX lastX
-		op sub imgEndY curY imageSize
-		jump DoesNotFit lessThan imgEndY lastY
+		jump DrawImage lessThan imgEndX rowEndX
+	op add return @counter 1
+	jump NextRow always
+		
+	DrawImage:
 		op add imgX curX imagePos
 		op sub imgY curY imagePos
 		draw image imgX imgY material imageSize
 	
-		MovePos:
-			op add curX curX imageSize
-			op add curX curX charSpacing
-			jump NextImage lessThan curX lastX
+	MovePos:
+		op add curX curX imageSize
+		op add curX curX charSpacing
 	
-	NextLine:
-		op add line line 1
-		op mul lineOffsetY line totalLineHeight
-		op sub lineStartY startY lineOffsetY
-		set curX lineStartX
-		set curY lineStartY
-		jump PrintImage always
-	
-NextImage:
-	op add i i 1
-	jump ImageLoop lessThan i 16
-	set i 0
-	jump FinishDraw always
+	NextImage:
+		op add i i 1
+		jump ImageLoop lessThan i 16
+
+	DrawLines:
+		set i 0
+		draw color 0 0 255 255
+		op div lineOffset rowSpacing 2
+		op sub lineOffset lineOffset 1
+		op sub curY startY lineOffset
+		LineLoop:
+			draw line startX curY lastX curY
+			op sub curY curY totalRowHeight
+			op add i i 1
+			jump LineLoop lessThanEq i rows
+
+		set i 0
+		draw color 255 0 0 255
+		set curX startX
+		ColLoop:
+			draw line curX startY curX lastY
+			op add curX curX totalColWidth 
+			op add i i 1
+			jump ColLoop lessThanEq i columns
+
+		draw color 255 255 255 255
+		jump FinishDraw always
 
 DoesNotFit:
 	set error "does not fit"
@@ -65,11 +107,28 @@ FinishDraw:
 	drawflush display
 
 ResetDisplay:
-	set lineStartX startX
-	set lineStartY startY
-	set curX lineStartX
-	set curY lineStartY
-	set line 0
+	set rowStartX startX
+	set rowStartY startY
+	set curX rowStartX
+	set curY rowStartY
+	set row 0
+	set status "FINISHED"
 	jump Start always
 
-	
+NextRow:
+	op add row row 1
+	jump NextColumn greaterThanEq row rows
+	op sub rowStartY rowStartY totalRowHeight
+	set curX rowStartX
+	set curY rowStartY
+	set @counter return
+
+NextColumn:
+	op add col col 1
+	op add rowStartX rowStartX totalColWidth
+	op add rowEndX rowStartX colWidth
+	set rowStartY startY
+	set curX rowStartX
+	set curY rowStartY
+	set row 0
+	set @counter return
