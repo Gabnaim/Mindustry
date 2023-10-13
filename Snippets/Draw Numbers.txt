@@ -25,7 +25,7 @@ Initialize:
 	set curX startX
 	set curY startY
 
-	draw clear 176 196 222
+	draw clear 100 100 100
 	draw color 254 254 0 255
 	draw stroke stroke
 
@@ -56,13 +56,79 @@ Draw2:
 	op add rightX curX midOffset
 	draw line curX curY rightX curY
 	draw line curX midY rightX midY
-	draw line curX bottY rightX bottY
-	
+	draw line curX bottY rightX bottY	
 	draw line curX midY curX bottY
 	draw line rightX midY rightX curY
 
 	op add curX curX charOffset
 	
+Draw3:
+	op add rightX curX midOffset
+	draw line curX curY rightX curY
+	draw line curX midY rightX midY
+	draw line curX bottY rightX bottY
+	draw line rightX bottY rightX curY
+
+	op add curX curX charOffset
+
+Draw4:
+	op add rightX curX midOffset
+
+	draw line curX midY rightX midY
+	draw line curX midY curX curY
+	draw line rightX curY rightX bottY
+
+	op add curX curX charOffset
+
+Draw5:
+	op add rightX curX midOffset
+	draw line curX curY rightX curY
+	draw line curX midY rightX midY
+	draw line curX bottY rightX bottY	
+	draw line curX midY curX curY
+	draw line rightX midY rightX bottY
+
+	op add curX curX charOffset
+	
+Draw6:
+	op add rightX curX midOffset
+	draw line curX curY rightX curY
+	draw line curX midY rightX midY
+	draw line curX bottY rightX bottY	
+	draw line curX bottY curX curY
+	draw line rightX midY rightX bottY
+
+	op add curX curX charOffset
+
+Draw7:
+	op add rightX curX midOffset
+	draw line curX curY rightX curY
+	draw line rightX curY rightX bottY
+
+	op add curX curX charOffset
+
+Draw8:
+	op add rightX curX midOffset
+	draw line curX curY curX bottY
+	draw line curX midY rightX midY
+	draw line curX curY rightX curY
+	draw line rightX curY rightX bottY
+	draw line curX bottY rightX bottY
+
+	op add curX curX charOffset
+
+Draw9:
+	op add rightX curX midOffset
+	draw line curX curY curX midY
+	draw line curX midY rightX midY
+	draw line curX curY rightX curY
+	draw line rightX curY rightX bottY
+	draw line curX bottY rightX bottY
+
+	op add curX curX charOffset
+
+	
+
 Done:
 	drawflush display
 	set status "FINISHED"
