@@ -11,10 +11,8 @@ Initialize:
 	set charHeight 8
 	set maxRowOffset 18
 
-	set topX 0
-	set topY size
-	op add startX topX margin
-	op sub startY topY margin
+	op add startX 0 margin
+	op sub startY size margin
 
 	set curX startX
 	set curY startY
@@ -32,45 +30,47 @@ CalcSizes:
 	op add midOffset segmentSize frag
 	op mul charWidth frag 6
 	op add charOffset charWidth charSpacing
-	op add rowOffset charHeight rowSpacing
+	set curX startX
+	op sub curY curY charHeight
 	
 StartLine:
 	draw stroke stroke
 	set status "DRAWING"
-	op sub midY curY midOffset
-	op sub bottY midY midOffset
+	op add midY curY midOffset
+	op add topY midY midOffset
+	set bottY curY
 
 Draw0:
 	op add rightX curX midOffset
-	draw line curX curY curX bottY
-	draw line curX curY rightX curY
-	draw line rightX curY rightX bottY
+	draw line curX topY curX bottY
+	draw line curX topY rightX topY
+	draw line rightX topY rightX bottY
 	draw line curX bottY rightX bottY
 
 	op add curX curX charOffset
 
 Draw1:
 	op add rightX curX midOffset
-	draw line rightX curY rightX bottY
+	draw line rightX topY rightX bottY
 
 	op add curX curX charOffset
 
 Draw2:
 	op add rightX curX midOffset
-	draw line curX curY rightX curY
+	draw line curX topY rightX topY
 	draw line curX midY rightX midY
 	draw line curX bottY rightX bottY	
 	draw line curX midY curX bottY
-	draw line rightX midY rightX curY
+	draw line rightX midY rightX topY
 
 	op add curX curX charOffset
 	
 Draw3:
 	op add rightX curX midOffset
-	draw line curX curY rightX curY
+	draw line curX topY rightX topY
 	draw line curX midY rightX midY
 	draw line curX bottY rightX bottY
-	draw line rightX bottY rightX curY
+	draw line rightX bottY rightX topY
 
 	op add curX curX charOffset
 
@@ -78,54 +78,54 @@ Draw4:
 	op add rightX curX midOffset
 
 	draw line curX midY rightX midY
-	draw line curX midY curX curY
-	draw line rightX curY rightX bottY
+	draw line curX midY curX topY
+	draw line rightX topY rightX bottY
 
 	op add curX curX charOffset
 
 Draw5:
 	op add rightX curX midOffset
-	draw line curX curY rightX curY
+	draw line curX topY rightX topY
 	draw line curX midY rightX midY
 	draw line curX bottY rightX bottY	
-	draw line curX midY curX curY
+	draw line curX midY curX topY
 	draw line rightX midY rightX bottY
 
 	op add curX curX charOffset
 	
 Draw6:
 	op add rightX curX midOffset
-	draw line curX curY rightX curY
+	draw line curX topY rightX topY
 	draw line curX midY rightX midY
 	draw line curX bottY rightX bottY	
-	draw line curX bottY curX curY
+	draw line curX bottY curX topY
 	draw line rightX midY rightX bottY
 
 	op add curX curX charOffset
 
 Draw7:
 	op add rightX curX midOffset
-	draw line curX curY rightX curY
-	draw line rightX curY rightX bottY
+	draw line curX topY rightX topY
+	draw line rightX topY rightX bottY
 
 	op add curX curX charOffset
 
 Draw8:
 	op add rightX curX midOffset
-	draw line curX curY curX bottY
+	draw line curX topY curX bottY
 	draw line curX midY rightX midY
-	draw line curX curY rightX curY
-	draw line rightX curY rightX bottY
+	draw line curX topY rightX topY
+	draw line rightX topY rightX bottY
 	draw line curX bottY rightX bottY
 
 	op add curX curX charOffset
 
 Draw9:
 	op add rightX curX midOffset
-	draw line curX curY curX midY
+	draw line curX topY curX midY
 	draw line curX midY rightX midY
-	draw line curX curY rightX curY
-	draw line rightX curY rightX bottY
+	draw line curX topY rightX topY
+	draw line rightX topY rightX bottY
 	draw line curX bottY rightX bottY
 
 	op add curX curX charOffset
@@ -133,10 +133,8 @@ Draw9:
 Next:
 	drawflush display
 	op add charHeight charHeight 1
-	set curX startX
-	op sub curY curY rowOffset
 	op add rows rows 1
-	
+	op sub curY curY rowSpacing
 	jump Start lessThan charHeight maxRowOffset
 	
 
