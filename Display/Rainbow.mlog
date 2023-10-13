@@ -1,0 +1,69 @@
+Initialize:
+	set display display1
+	set max 255
+	set numSteps 50
+	op div step max numSteps
+	set sides 500
+	set x 88
+	set y 88
+	set radius 150
+
+Start:
+	draw clear 100 100 100
+
+BlueToCyan:
+	set i 0
+	BCLoop:
+		draw color 0 i 255 255
+		draw poly x x sides radius
+		drawflush display
+		op add i i step
+		jump BCLoop lessThanEq i max
+
+CyanToGreen: 
+	set i max
+	CGLoop:
+		draw color 0 255 i 255
+		draw poly x x sides radius
+		drawflush display
+		op sub i i step
+		jump CGLoop greaterThanEq i 0
+
+GreenToYellow:
+	set i 0
+	GYLoop:
+		draw color i 255 0 255
+		draw poly x x sides radius
+		drawflush display
+		op add i i step
+		jump GYLoop lessThanEq i max
+
+YellowToRed: 
+	set i max
+	YRLoop:
+		draw color 255 i 0 255
+		draw poly x x sides radius
+		drawflush display
+		op sub i i step
+		jump YRLoop greaterThanEq i 0
+
+RedToMagenta:
+	set i 0
+	RMLoop:
+		draw color 255 0 i 255
+		draw poly x x sides radius
+		drawflush display
+		op add i i step
+		jump RMLoop lessThanEq i max
+
+MagentaToBlue: 
+	set i max
+	MBLoop:
+		draw color i 0 255 255
+		draw poly x x sides radius
+		drawflush display
+		op sub i i step
+		jump MBLoop greaterThanEq i 0
+
+
+jump Start always
