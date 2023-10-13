@@ -1,0 +1,21 @@
+Initialize:
+	set display display1
+	set max 255
+	set step 2
+	set sides 64
+	set x 0
+	set y 0
+	set radius 0
+Start:
+	draw clear 0 0 255
+	draw stroke step
+	set i 0
+DrawArc:
+	draw color 0 i 255 255
+	op add radius radius step
+	draw linePoly 0 0 sides radius 45
+	drawflush display
+	op add i i step
+	jump DrawArc lessThanEq i max
+End:
+	jump End always
