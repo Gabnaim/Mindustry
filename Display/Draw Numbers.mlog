@@ -35,16 +35,22 @@ StartLine:
 	op add midY curY midOffset
 	op add topY midY midOffset
 	set bottY curY
-	set digit 0
+	
+GetNumber:
+	op rand rando 21000
+	op floor value rando
 
 PrintDigits:
+	op mod digit value 10
+	op idiv value value 10
+	
 	op sub leftX curX midOffset
 	set rightX curX
 	op add drawReturn @counter 1
 	jump DrawDigit always
-	op add digit digit 1
 	op sub curX curX charOffset
-	jump PrintDigits lessThan digit 10
+
+	jump PrintDigits greaterThan value 0
 
 MoveToNextLine:
 	drawflush display
