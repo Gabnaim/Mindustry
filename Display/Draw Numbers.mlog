@@ -13,9 +13,8 @@ Initialize:
 
 	set curX startX
 	set curY startY
-
-	draw clear 100 100 100
-	draw color 254 254 0 255
+	draw clear 0 0 0
+	draw color 255 255 153 255
 	set rows 0
 
 Start:
@@ -36,108 +35,112 @@ StartLine:
 	op add midY curY midOffset
 	op add topY midY midOffset
 	set bottY curY
+	set digit 0
 
-Draw0:
+PrintDigits:
 	op add rightX curX midOffset
-	draw line curX topY curX bottY
-	draw line curX topY rightX topY
-	draw line rightX topY rightX bottY
-	draw line curX bottY rightX bottY
-
+	op add drawReturn @counter 1
+	jump DrawDigit always
+	op add digit digit 1
 	op add curX curX charOffset
+	jump PrintDigits lessThan digit 10
 
-Draw1:
-	op add rightX curX midOffset
-	draw line rightX topY rightX bottY
-
-	op add curX curX charOffset
-
-Draw2:
-	op add rightX curX midOffset
-	draw line curX topY rightX topY
-	draw line curX midY rightX midY
-	draw line curX bottY rightX bottY	
-	draw line curX midY curX bottY
-	draw line rightX midY rightX topY
-
-	op add curX curX charOffset
-	
-Draw3:
-	op add rightX curX midOffset
-	draw line curX topY rightX topY
-	draw line curX midY rightX midY
-	draw line curX bottY rightX bottY
-	draw line rightX bottY rightX topY
-
-	op add curX curX charOffset
-
-Draw4:
-	op add rightX curX midOffset
-
-	draw line curX midY rightX midY
-	draw line curX midY curX topY
-	draw line rightX topY rightX bottY
-
-	op add curX curX charOffset
-
-Draw5:
-	op add rightX curX midOffset
-	draw line curX topY rightX topY
-	draw line curX midY rightX midY
-	draw line curX bottY rightX bottY	
-	draw line curX midY curX topY
-	draw line rightX midY rightX bottY
-
-	op add curX curX charOffset
-	
-Draw6:
-	op add rightX curX midOffset
-	draw line curX topY rightX topY
-	draw line curX midY rightX midY
-	draw line curX bottY rightX bottY	
-	draw line curX bottY curX topY
-	draw line rightX midY rightX bottY
-
-	op add curX curX charOffset
-
-Draw7:
-	op add rightX curX midOffset
-	draw line curX topY rightX topY
-	draw line rightX topY rightX bottY
-
-	op add curX curX charOffset
-
-Draw8:
-	op add rightX curX midOffset
-	draw line curX topY curX bottY
-	draw line curX midY rightX midY
-	draw line curX topY rightX topY
-	draw line rightX topY rightX bottY
-	draw line curX bottY rightX bottY
-
-	op add curX curX charOffset
-
-Draw9:
-	op add rightX curX midOffset
-	draw line curX topY curX midY
-	draw line curX midY rightX midY
-	draw line curX topY rightX topY
-	draw line rightX topY rightX bottY
-	draw line curX bottY rightX bottY
-
-	op add curX curX charOffset
-
-Next:
+MoveToNextLine:
 	drawflush display
 	op add charHeight charHeight 1
 	op add rows rows 1
 	op sub curY curY rowSpacing
 	jump Start lessThan charHeight maxRowOffset
-	
 
 Done:
 	drawflush display
 	set status "FINISHED"
 	jump Start always
+
+DrawDigit:
+	op add @counter @counter digit
+	jump Draw0 equal digit 0
+	jump Draw1 equal digit 1
+	jump Draw2 equal digit 2
+	jump Draw3 equal digit 3
+	jump Draw4 equal digit 4
+	jump Draw5 equal digit 5
+	jump Draw6 equal digit 6
+	jump Draw7 equal digit 7
+	jump Draw8 equal digit 8
+	jump Draw9 equal digit 9
+	set @counter drawReturn
+
+Draw0:
+	draw line curX topY curX bottY
+	draw line curX topY rightX topY
+	draw line rightX topY rightX bottY
+	draw line curX bottY rightX bottY
+	set @counter drawReturn
+
+Draw1:
+	draw line rightX topY rightX bottY
+	set @counter drawReturn
+
+Draw2:
+	draw line curX topY rightX topY
+	draw line curX midY rightX midY
+	draw line curX bottY rightX bottY	
+	draw line curX midY curX bottY
+	draw line rightX midY rightX topY
+	set @counter drawReturn
+	
+Draw3:
+	draw line curX topY rightX topY
+	draw line curX midY rightX midY
+	draw line curX bottY rightX bottY
+	draw line rightX bottY rightX topY
+	set @counter drawReturn
+
+Draw4:
+	draw line curX midY rightX midY
+	draw line curX midY curX topY
+	draw line rightX topY rightX bottY
+	set @counter drawReturn
+
+Draw5:
+	draw line curX topY rightX topY
+	draw line curX midY rightX midY
+	draw line curX bottY rightX bottY	
+	draw line curX midY curX topY
+	draw line rightX midY rightX bottY
+	set @counter drawReturn
+	
+Draw6:
+	draw line curX topY rightX topY
+	draw line curX midY rightX midY
+	draw line curX bottY rightX bottY	
+	draw line curX bottY curX topY
+	draw line rightX midY rightX bottY
+	set @counter drawReturn
+
+Draw7:
+	op add rightX curX midOffset
+	draw line curX topY rightX topY
+	draw line rightX topY rightX bottY
+	set @counter drawReturn
+
+Draw8:
+	draw line curX topY curX bottY
+	draw line curX midY rightX midY
+	draw line curX topY rightX topY
+	draw line rightX topY rightX bottY
+	draw line curX bottY rightX bottY
+	set @counter drawReturn
+
+Draw9:
+	draw line curX topY curX midY
+	draw line curX midY rightX midY
+	draw line curX topY rightX topY
+	draw line rightX topY rightX bottY
+	draw line curX bottY rightX bottY
+	set @counter drawReturn
+
+
 
 	
