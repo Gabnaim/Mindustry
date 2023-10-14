@@ -1,0 +1,216 @@
+Initialize:
+	set display display1
+	getlink core 1
+	set size 176
+	set margin 6
+	set stroke 2
+	set charSpacing 2
+	set rowSpacing 4
+	set charHeight 16
+	set colSpacing 4
+
+	op div midOffset charHeight 2
+	op add charWidth midOffset stroke
+	op sub topOffset charHeight stroke
+	op add charOffset charWidth charSpacing
+
+	op div halfColSp colSpacing 2
+	op idiv col2Start size 2
+	op add col2Start col2Start halfColSp
+	op sub col1End col2Start colSpacing
+
+	set startX margin
+	op sub startY size margin
+	op sub startY startY 4
+	op sub endX size margin
+	set endY margin
+	set clearWidth 60
+
+	draw clear 0 0 0
+	draw stroke stroke
+	drawflush display
+
+DrawMaterials:
+	set imageSize charHeight
+	op add shadowSize imageSize 4
+	op idiv imagePos imageSize 2
+	op add imageOffset charHeight rowSpacing
+	op add imageX startX imagePos
+	op sub imageY startY imagePos
+
+	draw color 255 255 255 255
+	set i 0
+	ImageLoop:
+		lookup item material i
+		#draw color 111 111 111 255
+		#draw image imageX imageY material shadowSize
+		#draw color 255 255 255 255
+		draw image imageX imageY material imageSize
+		op add i i 1
+		op sub imageY imageY imageOffset
+		jump NextImageCol equal i 8
+		jump ImageLoop lessThan i 16
+		jump FinishImages always
+
+	NextImageCol:
+		op add imageX col2Start imagePos
+		op sub imageY startY imagePos
+		jump ImageLoop always
+		
+	FinishImages:
+		drawflush display
+
+	set i 0
+	set rows 0
+	jump MoveToFirstCol always
+
+Start:
+	jump Start equal status "FINISHED"
+	set status "DRAWING"
+	
+StartLine:
+	set curX colEnd
+	op sub curY curY charHeight
+	op add midY curY midOffset
+	op add topY curY topOffset
+	set bottY curY
+
+ClearNumber:
+	draw color 0 0 0
+	op sub clearY curY 1
+	
+	draw rect clearX clearY clearWidth charHeight
+	draw color 255 255 153 255
+	
+GetNumber:
+	lookup item material i
+	sensor value core material
+
+PrintDigits:
+	op mod digit value 10
+	op idiv value value 10
+	
+	op sub leftX curX midOffset
+	set rightX curX
+	op add drawReturn @counter 1
+	jump DrawDigit always
+	op sub curX curX charOffset
+
+	jump PrintDigits greaterThan value 0
+
+MoveToNextLine:
+	drawflush display
+	op add rows rows 1
+	op sub curY curY rowSpacing
+	op add i i 1
+	jump MoveToNextCol equal i 8
+	jump MoveToFirstCol equal i 16
+	jump StartLine always
+
+MoveToNextCol:
+	set colEnd endX
+	set curY startY
+	op sub clearX colEnd clearWidth
+	op add clearX clearX 1
+	jump Start always
+
+MoveToFirstCol:
+	set i 0
+	set colEnd col1End
+	set curY startY
+	op sub clearX colEnd clearWidth
+	op add clearX clearX 1
+	jump Start always
+
+Done:
+	drawflush display
+	# set status "FINISHED"
+	jump Start always
+
+DrawDigit:
+	op add @counter @counter digit
+	jump Draw0 equal digit 0
+	jump Draw1 equal digit 1
+	jump Draw2 equal digit 2
+	jump Draw3 equal digit 3
+	jump Draw4 equal digit 4
+	jump Draw5 equal digit 5
+	jump Draw6 equal digit 6
+	jump Draw7 equal digit 7
+	jump Draw8 equal digit 8
+	jump Draw9 equal digit 9
+	set @counter drawReturn
+
+Draw0:
+	draw line leftX topY leftX bottY
+	draw line leftX topY rightX topY
+	draw line rightX topY rightX bottY
+	draw line leftX bottY rightX bottY
+	set @counter drawReturn
+
+Draw1:
+	draw line rightX topY rightX bottY
+	set @counter drawReturn
+
+Draw2:
+	draw line leftX topY rightX topY
+	draw line leftX midY rightX midY
+	draw line leftX bottY rightX bottY	
+	draw line leftX midY leftX bottY
+	draw line rightX midY rightX topY
+	set @counter drawReturn
+	
+Draw3:
+	draw line leftX topY rightX topY
+	draw line leftX midY rightX midY
+	draw line leftX bottY rightX bottY
+	draw line rightX bottY rightX topY
+	set @counter drawReturn
+
+Draw4:
+	draw line leftX midY rightX midY
+	draw line leftX midY leftX topY
+	draw line rightX topY rightX bottY
+	set @counter drawReturn
+
+Draw5:
+	draw line leftX topY rightX topY
+	draw line leftX midY rightX midY
+	draw line leftX bottY rightX bottY	
+	draw line leftX midY leftX topY
+	draw line rightX midY rightX bottY
+	set @counter drawReturn
+	
+Draw6:
+	draw line leftX topY rightX topY
+	draw line leftX midY rightX midY
+	draw line leftX bottY rightX bottY	
+	draw line leftX bottY leftX topY
+	draw line rightX midY rightX bottY
+	set @counter drawReturn
+
+Draw7:
+	op add rightX leftX midOffset
+	draw line leftX topY rightX topY
+	draw line rightX topY rightX bottY
+	set @counter drawReturn
+
+Draw8:
+	draw line leftX topY leftX bottY
+	draw line leftX midY rightX midY
+	draw line leftX topY rightX topY
+	draw line rightX topY rightX bottY
+	draw line leftX bottY rightX bottY
+	set @counter drawReturn
+
+Draw9:
+	draw line leftX topY leftX midY
+	draw line leftX midY rightX midY
+	draw line leftX topY rightX topY
+	draw line rightX topY rightX bottY
+	draw line leftX bottY rightX bottY
+	set @counter drawReturn
+
+
+
+	
