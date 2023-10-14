@@ -13,10 +13,10 @@ Initialize:
 	op mul charWidth frag 6
 	op add charOffset charWidth charSpacing
 
-	op add startX 0 margin
+	set startX margin
 	op sub startY size margin
 	op sub endX size margin
-
+	set endY margin
 	set curX startX
 	set curY startY
 	draw clear 0 0 0
@@ -30,7 +30,7 @@ Start:
 	set status "DRAWING"
 	
 StartLine:
-	set curX startX
+	set curX endX
 	op sub curY curY charHeight
 	op add midY curY midOffset
 	op add topY midY midOffset
@@ -38,12 +38,12 @@ StartLine:
 	set digit 0
 
 PrintDigits:
-	set leftX curX
-	op add rightX curX midOffset
+	op sub leftX curX midOffset
+	set rightX curX
 	op add drawReturn @counter 1
 	jump DrawDigit always
 	op add digit digit 1
-	op add curX curX charOffset
+	op sub curX curX charOffset
 	jump PrintDigits lessThan digit 10
 
 MoveToNextLine:
