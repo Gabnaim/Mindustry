@@ -1,0 +1,9 @@
+set value 34267
+set parsed value
+
+GetDigit:
+	op mod digit parsed 10
+	op idiv parsed parsed 10
+	print digit
+	jump GetDigit greaterThan parsed 0
+	printflush message1		
