@@ -11,6 +11,7 @@
 	set rightBounds 86
 	set topBounds 166
 	set bottomBounds 6
+	set bgClearX 0
 
 	op sub width rightBounds leftBounds
 	op add width width 1
@@ -22,10 +23,12 @@
 	set rowSpacing 4
 	set charHeight 16
 
-	op div midOffset charHeight 2
-	op add charWidth midOffset stroke
+	op div mid charHeight 2
+	op add charWidth mid stroke
+	op sub midOffset mid 1
 	op sub topOffset charHeight stroke
 	op add charOffset charWidth charSpacing
+	op sub leftOffset charWidth 2
 
 	set startX leftBounds
 	set startY topBounds
@@ -36,7 +39,7 @@
 
 ClearArea:
 	draw col bgColor
-	draw rect 0 0 88 176
+	draw rect bgClearX 0 88 176
 	draw stroke stroke
 	drawflush display
 
@@ -83,7 +86,7 @@ PrintDigits:
 	op mod digit value 10
 	op idiv value value 10
 	
-	op sub leftX curX midOffset
+	op sub leftX curX leftOffset
 	set rightX curX
 	op add drawReturn @counter 1
 	jump DrawDigit always
@@ -164,7 +167,6 @@ Draw6:
 	set @counter drawReturn
 
 Draw7:
-	op add rightX leftX midOffset
 	draw line leftX topY rightX topY
 	draw line rightX topY rightX bottY
 	set @counter drawReturn
