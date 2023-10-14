@@ -7,27 +7,28 @@ Initialize:
 	set rowSpacing 4
 	set charHeight 16
 
-	op div frag charHeight 10
-	op mul segmentSize frag 4
-	op add midOffset segmentSize frag
-	op mul charWidth frag 6
+	op div midOffset charHeight 2
+	op add charWidth midOffset stroke
 	op add charOffset charWidth charSpacing
 
 	set startX margin
 	op sub startY size margin
 	op sub endX size margin
 	set endY margin
-	set curX startX
-	set curY startY
+	op sub rowWidth endX startX
+	op add rowWidth rowWidth 1
+
+	set maxRows 8
 	draw clear 0 0 0
 	draw color 255 255 153 255
 	draw stroke stroke
-	set rows 0
-	set maxRows 8
 
 Start:
 	jump Start equal status "FINISHED"
 	set status "DRAWING"
+	set curX startX
+	set curY startY
+	set rows 0
 	
 StartLine:
 	set curX endX
@@ -35,6 +36,11 @@ StartLine:
 	op add midY curY midOffset
 	op add topY midY midOffset
 	set bottY curY
+	draw color 0 0 0
+	op sub rectY curY 1
+	op add rectHeight charHeight stroke
+	draw rect startX rectY rowWidth rectHeight
+	draw color 255 255 153 255
 	
 GetNumber:
 	op rand rando 21000
@@ -56,11 +62,11 @@ MoveToNextLine:
 	drawflush display
 	op add rows rows 1
 	op sub curY curY rowSpacing
-	jump Start lessThan rows maxRows
+	jump StartLine lessThan rows maxRows
 
 Done:
 	drawflush display
-	set status "FINISHED"
+	# set status "FINISHED"
 	jump Start always
 
 DrawDigit:
