@@ -11,8 +11,12 @@
 	set rightBounds 86
 	set topBounds 166
 	set bottomBounds 6
-	set bgClearX 0
 
+	set bgLeft 0
+	set bgBottom 0
+	set bgWidth 88
+	set bgHeight 176
+	
 	op sub width rightBounds leftBounds
 	op add width width 1
 	op sub height topBounds bottomBounds
@@ -39,7 +43,7 @@
 
 ClearArea:
 	draw col bgColor
-	draw rect bgClearX 0 88 176
+	draw rect bgLeft bgBottom bgWidth bgHeight
 	draw stroke stroke
 	drawflush display
 
@@ -96,7 +100,6 @@ PrintDigits:
 
 MoveToNextLine:
 	drawflush display
-	op add rows rows 1
 	op sub curY curY rowSpacing
 	op add i i 1
 	jump StartLine lessThan i maxI
