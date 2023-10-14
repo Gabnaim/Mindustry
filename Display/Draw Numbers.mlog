@@ -1,11 +1,8 @@
 Initialize:
-	set status "INITIALIZE"
 	set display display1
-	set error " "
 	set size 176
 	set margin 6
 	set stroke 2
-	set segmentSize 8 
 	set charSpacing 2
 	set rowSpacing 4
 	set charHeight 8
@@ -23,6 +20,7 @@ Initialize:
 
 Start:
 	jump Start equal status "FINISHED"
+	set status "DRAWING"
 
 CalcSizes:
 	op div frag charHeight 10
@@ -35,7 +33,6 @@ CalcSizes:
 	
 StartLine:
 	draw stroke stroke
-	set status "DRAWING"
 	op add midY curY midOffset
 	op add topY midY midOffset
 	set bottY curY
