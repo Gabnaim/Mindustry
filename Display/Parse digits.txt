@@ -1,5 +1,5 @@
 Initialize:
-	set number 234
+	set number 234.12345
 	set fractionSize 2
 	printflush message1
 
