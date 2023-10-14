@@ -1,0 +1,190 @@
+ Initialize:
+	set display display1
+	getlink core 1
+	set minI 0
+	set maxI 8
+	
+	set bgColor %000000
+	set fontColor %ffff99
+
+	set leftBounds 6
+	set rightBounds 86
+	set topBounds 166
+	set bottomBounds 6
+
+	op sub width rightBounds leftBounds
+	op add width width 1
+	op sub height topBounds bottomBounds
+	op add height height 1
+
+	set stroke 2
+	set charSpacing 2
+	set rowSpacing 4
+	set charHeight 16
+
+	op div midOffset charHeight 2
+	op add charWidth midOffset stroke
+	op sub topOffset charHeight stroke
+	op add charOffset charWidth charSpacing
+
+	set startX leftBounds
+	set startY topBounds
+	set endX rightBounds
+	set clearWidth 60
+	set clearHeight 20
+	op add clearX leftBounds 20
+
+ClearArea:
+	draw col bgColor
+	draw rect 0 0 88 176
+	draw stroke stroke
+	drawflush display
+
+DrawItems:
+	set imageSize charHeight
+	op idiv imagePos imageSize 2
+	op add imageOffset charHeight rowSpacing
+	op add imageX startX imagePos
+	op sub imageY startY imagePos
+
+	draw color 255 255 255 255
+	set i minI
+	ImageLoop:
+		lookup item material i
+		draw image imageX imageY material imageSize
+		op add i i 1
+		op sub imageY imageY imageOffset
+		jump ImageLoop lessThan i maxI
+		
+		drawflush display
+
+Start:
+	set i minI
+	set curY topBounds
+	
+StartLine:
+	op sub curX rightBounds 2
+	op sub curY curY charHeight
+	op add midY curY midOffset
+	op add topY curY topOffset
+	set bottY curY
+
+ClearNumber:
+	draw col bgColor
+	op sub clearY curY 1
+	draw rect clearX clearY clearWidth clearHeight
+	draw col fontColor
+	
+GetNumber:
+	lookup item material i
+	sensor value core material
+
+PrintDigits:
+	op mod digit value 10
+	op idiv value value 10
+	
+	op sub leftX curX midOffset
+	set rightX curX
+	op add drawReturn @counter 1
+	jump DrawDigit always
+	op sub curX curX charOffset
+
+	jump PrintDigits greaterThan value 0
+
+MoveToNextLine:
+	drawflush display
+	op add rows rows 1
+	op sub curY curY rowSpacing
+	op add i i 1
+	jump StartLine lessThan i maxI
+
+Done:
+	jump Start always
+
+DrawDigit:
+	op add @counter @counter digit
+	jump Draw0 equal digit 0
+	jump Draw1 equal digit 1
+	jump Draw2 equal digit 2
+	jump Draw3 equal digit 3
+	jump Draw4 equal digit 4
+	jump Draw5 equal digit 5
+	jump Draw6 equal digit 6
+	jump Draw7 equal digit 7
+	jump Draw8 equal digit 8
+	jump Draw9 equal digit 9
+	set @counter drawReturn
+
+Draw0:
+	draw line leftX topY leftX bottY
+	draw line leftX topY rightX topY
+	draw line rightX topY rightX bottY
+	draw line leftX bottY rightX bottY
+	set @counter drawReturn
+
+Draw1:
+	draw line rightX topY rightX bottY
+	set @counter drawReturn
+
+Draw2:
+	draw line leftX topY rightX topY
+	draw line leftX midY rightX midY
+	draw line leftX bottY rightX bottY	
+	draw line leftX midY leftX bottY
+	draw line rightX midY rightX topY
+	set @counter drawReturn
+	
+Draw3:
+	draw line leftX topY rightX topY
+	draw line leftX midY rightX midY
+	draw line leftX bottY rightX bottY
+	draw line rightX bottY rightX topY
+	set @counter drawReturn
+
+Draw4:
+	draw line leftX midY rightX midY
+	draw line leftX midY leftX topY
+	draw line rightX topY rightX bottY
+	set @counter drawReturn
+
+Draw5:
+	draw line leftX topY rightX topY
+	draw line leftX midY rightX midY
+	draw line leftX bottY rightX bottY	
+	draw line leftX midY leftX topY
+	draw line rightX midY rightX bottY
+	set @counter drawReturn
+	
+Draw6:
+	draw line leftX topY rightX topY
+	draw line leftX midY rightX midY
+	draw line leftX bottY rightX bottY	
+	draw line leftX bottY leftX topY
+	draw line rightX midY rightX bottY
+	set @counter drawReturn
+
+Draw7:
+	op add rightX leftX midOffset
+	draw line leftX topY rightX topY
+	draw line rightX topY rightX bottY
+	set @counter drawReturn
+
+Draw8:
+	draw line leftX topY leftX bottY
+	draw line leftX midY rightX midY
+	draw line leftX topY rightX topY
+	draw line rightX topY rightX bottY
+	draw line leftX bottY rightX bottY
+	set @counter drawReturn
+
+Draw9:
+	draw line leftX topY leftX midY
+	draw line leftX midY rightX midY
+	draw line leftX topY rightX topY
+	draw line rightX topY rightX bottY
+	draw line leftX bottY rightX bottY
+	set @counter drawReturn
+
+
+
+	
