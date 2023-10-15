@@ -1,12 +1,7 @@
- Initialize:
-	set display display1
-	getlink core 1
+Initialize:
 	set minI 0
 	set maxI 8
 	
-	set bgColor %000000
-	set fontColor %ffff99
-
 	set leftBounds 6
 	set rightBounds 86
 	set topBounds 166
@@ -16,11 +11,30 @@
 	set bgBottom 0
 	set bgWidth 88
 	set bgHeight 176
-	
-	op sub width rightBounds leftBounds
-	op add width width 1
-	op sub height topBounds bottomBounds
-	op add height height 1
+
+	GetLinks:
+		jump GetLinks lessThan @links 2
+		set i 0
+		LinkLoop:
+			getlink link i
+			sensor type link @type
+
+			jump FoundDisplay equal type @large-logic-display
+			jump FoundCore equal type @core-shard
+			jump FoundCore equal type @core-foundation
+			jump FoundCore equal type @core-nucleus
+			jump NextLink always
+
+			FoundCore:
+				set core link
+				jump NextLink always
+			FoundDisplay:
+				set display link
+			NextLink:
+				op add i i 1
+				jump LinkLoop lessThan i @links
+			jump GetLinks equal core null
+			jump GetLinks equal display null
 
 	set stroke 2
 	set charSpacing 2
@@ -38,6 +52,9 @@
 	set clearWidth 60
 	set clearHeight 20
 	op add clearX leftBounds 20
+
+	set bgColor %000000
+	set fontColor %ffff99
 
 	ClearArea:
 		draw col bgColor
