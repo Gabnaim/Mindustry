@@ -12,8 +12,11 @@ Initialize:
 	set bgWidth 88
 	set bgHeight 88
 
+	# if the core is not linked, we need a unit to 
+	# find the core
+	set unitType @flare
+
 	GetLinks:
-		jump GetLinks lessThan @links 2
 		set i 0
 		LinkLoop:
 			getlink link i
@@ -33,8 +36,39 @@ Initialize:
 			NextLink:
 				op add i i 1
 				jump LinkLoop lessThan i @links
-			jump GetLinks equal core null
 			jump GetLinks equal display null
+			jump EndLinks notEqual core null
+
+		FindCore:
+			ubind unitType
+			jump LocateCore notEqual @unit null
+			ubind @flare
+			jump LocateCore notEqual @unit null
+			ubind @mono
+			jump LocateCore notEqual @unit null
+			ubind @poly
+			jump LocateCore notEqual @unit null
+			ubind @mega
+			jump LocateCore notEqual @unit null
+			ubind @nova
+			jump LocateCore notEqual @unit null
+			ubind @dagger
+			jump LocateCore notEqual @unit null
+			ubind @crawler
+			jump LocateCore notEqual @unit null
+			ubind @pulsar
+			jump LocateCore notEqual @unit null
+			ubind @quasar
+			jump LocateCore notEqual @unit null
+			
+			set error "Seriously, build a unit"
+			jump GetLinks always
+
+		LocateCore:
+			ulocate building core false 0 coreX coreY coreFound core
+			jump GetLinks equal core false
+		EndLinks:
+			
 
 	set stroke 2
 	set charSpacing 2
@@ -88,7 +122,7 @@ StartLine:
 		draw col imgColor
 		draw image imageX midY material imageSize
 		sensor value core material
-	
+		
 	PrintDigits:
 		op mod digit value 10
 		op idiv value value 10
@@ -160,8 +194,8 @@ Draw5:
 	draw lineRect curX midY charWidth stroke
 	draw lineRect curX topY charWidth stroke
 	draw lineRect curX curY charWidth stroke
-	draw lineRect rightX midY stroke segment
-	draw lineRect curX curY stroke segment
+	draw lineRect curX midY stroke segment
+	draw lineRect rightX curY stroke segment
 	jump NextDigit always
 	
 Draw6:
