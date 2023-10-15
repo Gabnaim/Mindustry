@@ -39,9 +39,6 @@
 	set clearHeight 20
 	op add clearX leftBounds 20
 
-	draw clear 88 88 88
-	drawflush display
-
 	ClearArea:
 		draw col bgColor
 		draw rect bgLeft bgBottom bgWidth bgHeight
