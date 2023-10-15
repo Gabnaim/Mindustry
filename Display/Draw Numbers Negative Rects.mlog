@@ -1,0 +1,179 @@
+ Initialize:
+	set display display1
+	getlink core 1
+	set minI 0
+	set maxI 8
+	
+	set bgColor %000000
+	set fontColor %ffff99
+
+	set leftBounds 6
+	set rightBounds 86
+	set topBounds 166
+	set bottomBounds 6
+
+	set bgLeft 0
+	set bgBottom 0
+	set bgWidth 88
+	set bgHeight 176
+	
+	op sub width rightBounds leftBounds
+	op add width width 1
+	op sub height topBounds bottomBounds
+	op add height height 1
+
+	set stroke 2
+	set charSpacing 2
+	set rowSpacing 4
+	set charHeight 16
+	set charWidth 10
+	set fillW 6
+	set fillH 5
+	op add blockW fillW stroke
+	op add blockH fillH stroke
+	op sub fullBlockH charHeight stroke
+	op sub fullFillH fullBlockH stroke
+
+	op add charOffset charWidth charSpacing
+	op add rowOffset charHeight rowSpacing
+
+	op add clearX leftBounds 20
+
+	draw clear 88 88 88
+	drawflush display
+
+ClearArea:
+	draw col bgColor
+	draw rect bgLeft bgBottom bgWidth bgHeight
+	draw stroke stroke
+	drawflush display
+	
+DrawItems:
+	set imageSize charHeight
+	op idiv imagePos imageSize 2
+	op add imageX leftBounds imagePos
+	op sub imageY topBounds imagePos
+
+	draw color 255 255 255 255
+	set i minI
+	ImageLoop:
+		lookup item material i
+		draw image imageX imageY material imageSize
+		op add i i 1
+		op sub imageY imageY rowOffset
+		jump ImageLoop lessThan i maxI
+		
+		drawflush display
+
+Start:
+	set startTime @time
+	set i minI
+	op sub curY topBounds charHeight
+	
+StartLine:
+	op sub curX rightBounds 2
+	op add midY curY 9
+	op add bottY curY 2
+
+ClearNumber:
+	draw col bgColor
+	draw rect clearX curY 60 20
+	
+GetNumber:
+	lookup item material i
+	sensor value core material
+
+PrintDigits:
+	op mod digit value 10
+	op idiv value value 10
+
+	op sub curX curX charOffset
+	
+	op add drawReturn @counter 1
+	jump DrawDigit always
+	jump PrintDigits greaterThan value 0
+
+MoveToNextLine:
+	drawflush display
+	op sub curY curY rowOffset
+	op add i i 1
+	jump StartLine lessThan i maxI
+
+Done:
+	op sub cycleTime @time startTime
+	jump Start always
+
+DrawDigit:
+	draw col fontColor
+	draw rect curX curY charWidth charHeight
+	draw col bgColor
+	op add @counter @counter digit
+	jump Draw0 equal digit 0
+	jump Draw1 equal digit 1
+	jump Draw2 equal digit 2
+	jump Draw3 equal digit 3
+	jump Draw4 equal digit 4
+	jump Draw5 equal digit 5
+	jump Draw6 equal digit 6
+	jump Draw7 equal digit 7
+	jump Draw8 equal digit 8
+	jump Draw9 equal digit 9
+	set @counter drawReturn
+
+Draw0:
+	op add inX curX stroke
+	draw rect inX bottY fillW fullFillH
+	set @counter drawReturn
+
+Draw1:
+	draw rect curX curY blockW charHeight
+	set @counter drawReturn
+
+Draw2:
+	op add inX curX stroke
+	draw rect curX midY blockW fillH
+	draw rect inX bottY blockW fillH
+	set @counter drawReturn
+	
+Draw3:
+	draw rect curX bottY blockW fillH
+	draw rect curX midY blockW fillH
+	set @counter drawReturn
+
+Draw4:
+	op add inX curX stroke
+	draw rect inX midY fillW blockH
+	draw rect curX curY blockW blockH
+	set @counter drawReturn
+
+Draw5:
+	op add inX curX stroke
+	draw rect curX bottY blockW fillH
+	draw rect inX midY blockW fillH
+	set @counter drawReturn
+	
+Draw6:
+	op add inX curX stroke
+	draw rect inX bottY fillW fillH
+	draw rect inX midY blockW fillH
+	set @counter drawReturn
+
+Draw7:
+	draw rect curX curY blockW fullBlockH
+	set @counter drawReturn
+
+Draw8:
+	op add inX curX stroke
+	draw rect inX bottY fillW fillH
+	draw rect inX midY fillW fillH
+	set @counter drawReturn
+
+Draw9:
+	op add inX curX stroke
+	draw rect inX midY fillW fillH
+	draw rect curX bottY blockW fillH
+	set @counter drawReturn
+
+
+
+	
