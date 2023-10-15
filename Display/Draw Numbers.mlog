@@ -31,11 +31,10 @@
 	set midOffset 7
 	set topOffset 14
 	set segment 8
-	op add halfRectH midOffset stroke
+	op sub halfVert charHeight midOffset
 	op add charOffset charWidth charSpacing
+	op add rowOffset charHeight rowSpacing
 
-	set startX leftBounds
-	set startY topBounds
 	set clearWidth 60
 	set clearHeight 20
 	op add clearX leftBounds 20
@@ -52,9 +51,8 @@ ClearArea:
 DrawItems:
 	set imageSize charHeight
 	op idiv imagePos imageSize 2
-	op add imageOffset charHeight rowSpacing
-	op add imageX startX imagePos
-	op sub imageY startY imagePos
+	op add imageX leftBounds imagePos
+	op sub imageY topBounds imagePos
 
 	draw color 255 255 255 255
 	set i minI
@@ -62,26 +60,24 @@ DrawItems:
 		lookup item material i
 		draw image imageX imageY material imageSize
 		op add i i 1
-		op sub imageY imageY imageOffset
+		op sub imageY imageY rowOffset
 		jump ImageLoop lessThan i maxI
 		
 		drawflush display
 
 Start:
+	set startTime @time
 	set i minI
-	set curY topBounds
+	op sub curY topBounds charHeight
 	
 StartLine:
 	op sub curX rightBounds 2
-	op sub curY curY charHeight
 	op add midY curY midOffset
 	op add topY curY topOffset
-	op add bottY curY 0
 
 ClearNumber:
 	draw col bgColor
-	op sub clearY curY 1
-	draw rect clearX clearY clearWidth clearHeight
+	draw rect clearX curY clearWidth charHeight
 	
 GetNumber:
 	lookup item material i
@@ -93,7 +89,6 @@ PrintDigits:
 	op idiv value value 10
 
 	op sub leftX curX segment
-	op sub rightX curX 0
 	
 	op add drawReturn @counter 1
 	jump DrawDigit always
@@ -103,11 +98,12 @@ PrintDigits:
 
 MoveToNextLine:
 	drawflush display
-	op sub curY curY rowSpacing
+	op sub curY curY rowOffset
 	op add i i 1
 	jump StartLine lessThan i maxI
 
 Done:
+	op sub cycleTime @time startTime
 	jump Start always
 
 DrawDigit:
@@ -125,51 +121,51 @@ DrawDigit:
 	set @counter drawReturn
 
 Draw0:
-	draw lineRect leftX bottY charWidth charHeight
+	draw lineRect leftX curY charWidth charHeight
 	set @counter drawReturn
 
 Draw1:
-	draw lineRect rightX bottY stroke charHeight
+	draw lineRect curX curY stroke charHeight
 	set @counter drawReturn
 
 Draw2:
 	draw lineRect leftX midY charWidth stroke
 	draw lineRect leftX topY charWidth stroke
-	draw lineRect leftX bottY charWidth stroke
-	draw lineRect leftX bottY stroke segment
-	draw lineRect rightX midY stroke segment
+	draw lineRect leftX curY charWidth stroke
+	draw lineRect leftX curY stroke halfVert
+	draw lineRect curX midY stroke halfVert
 	set @counter drawReturn
 	
 Draw3:
 	draw lineRect leftX midY charWidth stroke
 	draw lineRect leftX topY charWidth stroke
-	draw lineRect leftX bottY charWidth stroke
-	draw lineRect rightX curY stroke charHeight
+	draw lineRect leftX curY charWidth stroke
+	draw lineRect curX curY stroke charHeight
 	set @counter drawReturn
 
 Draw4:
 	draw lineRect leftX midY charWidth stroke
-	draw lineRect leftX midY stroke segment
-	draw lineRect rightX bottY stroke charHeight
+	draw lineRect leftX midY stroke halfVert
+	draw lineRect curX curY stroke charHeight
 	set @counter drawReturn
 
 Draw5:
 	draw lineRect leftX midY charWidth stroke
 	draw lineRect leftX topY charWidth stroke
-	draw lineRect leftX bottY charWidth stroke
-	draw lineRect leftX midY stroke segment
-	draw lineRect rightX bottY stroke segment
+	draw lineRect leftX curY charWidth stroke
+	draw lineRect leftX midY stroke halfVert
+	draw lineRect curX curY stroke halfVert
 	set @counter drawReturn
 	
 Draw6:
-	draw lineRect leftX bottY charWidth halfRectH
+	draw lineRect leftX curY charWidth halfVert
 	draw lineRect leftX topY charWidth stroke
 	draw lineRect leftX midY stroke segment
 	set @counter drawReturn
 
 Draw7:
 	draw lineRect leftX topY charWidth stroke
-	draw lineRect rightX bottY stroke charHeight
+	draw lineRect curX curY stroke charHeight
 	set @counter drawReturn
 
 Draw8:
@@ -178,9 +174,9 @@ Draw8:
 	set @counter drawReturn
 
 Draw9:
-	draw lineRect leftX midY charWidth halfRectH
-	draw lineRect leftX bottY charWidth stroke
-	draw lineRect rightX bottY stroke segment
+	draw lineRect leftX midY charWidth halfVert
+	draw lineRect leftX curY charWidth stroke
+	draw lineRect curX curY stroke segment
 	set @counter drawReturn
 
 
