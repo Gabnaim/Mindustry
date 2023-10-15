@@ -1,16 +1,16 @@
 Initialize:
 	set minI 0
-	set maxI 8
+	set maxI 4
 	
 	set leftBounds 6
 	set rightBounds 86
 	set topBounds 166
-	set bottomBounds 6
+	set bottomBounds 86
 
 	set bgLeft 0
-	set bgBottom 0
+	set bgBottom 88
 	set bgWidth 88
-	set bgHeight 176
+	set bgHeight 88
 
 	GetLinks:
 		jump GetLinks lessThan @links 2
@@ -45,66 +45,57 @@ Initialize:
 	set midOffset 7
 	set topOffset 14
 	set segment 8
-	op sub halfVert charHeight midOffset
+	set halfRectH 9
 	op add charOffset charWidth charSpacing
 	op add rowOffset charHeight rowSpacing
 
-	set clearWidth 60
-	set clearHeight 20
-	op add clearX leftBounds 20
+	op sub topMargin 
 
+	set clearWidth bgWidth
+	set clearHeight rowOffset
+	set clearX bgLeft
+	
 	set bgColor %000000
 	set fontColor %ffff99
+	set imgColor %ffffff
 
-	ClearArea:
-		draw col bgColor
-		draw rect bgLeft bgBottom bgWidth bgHeight
-		draw stroke stroke
-		drawflush display
-		
-	DrawItems:
-		set imageSize charHeight
-		op idiv imagePos imageSize 2
-		op add imageX leftBounds imagePos
-		op sub imageY topBounds imagePos
+	set imageSize charHeight
+	op idiv imagePos imageSize 2
+	op add imageX leftBounds imagePos
+	op sub imageY topBounds imagePos
+
+	draw col bgColor
+	set marginClearY 0
+	jump Start equal bgBottom 0
+	set marginClearY 166
 	
-		draw color 255 255 255 255
-		set i minI
-		ImageLoop:
-			lookup item material i
-			draw image imageX imageY material imageSize
-			op add i i 1
-			op sub imageY imageY rowOffset
-			jump ImageLoop lessThan i maxI
-			
-	drawflush display
-
 Start:
 	set startTime @time
+	draw stroke stroke
 	set i minI
 	op sub curY topBounds charHeight
+	draw rect clearX marginClearY clearWidth 10
 	
 StartLine:
-	op sub curX rightBounds 2
+	set curX rightBounds
 	op add midY curY midOffset
 	op add topY curY topOffset
-
-	ClearNumber:
-		draw col bgColor
-		draw rect clearX curY clearWidth charHeight
+	ClearLine:
+		draw rect clearX curY clearWidth clearHeight
 		
-	GetNumber:
+	GetMaterial:
 		lookup item material i
+		draw col imgColor
+		draw image imageX midY material imageSize
 		sensor value core material
-		draw col fontColor
 	
 	PrintDigits:
 		op mod digit value 10
 		op idiv value value 10
-	
-		op sub curX curX charOffset
 		
 	DrawDigit:
+		op sub curX curX charOffset
+		draw col fontColor
 		op add @counter @counter digit
 		jump Draw0 equal digit 0
 		jump Draw1 equal digit 1
@@ -123,6 +114,7 @@ StartLine:
 MoveToNextLine:
 	drawflush display
 	op sub curY curY rowOffset
+	draw col bgColor
 	op add i i 1
 	jump StartLine lessThan i maxI
 
@@ -135,21 +127,21 @@ Draw0:
 	jump NextDigit always
 
 Draw1:
-	op add rightX curX 8
+	op add rightX curX segment
 	draw lineRect rightX curY stroke charHeight
 	jump NextDigit always
 
 Draw2:
-	op add rightX curX 8
+	op add rightX curX segment
 	draw lineRect curX midY charWidth stroke
 	draw lineRect curX topY charWidth stroke
 	draw lineRect curX curY charWidth stroke
-	draw lineRect curX curY stroke halfVert
-	draw lineRect rightX midY stroke halfVert
+	draw lineRect curX curY stroke segment
+	draw lineRect rightX midY stroke segment
 	jump NextDigit always
 	
 Draw3:
-	op add rightX curX 8
+	op add rightX curX segment
 	draw lineRect curX midY charWidth stroke
 	draw lineRect curX topY charWidth stroke
 	draw lineRect curX curY charWidth stroke
@@ -157,29 +149,29 @@ Draw3:
 	jump NextDigit always
 
 Draw4:
-	op add rightX curX 8
+	op add rightX curX segment
 	draw lineRect curX midY charWidth stroke
-	draw lineRect curX midY stroke halfVert
+	draw lineRect curX midY stroke segment
 	draw lineRect rightX curY stroke charHeight
 	jump NextDigit always
 
 Draw5:
-	op add rightX curX 8
+	op add rightX curX segment
 	draw lineRect curX midY charWidth stroke
 	draw lineRect curX topY charWidth stroke
 	draw lineRect curX curY charWidth stroke
-	draw lineRect rightX midY stroke halfVert
-	draw lineRect curX curY stroke halfVert
+	draw lineRect rightX midY stroke segment
+	draw lineRect curX curY stroke segment
 	jump NextDigit always
 	
 Draw6:
-	draw lineRect curX curY charWidth halfVert
+	draw lineRect curX curY charWidth halfRectH
 	draw lineRect curX topY charWidth stroke
 	draw lineRect curX midY stroke segment
 	jump NextDigit always
 
 Draw7:
-	op add rightX curX 8
+	op add rightX curX segment
 	draw lineRect curX topY charWidth stroke
 	draw lineRect rightX curY stroke charHeight
 	jump NextDigit always
@@ -190,8 +182,8 @@ Draw8:
 	jump NextDigit always
 
 Draw9:
-	op add rightX curX 8
-	draw lineRect curX midY charWidth halfVert
+	op add rightX curX segment
+	draw lineRect curX midY charWidth halfRectH
 	draw lineRect curX curY charWidth stroke
 	draw lineRect rightX curY stroke segment
 	jump NextDigit always
