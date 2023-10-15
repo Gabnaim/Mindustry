@@ -1,0 +1,6 @@
+Fast updating core stock display. 
+You can put it near the core and link all four processors to core, or can put away from core. 
+If away from core, you need a unit to locate core. 
+Program will try to find a flare, mono, poly, mega, nova, pulsar, quasar, dagger, crawler. 
+If you don't have any of those, you probably don't need this.                                  
+NOTE: do not use earlier version, it is buggy. Bugs have been fixed in this version.
