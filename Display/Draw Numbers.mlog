@@ -1,72 +1,113 @@
-Initialize:
+ Initialize:
 	set display display1
-	set size 176
-	set margin 6
+	getlink core 1
+	set minI 0
+	set maxI 8
+	
+	set bgColor %000000
+	set fontColor %ffff99
+
+	set leftBounds 6
+	set rightBounds 86
+	set topBounds 166
+	set bottomBounds 6
+
+	set bgLeft 0
+	set bgBottom 0
+	set bgWidth 88
+	set bgHeight 176
+	
+	op sub width rightBounds leftBounds
+	op add width width 1
+	op sub height topBounds bottomBounds
+	op add height height 1
+
 	set stroke 2
 	set charSpacing 2
 	set rowSpacing 4
 	set charHeight 16
+	set charWidth 10
 
-	op div midOffset charHeight 2
-	op add charWidth midOffset stroke
+	set midOffset 7
+	set topOffset 14
+	set segment 8
+	op add halfRectH midOffset stroke
 	op add charOffset charWidth charSpacing
 
-	set startX margin
-	op sub startY size margin
-	op sub endX size margin
-	set endY margin
-	op sub rowWidth endX startX
-	op add rowWidth rowWidth 1
+	set startX leftBounds
+	set startY topBounds
+	set clearWidth 60
+	set clearHeight 20
+	op add clearX leftBounds 20
 
-	set maxRows 8
-	draw clear 0 0 0
-	draw color 255 255 153 255
+	draw clear 88 88 88
+	drawflush display
+
+ClearArea:
+	draw col bgColor
+	draw rect bgLeft bgBottom bgWidth bgHeight
 	draw stroke stroke
+	drawflush display
+	
+DrawItems:
+	set imageSize charHeight
+	op idiv imagePos imageSize 2
+	op add imageOffset charHeight rowSpacing
+	op add imageX startX imagePos
+	op sub imageY startY imagePos
+
+	draw color 255 255 255 255
+	set i minI
+	ImageLoop:
+		lookup item material i
+		draw image imageX imageY material imageSize
+		op add i i 1
+		op sub imageY imageY imageOffset
+		jump ImageLoop lessThan i maxI
+		
+		drawflush display
 
 Start:
-	jump Start equal status "FINISHED"
-	set status "DRAWING"
-	set curX startX
-	set curY startY
-	set rows 0
+	set i minI
+	set curY topBounds
 	
 StartLine:
-	set curX endX
+	op sub curX rightBounds 2
 	op sub curY curY charHeight
 	op add midY curY midOffset
-	op add topY midY midOffset
-	set bottY curY
-	draw color 0 0 0
-	op sub rectY curY 1
-	op add rectHeight charHeight stroke
-	draw rect startX rectY rowWidth rectHeight
-	draw color 255 255 153 255
+	op add topY curY topOffset
+	op add bottY curY 0
+
+ClearNumber:
+	draw col bgColor
+	op sub clearY curY 1
+	draw rect clearX clearY clearWidth clearHeight
 	
 GetNumber:
-	op rand rando 21000
-	op floor value rando
+	lookup item material i
+	sensor value core material
+	draw col fontColor
 
 PrintDigits:
 	op mod digit value 10
 	op idiv value value 10
+
+	op sub leftX curX segment
+	op sub rightX curX 0
 	
-	op sub leftX curX midOffset
-	set rightX curX
 	op add drawReturn @counter 1
 	jump DrawDigit always
-	op sub curX curX charOffset
 
+	op sub curX curX charOffset
 	jump PrintDigits greaterThan value 0
 
 MoveToNextLine:
 	drawflush display
-	op add rows rows 1
 	op sub curY curY rowSpacing
-	jump StartLine lessThan rows maxRows
+	op add i i 1
+	jump StartLine lessThan i maxI
 
 Done:
-	drawflush display
-	# set status "FINISHED"
 	jump Start always
 
 DrawDigit:
@@ -84,73 +125,62 @@ DrawDigit:
 	set @counter drawReturn
 
 Draw0:
-	draw line leftX topY leftX bottY
-	draw line leftX topY rightX topY
-	draw line rightX topY rightX bottY
-	draw line leftX bottY rightX bottY
+	draw lineRect leftX bottY charWidth charHeight
 	set @counter drawReturn
 
 Draw1:
-	draw line rightX topY rightX bottY
+	draw lineRect rightX bottY stroke charHeight
 	set @counter drawReturn
 
 Draw2:
-	draw line leftX topY rightX topY
-	draw line leftX midY rightX midY
-	draw line leftX bottY rightX bottY	
-	draw line leftX midY leftX bottY
-	draw line rightX midY rightX topY
+	draw lineRect leftX midY charWidth stroke
+	draw lineRect leftX topY charWidth stroke
+	draw lineRect leftX bottY charWidth stroke
+	draw lineRect leftX bottY stroke segment
+	draw lineRect rightX midY stroke segment
 	set @counter drawReturn
 	
 Draw3:
-	draw line leftX topY rightX topY
-	draw line leftX midY rightX midY
-	draw line leftX bottY rightX bottY
-	draw line rightX bottY rightX topY
+	draw lineRect leftX midY charWidth stroke
+	draw lineRect leftX topY charWidth stroke
+	draw lineRect leftX bottY charWidth stroke
+	draw lineRect rightX curY stroke charHeight
 	set @counter drawReturn
 
 Draw4:
-	draw line leftX midY rightX midY
-	draw line leftX midY leftX topY
-	draw line rightX topY rightX bottY
+	draw lineRect leftX midY charWidth stroke
+	draw lineRect leftX midY stroke segment
+	draw lineRect rightX bottY stroke charHeight
 	set @counter drawReturn
 
 Draw5:
-	draw line leftX topY rightX topY
-	draw line leftX midY rightX midY
-	draw line leftX bottY rightX bottY	
-	draw line leftX midY leftX topY
-	draw line rightX midY rightX bottY
+	draw lineRect leftX midY charWidth stroke
+	draw lineRect leftX topY charWidth stroke
+	draw lineRect leftX bottY charWidth stroke
+	draw lineRect leftX midY stroke segment
+	draw lineRect rightX bottY stroke segment
 	set @counter drawReturn
 	
 Draw6:
-	draw line leftX topY rightX topY
-	draw line leftX midY rightX midY
-	draw line leftX bottY rightX bottY	
-	draw line leftX bottY leftX topY
-	draw line rightX midY rightX bottY
+	draw lineRect leftX bottY charWidth halfRectH
+	draw lineRect leftX topY charWidth stroke
+	draw lineRect leftX midY stroke segment
 	set @counter drawReturn
 
 Draw7:
-	op add rightX leftX midOffset
-	draw line leftX topY rightX topY
-	draw line rightX topY rightX bottY
+	draw lineRect leftX topY charWidth stroke
+	draw lineRect rightX bottY stroke charHeight
 	set @counter drawReturn
 
 Draw8:
-	draw line leftX topY leftX bottY
-	draw line leftX midY rightX midY
-	draw line leftX topY rightX topY
-	draw line rightX topY rightX bottY
-	draw line leftX bottY rightX bottY
+	draw lineRect leftX curY charWidth charHeight
+	draw lineRect leftX midY charWidth stroke
 	set @counter drawReturn
 
 Draw9:
-	draw line leftX topY leftX midY
-	draw line leftX midY rightX midY
-	draw line leftX topY rightX topY
-	draw line rightX topY rightX bottY
-	draw line leftX bottY rightX bottY
+	draw lineRect leftX midY charWidth halfRectH
+	draw lineRect leftX bottY charWidth stroke
+	draw lineRect rightX bottY stroke segment
 	set @counter drawReturn
 
 
