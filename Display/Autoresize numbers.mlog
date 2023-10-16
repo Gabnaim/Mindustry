@@ -1,19 +1,6 @@
 Initialize:
-	set minI 12
-	set maxI 16
-
-	set rows 16
+	set quad 1
 	set quadSize 4
-
-	set colSpacing 4
-	
-	set charHeight 16
-	set charWidth 10
-	set stroke 2
-	set charSpacing 2
-	set rowSpacing 4
-	op add charOffset charWidth charSpacing
-	op add rowOffset charHeight rowSpacing
 	
 	GetLinks:
 		jump GetLinks lessThan @links 2
@@ -31,7 +18,7 @@ Initialize:
 			FoundDisplay:
 				set display link
 				set displaySize 80
-				set margin 2
+				set margin 0
 				jump NextLink always
 			FoundLargeDisplay:
 				set display link
@@ -42,36 +29,49 @@ Initialize:
 				jump LinkLoop lessThan i @links
 			jump GetLinks equal display null
 			jump GetLinks equal source null
-
+	CalcFont:
+		jump CalcSmallFont equal displaySize 80
+		CalcLargeFont:
+			set charHeight 16
+			set charWidth 10
+			set stroke 2
+			set charSpacing 2
+			set rowSpacing 4
+			set colSpacing 4
+			jump EndCalcFont always
+		CalcSmallFont:
+			set charHeight 8
+			set charWidth 4
+			set stroke 1
+			set charSpacing 2
+			set rowSpacing 2 
+			set colSpacing 2
+		EndCalcFont:
+	
 	CalcQuadrants:
-		op mod quadLine rows quadSize
-		op idiv quad rows quadSize	
+		set gridCols 2
+		set gridRows 2
+		op mul maxI quad quadSize
+		op sub minI maxI quadSize
 		jump Quad2 equal quad 2
 		jump Quad3 equal quad 3
 		jump Quad4 equal quad 4
-		FullArea:
-			set gridCols 1
-			set gridRows 1
+		Quad1:
 			set quadCol 1
-			set quadRow 1
+			set quadRow 2
 			jump CalcArea always
 		Quad2:
-			set gridCols 1
-			set gridRows 2
 			set quadCol 1
 			set quadRow 1
 			jump CalcArea always
 		Quad3:
-			set gridCols 2
-			set gridRows 2
 			set quadCol 2
 			set quadRow 2
 			jump CalcArea always
 		Quad4:
-			set gridCols 2
-			set gridRows 2
 			set quadCol 2
 			set quadRow 1
+	
 	
 	CalcArea:
 		op div bgWidth displaySize gridCols
@@ -134,6 +134,8 @@ Initialize:
 		op sub halfRectH charHeight midOffset
 		op sub halfVertH halfRectH stroke
 		op div halfRowSp rowSpacing 2
+		op add charOffset charWidth charSpacing
+		op add rowOffset charHeight rowSpacing
 
 	SetColors:
 		set bgColor %000000
