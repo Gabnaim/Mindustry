@@ -1,0 +1,15 @@
+
+Universal transporter. 
+Transports the selected item or all items in a storage building. Can transport to/from core or another storage.                                               
+                                                  INSTRUCTIONS: 
+1. Link to storage. 
+2. Set unit type and maxUnits. 
+3. If you want all materials to be taken, set takeAll to true. Otherwise enter material. 
+4. Set "pickupHere" to true to transport from here to target. 
+5. Set coreTransport to true if the other end is core. Otherwise enter otherEndX and otherEndY.  
+6. Units bound have to be within maxDistance. If you want to bind units that are nearby, move units close to processor and set maxDistance to a smaller number. If you don't care, set maxDistance to 0. 
+7. It will stop and release idle units after waitSecs expire. Set this to a large number if you expect your source be often empty or target often full.
+8. Turn on with switch. Turn off and on to reset.
+9. Check the error variable if your units are not moving.
+                                             
+NOTES: Startup might be slow if there are lots of your selected unit type on the map. Once started, transporter should be fast. It will reclaim previously used units. It will unflag extra units.                               Ping @freakymouse with error reports.
