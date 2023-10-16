@@ -1,13 +1,20 @@
 Initialize:
-	set minI 0
-	set maxI 8
+	set minI 12
+	set maxI 16
 
-	set leftBounds 2
-	set rightBounds 58
-	set topBounds 78
-	set bottomBounds 2
-	set bgWidth 60
+	set rows 16
+	set quadSize 4
 
+	set colSpacing 4
+	
+	set charHeight 16
+	set charWidth 10
+	set stroke 2
+	set charSpacing 2
+	set rowSpacing 4
+	op add charOffset charWidth charSpacing
+	op add rowOffset charHeight rowSpacing
+	
 	GetLinks:
 		jump GetLinks lessThan @links 2
 		set i 0
@@ -15,6 +22,7 @@ Initialize:
 			getlink link i
 			sensor type link @type
 			jump FoundDisplay equal type @logic-display
+			jump FoundLargeDisplay equal type @large-logic-display
 			sensor cap link @itemCapacity
 			jump NextLink lessThan cap 10
 			FoundContainer:
@@ -22,52 +30,133 @@ Initialize:
 				jump NextLink always
 			FoundDisplay:
 				set display link
+				set displaySize 80
+				set margin 2
+				jump NextLink always
+			FoundLargeDisplay:
+				set display link
+				set displaySize 176
+				set margin 6
 			NextLink:
 				op add i i 1
 				jump LinkLoop lessThan i @links
 			jump GetLinks equal display null
 			jump GetLinks equal source null
 
-
-	set stroke 2
-	set charSpacing 2
-	set rowSpacing 2
-	set charHeight 16
-	set charWidth 6
-
-	op mul strokes stroke 3
-	op sub freeSpace charHeight strokes
-	op div halfFreeH freeSpace 2
-	op floor midOffset halfFreeH 
-	op add midOffset midOffset stroke
-	op sub topOffset charHeight stroke
-	op sub rightOffset charWidth stroke
-	op sub halfRectH charHeight midOffset
-	op sub halfVertH halfRectH stroke
-	op add charOffset charWidth charSpacing
-	op add rowOffset charHeight rowSpacing
-	op div halfRowSp rowSpacing 2
-
-	set clearWidth bgWidth
-	set clearHeight rowOffset
+	CalcQuadrants:
+		op mod quadLine rows quadSize
+		op idiv quad rows quadSize	
+		jump Quad2 equal quad 2
+		jump Quad3 equal quad 3
+		jump Quad4 equal quad 4
+		FullArea:
+			set gridCols 1
+			set gridRows 1
+			set quadCol 1
+			set quadRow 1
+			jump CalcArea always
+		Quad2:
+			set gridCols 1
+			set gridRows 2
+			set quadCol 1
+			set quadRow 1
+			jump CalcArea always
+		Quad3:
+			set gridCols 2
+			set gridRows 2
+			set quadCol 2
+			set quadRow 2
+			jump CalcArea always
+		Quad4:
+			set gridCols 2
+			set gridRows 2
+			set quadCol 2
+			set quadRow 1
 	
-	set bgColor %000000
-	set fontColor %ffff99
-	set imgColor %ffffff
+	CalcArea:
+		op div bgWidth displaySize gridCols
+		op div bgHeight displaySize gridRows
+		op mul bgRight quadCol bgWidth
+		op sub bgLeft bgRight bgWidth
+		op mul bgTop quadRow bgHeight
+		op sub bgBottom bgTop bgHeight
+	
+		op div halfColSp colSpacing 2
+		op div halfRowSp rowSpacing 2
 
-	op add imageSize charHeight halfRowSp
-	op idiv imagePos imageSize 2
-	op add imageX leftBounds imagePos
+	GetHorizontalBounds:
+		jump FullColBounds equal gridCols 1
+		jump Col2Bounds equal quadCol 2
+		Col1Bounds:
+			op add leftBounds bgLeft margin
+			op sub rightBounds bgRight halfColSp
+			jump EndHorizontalBounds always
+		Col2Bounds:
+			op add leftBounds bgLeft halfColSp
+			op sub rightBounds bgRight margin
+			jump EndHorizontalBounds always
+		FullColBounds:
+			op add leftBounds bgLeft margin
+			op sub rightBounds bgRight margin
+		EndHorizontalBounds:
 
-	draw col bgColor
-	draw clear bgColor
-	drawflush display
+	GetVerticalBounds:
+		jump FullRowBounds equal gridRows 1
+		jump Row2Bounds equal quadRow 2
+		Row1Bounds:
+			op sub topBounds bgTop halfRowSp
+			op add bottomBounds bgBottom margin
+			set marginClearY bgBottom
+			op add marginClearHeight margin halfRowSp
+			jump EndVerticalBounds always
+		Row2Bounds:
+			op sub topBounds bgTop margin
+			op sub topBounds topBounds rowSpacing
+			op add bottomBounds bgBottom halfRowSp	
+			set marginClearY topBounds
+			op sub marginClearHeight bgTop marginClearY
+			jump EndVerticalBounds always
+		FullRowBounds:
+			op sub topBounds bgTop margin
+			op sub topBounds topBounds halfRowSp
+			op add bottomBounds bgBottom margin
+		EndVerticalBounds:
+		
+	
+	CalcFontSizeParams:
+		op mul strokes stroke 3
+		op sub freeSpace charHeight strokes
+		op div halfFreeH freeSpace 2
+		op floor midOffset halfFreeH 
+		op add midOffset midOffset stroke
+		op sub topOffset charHeight stroke
+		op sub rightOffset charWidth stroke
+		op sub halfRectH charHeight midOffset
+		op sub halfVertH halfRectH stroke
+		op div halfRowSp rowSpacing 2
 
+	SetColors:
+		set bgColor %000000
+		set fontColor %ffff99
+		set imgColor %ffffff
+
+	CalcImageParams:
+		op add imageSize charHeight 0
+		op idiv imagePos imageSize 2
+		op add imageX leftBounds imagePos
+
+	Clear:
+		draw clear 255 255 255
+		draw col bgColor
+		drawflush display
+
+PreStart:
 Start:
 	set startTime @time
-	draw stroke stroke
-	set i 0
+	set i minI
+	set rows 0
 	op sub curY topBounds charHeight
+	draw rect bgLeft marginClearY bgWidth marginClearHeight
 	
 StartLine:
 	set curX rightBounds
@@ -75,7 +164,7 @@ StartLine:
 	op add topY curY topOffset
 	ClearLine:
 		op sub clearY curY halfRowSp
-		draw rect clearX clearY clearWidth clearHeight
+		draw rect bgLeft clearY bgWidth rowOffset
 		
 	GetMaterial:
 		lookup item material i
@@ -113,13 +202,15 @@ StartLine:
 	NextLine:
 		op sub curY curY rowOffset
 		draw col bgColor
-	
+		op add rows rows 1
+		
 NextItem:
 	op add i i 1
 	jump StartLine lessThan i maxI
 
 Done:
 	op sub cycleTime @time startTime
+	set lastRows rows
 	jump Start always
 
 Draw0:
