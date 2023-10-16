@@ -5,7 +5,7 @@ Initialize:
 		set unitType @poly
 		set maxUnits 2
 		set material @lead
-		set takeAll false
+		set takeAll true
 		set pickupHere true # if false, drop here
 		set coreTransport true # other side is core
 		# if coreTransport is false, coordinates of other target
@@ -21,7 +21,6 @@ Initialize:
 	
 	set error " "
 	set status "INITIALIZE"
-	
 	
 	set arrayLength 12
 	jump TooMany greaterThan maxUnits arrayLength
@@ -214,6 +213,7 @@ Preflag:
 		sensor range @unit @range 
 		op sub range range 1
 		op min dropRange dropRange range
+		op add checkRange dropRange 1
 
 		ulocate building core false 0 coreX coreY coreFound core
 
@@ -248,7 +248,8 @@ Preflag:
 		sensor sourceY source @y
 		sensor dropX dropTarget @x
 		sensor dropY dropTarget @y
-	
+
+PreStart:
 	set status "IDLE"
 	set error " "
 	set arrayIndex 0
@@ -258,7 +259,6 @@ Preflag:
 #--------------------------------------------------
 MainLoop:
 #--------------------------------------------------
-
 Start:
 	sensor active switch @enabled
 	jump ActiveChanged notEqual active lastActive
@@ -295,70 +295,64 @@ DoStuff:
 SelectAction:
 	sensor carried @unit @totalItems
 	sensor carriedItem @unit @firstItem
-	jump Pickup equal carried 0
-	jump DumpItems notEqual carriedItem material
+	jump SelectItem equal carried 0
+	jump DropItems notEqual carriedItem material
 	jump DropItems equal carried cap
-	jump Pickup always 
+
+SelectItem:
+	jump Pickup equal takeAll false
+	set maxStock 0
+	set i 0
+	set maxMaterial material
+	SelectLoop:
+		lookup item mat i
+		sensor stock source mat 
+		jump NextMat lessThanEq stock maxStock
+		set maxStock stock
+		set maxMaterial mat
+	NextMat:
+		op add i i 1
+		jump SelectLoop lessThan i 16
+	
+	jump Next equal maxStock 0
+	set material maxMaterial
+	jump Pickup always
 
 DumpItems:
 	ucontrol itemDrop @air carried
-	sensor carried mule @totalItems
-	jump SelectAction greaterThan carried 0
 	jump Pickup always
 	
 DropItems:
-	ucontrol within dropX dropY dropRange isNearDrop
-	jump DropLoop equal isNearDrop true
 	ucontrol boost true
 	ucontrol approach dropX dropY dropRange
-	jump Next always
+	ucontrol within dropX dropY checkRange isNearDrop
+	jump Next equal isNearDrop false
 
+	set dropI 0
 	DropLoop:
-		set dropI 0
-		ucontrol boost false
+		ucontrol itemDrop dropTarget carried
 		sensor carried @unit @totalItems
-		LoopUntilEmpty:
-			ucontrol itemDrop dropTarget carried
-			sensor carried @unit @totalItems
-			jump Pickup equal carried 0
-			op add dropI dropI 1
-			jump LoopUntilEmpty lessThan dropI 100 
+		jump Pickup equal carried 0
+		op add dropI dropI 1
+		jump DropLoop lessThan dropI 100 
+
+	jump Next always
 
 Pickup:
-	ucontrol within sourceX sourceY dropRange isNearPickup
-	jump SelectItem equal isNearPickup true
 	ucontrol boost true
 	ucontrol approach sourceX sourceY dropRange
-	jump Next always
-
-	SelectItem:
-		jump PickupLoop equal takeAll false
-		set maxStock 0
-		set i 0
-		set maxMaterial material
-		SelectLoop:
-			lookup item mat i
-			sensor stock source mat 
-			jump NextMat lessThanEq stock maxStock
-			set maxStock stock
-			set maxMaterial mat
-		NextMat:
-			op add i i 1
-			jump SelectLoop lessThan i 16
+	ucontrol within sourceX sourceY checkRange isNearPickup
+	jump Next equal isNearPickup false
 	
-		jump Next equal maxStock 0
-		set material maxMaterial
-	
-	PickupLoop:
-		set pickupI true
-		ucontrol boost false
-		LoopUntilFull:
+	PickupItem:
+		set pickupI 0
+		PickupLoop:
 			ucontrol itemTake source material cap
 			sensor carried @unit @totalItems
 			jump DropItems equal carried cap
 
 			op add pickupI pickupI 1
-			jump LoopUntilFull lessThan pickupI 100 
+			jump PickupLoop lessThan pickupI 100 
 
 Next:
 	op add arrayIndex arrayIndex 1
@@ -411,7 +405,6 @@ Release:
 		
 		ubind unit
 		ucontrol flag 0
-		ucontrol move releaseX releaseY
 
 		ReleaseNext:
 			op add arrayIndex arrayIndex 1
@@ -419,6 +412,7 @@ Release:
 		
 	FinishRelease:
 		set status "IDLE"
+		set error "Released idle units"
 		set releaseStart @time
 		set arrayIndex 0
 		jump Start always
