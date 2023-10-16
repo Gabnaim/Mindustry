@@ -89,7 +89,7 @@ Initialize:
 	op add rowOffset charHeight rowSpacing
 	op div halfRowSp rowSpacing 2
 
-	set clearWidth bgWidth
+	set clearWidth bgWidth,
 	set clearHeight rowOffset
 	set clearX bgLeft
 	
