@@ -76,12 +76,18 @@ Initialize:
 	set charHeight 16
 	set charWidth 10
 
-	set midOffset 7
-	set topOffset 14
-	set segment 8
-	set halfRectH 9
+	op mul strokes stroke 3
+	op sub freeSpace charHeight strokes
+	op div halfFreeH freeSpace 2
+	op floor midOffset halfFreeH 
+	op add midOffset midOffset stroke
+	op sub topOffset charHeight stroke
+	op sub rightOffset charWidth stroke
+	op sub halfRectH charHeight midOffset
+	op sub halfVertH halfRectH stroke
 	op add charOffset charWidth charSpacing
 	op add rowOffset charHeight rowSpacing
+	op div halfRowSp rowSpacing 2
 
 	set clearWidth bgWidth
 	set clearHeight rowOffset
@@ -159,21 +165,21 @@ Draw0:
 	jump NextDigit always
 
 Draw1:
-	op add rightX curX segment
+	op add rightX curX rightOffset
 	draw lineRect rightX curY stroke charHeight
 	jump NextDigit always
 
 Draw2:
-	op add rightX curX segment
+	op add rightX curX rightOffset
 	draw lineRect curX midY charWidth stroke
 	draw lineRect curX topY charWidth stroke
 	draw lineRect curX curY charWidth stroke
-	draw lineRect curX curY stroke segment
-	draw lineRect rightX midY stroke segment
+	draw lineRect curX curY stroke halfVertH
+	draw lineRect rightX midY stroke halfVertH
 	jump NextDigit always
 	
 Draw3:
-	op add rightX curX segment
+	op add rightX curX rightOffset
 	draw lineRect curX midY charWidth stroke
 	draw lineRect curX topY charWidth stroke
 	draw lineRect curX curY charWidth stroke
@@ -181,29 +187,29 @@ Draw3:
 	jump NextDigit always
 
 Draw4:
-	op add rightX curX segment
+	op add rightX curX rightOffset
 	draw lineRect curX midY charWidth stroke
-	draw lineRect curX midY stroke segment
+	draw lineRect curX midY stroke halfRectH
 	draw lineRect rightX curY stroke charHeight
 	jump NextDigit always
 
 Draw5:
-	op add rightX curX segment
+	op add rightX curX rightOffset
 	draw lineRect curX midY charWidth stroke
 	draw lineRect curX topY charWidth stroke
 	draw lineRect curX curY charWidth stroke
-	draw lineRect curX midY stroke segment
-	draw lineRect rightX curY stroke segment
+	draw lineRect curX midY stroke halfVertH
+	draw lineRect rightX curY stroke halfVertH
 	jump NextDigit always
 	
 Draw6:
 	draw lineRect curX curY charWidth halfRectH
 	draw lineRect curX topY charWidth stroke
-	draw lineRect curX midY stroke segment
+	draw lineRect curX midY stroke halfVertH
 	jump NextDigit always
 
 Draw7:
-	op add rightX curX segment
+	op add rightX curX rightOffset
 	draw lineRect curX topY charWidth stroke
 	draw lineRect rightX curY stroke charHeight
 	jump NextDigit always
@@ -214,12 +220,8 @@ Draw8:
 	jump NextDigit always
 
 Draw9:
-	op add rightX curX segment
+	op add rightX curX rightOffset
 	draw lineRect curX midY charWidth halfRectH
 	draw lineRect curX curY charWidth stroke
-	draw lineRect rightX curY stroke segment
+	draw lineRect rightX curY stroke halfVertH
 	jump NextDigit always
-
-
-
-	

@@ -187,7 +187,3 @@ Draw9:
 	draw lineRect curX curY charWidth stroke
 	draw lineRect rightX curY stroke halfVertH
 	jump NextDigit always
-
-
-
-	
