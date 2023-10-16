@@ -1,0 +1,612 @@
+set name "Miner"
+
+Initialize:
+	set unitType @quasar
+	set maxUnits 3
+	set maxDistance 100 # do not bind if further away
+	set releaseWaitSecs 300
+	
+	set useCoords false
+	set oreX 0
+	set oreY 0
+
+	set error " "
+	set status "INITIALIZE"
+
+	set miningRange 8.75
+	set dropRange 7
+	
+	op shl procId @thisx 10
+	op add procId procId @thisy
+
+	set errorIcon @blast-compound
+
+	set arrayLength 12
+	jump TooMany greaterThan maxUnits arrayLength
+
+	set sorter sorter1
+	jump NoSorter equal sorter null
+
+	GetLinks:
+		set l 0
+		LinkLoop:
+			getlink link l
+			sensor buildingCap link @itemCapacity
+			jump NextLink lessThan buildingCap 100
+		FoundTarget:
+			set dropTarget link
+		NextLink:
+			op add l l 1
+			jump LinkLoop lessThan l @links
+
+		jump NoTarget equal dropTarget null
+
+	CheckConfig:
+		jump Preflag equal useCoords false
+		jump NoCoords equal oreX 0
+		jump NoCoords equal oreY 0
+
+#-------------------------------------------------
+Preflag:
+#-------------------------------------------------
+	set flagStart @time
+	Count:
+		set status "COUNT"
+		set flagged 0
+		set free 0
+		set units 0
+		set tooFar 0
+		
+		ubind unitType
+		jump NoUnits equal @unit null
+		set firstUnit @unit
+		jump CountProcess always
+		
+		CountLoop:
+			ubind unitType
+			jump FinishCount equal firstUnit @unit
+	
+		CountProcess:
+			sensor isDead @unit @dead
+			jump CountLoop equal isDead true
+			sensor flag @unit @flag
+			jump CountFree equal flag 0
+			jump NextCount notEqual flag procId
+			jump CountFlagged greaterThanEq flagged maxUnits
+
+			SaveFlagged: 
+				set unit @unit
+				set arrayIndex flagged
+				op add arrayReturn @counter 1
+				jump ArraySet always
+	
+			CountFlagged:
+				op add flagged flagged 1
+				jump NextCount always
+	
+			CountFree:
+				op add free free 1
+		
+		NextCount:
+			op add units units 1
+			jump CountLoop always
+	
+		FinishCount:
+			jump FlagDone equal flagged maxUnits
+			jump Unflag greaterThan flagged maxUnits
+	
+	Flag:
+		jump FlagDone equal free 0
+
+		set status "FLAG"
+		ubind unitType
+		set firstUnit @unit
+		jump FlagProcess always
+	
+		FlagLoop:
+			ubind unitType
+			jump FinishFlag equal firstUnit @unit
+	
+		FlagProcess:
+			sensor isDead @unit @dead
+			jump FlagLoop equal isDead true
+			sensor flag @unit @flag
+			jump NextFlag notEqual flag 0
+	
+		ProcessFree: 
+			sensor controlled @unit @controlled
+			jump NextFlag greaterThanEq controlled 2
+	
+			CheckDistance:
+				jump FlagUnit lessThanEq maxDistance 0
+				sensor x @unit @x
+				sensor y @unit @y
+				op sub xDiff @thisx x
+				op sub yDiff @thisy y
+				op len distance xDiff yDiff
+				jump UnitTooFar greaterThan distance maxDistance
+	
+			FlagUnit:
+				ucontrol flag procId
+				set arrayIndex flagged
+				set unit @unit
+				op add arrayReturn @counter 1
+				jump ArraySet always
+				op add flagged flagged 1
+
+		UnitTooFar:
+			op add tooFar tooFar 1
+		
+		NextFlag:
+			jump FlagLoop lessThan flagged maxUnits
+		
+		FinishFlag:
+			jump FlagDone equal flagged maxUnits
+			jump NoUnits equal flagged 0
+			jump FlagDone always
+	
+	Unflag:
+		set status "UNFLAG"		
+
+		ubind unitType
+		set firstUnit @unit
+		jump UnflagProcess always
+	
+		UnflagLoop:
+			ubind unitType
+			jump FlagDone equal firstUnit @unit
+	
+		UnflagProcess:
+			sensor isDead @unit @dead
+			jump UnflagLoop equal isDead true
+			sensor flag @unit @flag
+			jump NextUnflag notEqual flag procId
+	
+		UnflagUnit:
+			ucontrol flag 0
+			op sub flagged flagged 1
+		
+		NextUnflag:
+			jump UnflagLoop greaterThan flagged maxUnits
+		
+		FlagDone:
+			op sub flagTime @time flagStart
+
+	ClearArray:
+		jump ClearDone equal flagged maxUnits
+		set arrayIndex flagged 
+		set unit null
+		ClearLoop:
+			op add arrayReturn @counter 1
+			jump ArraySet always
+			op add arrayIndex arrayIndex 1
+			jump ClearLoop lessThan arrayIndex maxUnits
+		ClearDone:
+						
+	GetStartUnit:
+		jump Preflag equal maxUnits 0
+		set arrayIndex 0
+		op add arrayReturn @counter 1
+		jump ArrayGet always
+		jump Preflag equal unit null
+		
+		ubind unit
+		sensor cap unit @itemCapacity
+		sensor range unit @range
+		op sub range range 1
+		op min dropRange dropRange range
+		op add coreRange 27.5 miningRange
+	
+		ulocate building core false 0 coreX coreY coreFound core
+		
+	GetDropCoords:
+		sensor dropX dropTarget @x
+		sensor dropY dropTarget @y
+
+	op mul releaseWaitMs releaseWaitSecs 1000
+
+PreStart:
+	set oreFound false
+	set status "IDLE"
+	set error " "
+	set arrayIndex 0
+	set releaseStart @time
+
+#-------------------------------------------------
+MainLoop:
+#-------------------------------------------------
+Start:
+	sensor oreChoice sorter @config
+	jump ChangeOre notEqual oreChoice lastChoice
+	jump Reset equal oreChoice null
+	op sub releaseWait @time releaseStart
+	jump Reset greaterThanEq releaseWait releaseWaitMs
+	jump Start equal status "ERROR"
+
+CheckUnit:
+	op add arrayReturn @counter 1
+	jump ArrayGet always
+
+	jump Rebind equal unit null
+	sensor isDead unit @dead
+	jump Rebind equal isDead true
+	sensor flag unit @flag
+	jump Reflag equal flag 0
+	jump Rebind notEqual flag procId
+	jump DoStuff always
+
+Rebind:
+	jump Preflag always
+	
+Reflag:
+	ubind unit
+	ucontrol flag procId
+	op add arrayReturn @counter 1
+	jump ArraySet always
+
+DoStuff:	
+	ubind unit
+	set releaseStart @time
+
+SelectAction:
+	set dump false
+	jump FindOre equal oreFound false
+	set status "MINING"
+	sensor isMining @unit @mining
+	sensor carried @unit @totalItems
+	sensor carriedItem @unit @firstItem
+
+	jump Mine equal carried 0
+	jump DumpUnneeded notEqual carriedItem minedOre
+	
+	jump DropItems greaterThanEq carried cap
+	jump Mine always
+
+DumpUnneeded:
+DropItems:
+	ucontrol within dropX dropY dropRange isNearDrop
+	jump Drop equal isNearDrop true
+	ucontrol boost true
+	ucontrol approach dropX dropY dropRange
+	jump Next always
+
+	Drop:
+		set dropI 0
+		DropLoop:
+			ucontrol itemDrop dropTarget 999
+			sensor carried @unit @totalItems
+			jump Next equal carried 0
+			op add dropI dropI 1
+			jump DropLoop lessThan dropI 10
+
+		sensor carriedItem @unit @firstItem
+		jump Next equal carriedItem minedOre
+		# dump to air
+		ucontrol itemDrop @air 999
+
+Mine:
+	MoveToOre:
+		ucontrol within oreX oreY miningRange isNearMine
+		jump MineOre equal isNearMine true
+		ucontrol boost true
+		ucontrol approach oreX oreY miningRange
+		jump Next always
+	
+	MineOre:
+		set releaseStart @time
+		ucontrol mine oreX oreY
+
+Next:
+	op add arrayIndex arrayIndex 1
+	jump Start lessThan arrayIndex flagged
+
+FinishGroup:
+	set arrayIndex 0
+	jump Start always
+
+#--------------------------------------------------
+WrapUp:
+#--------------------------------------------------
+ChangeOre:
+	set lastChoice oreChoice
+	jump Start equal oreChoice errorIcon
+	set error " "
+	jump Reset equal oreChoice null
+	
+	set status "CHANGEORE"
+	set oreFound false
+
+	ValidateOre:
+		sensor id oreChoice @id
+		jump CannotMine greaterThan id 9
+		jump CannotMine equal oreChoice @metaglass
+		jump CannotMine equal oreChoice @graphite
+		jump CannotMine equal oreChoice @silicon
+		jump CannotMine equal oreChoice @thorium
+
+		jump CheckCoal equal oreChoice @coal
+		jump CheckTitanium equal oreChoice @titanium
+		jump ValidOre always
+		
+		CheckCoal:
+			jump CannotMine equal unitType @mono
+			jump ValidOre always 
+
+		CheckTitanium:
+			jump ValidOre equal unitType @mega
+			jump ValidOre equal unitType @quasar
+			jump CannotMine always 
+
+	ValidOre:
+		set lastOre minedOre
+		set minedOre oreChoice
+		jump Start always
+
+Reset:
+	jump Start equal status "IDLE"
+	jump Release equal status "RELEASING"
+
+Stop:
+	set status "STOPPING"
+	set arrayIndex 0
+	StopLoop:
+		op add arrayReturn @counter 1
+		jump ArrayGet always
+		jump StopNext equal unit null
+		
+		ubind unit
+		ucontrol stop
+
+		StopNext:
+			op add arrayIndex arrayIndex 1
+			jump StopLoop lessThan arrayIndex maxUnits
+		set status "RELEASING"
+		set arrayIndex 0
+
+Release:
+	op sub releaseWait @time releaseStart
+	jump Start lessThan releaseWait releaseWaitMs
+
+	op add releaseX @thisx 2
+	op add releaseY @thisy -8
+
+	set arrayIndex 0
+	ReleaseLoop:
+		op add arrayReturn @counter 1
+		jump ArrayGet always
+		jump ReleaseNext equal unit null
+
+		ubind unit
+		sensor carriedMat unit @firstItem
+		jump ReleaseUnit equal carriedMat null
+
+	DumpToTarget:
+		ucontrol within dropX dropY dropRange isNearDrop
+		jump TargetDump equal isNearDrop true
+		ucontrol boost true
+		ucontrol approach sourceX sourceY dropRange
+		jump DumpToTarget always
+	
+		TargetDump:
+			set dropI 0
+			TargetDumpLoop:
+				ucontrol itemDrop source cap
+				sensor carried @unit @totalItems
+				jump ReleaseUnit equal carried 0
+				op add dropI dropI 1
+				jump TargetDumpLoop lessThan dropI 10
+	
+			# drop to air if source is full
+			ucontrol itemDrop @air cap
+		
+		ReleaseUnit:
+		ubind unit
+		ucontrol flag 0
+		ucontrol move releaseX releaseY
+
+		ReleaseNext:
+			op add arrayIndex arrayIndex 1
+			jump ReleaseLoop lessThan arrayIndex maxUnits
+		
+	FinishRelease:
+		set status "IDLE"
+		set releaseStart @time
+		set arrayIndex 0
+		jump Start always
+
+#-------------------------------------------------
+Errors:
+#-------------------------------------------------
+NoUnits:
+	jump TooFar greaterThan tooFar 0
+	set error "No free units"
+	jump Preflag always
+
+TooFar:
+	set error "Some units are too far"
+	jump Preflag always
+
+TooMany:
+	set error "Max 12 units supported"
+	jump Error always
+	
+NoSorter:
+	set error "Need sorter"
+	jump Error always
+
+NoTarget:
+	set error "No drop target"
+	jump Error always
+
+NoCoords:
+	set error "need coords"
+	jump Error always
+
+NoOre:
+	set error "No ore found"
+	jump Error always
+
+CannotMine:
+	set error "Cannot mine ore"
+	jump Error always
+
+Error:
+	set status "ERROR"
+	control config sorter errorIcon
+	jump Start always
+
+#-------------------------------------------------
+SubRoutines:
+#-------------------------------------------------
+FindOre:
+	set status "LOCATEORE"
+
+	jump SearchNearDrop equal useCoords false
+	SearchAtCoords:
+		ucontrol within oreX oreY 1 isNear
+		jump CheckBlock equal isNear true
+		ucontrol boost true
+		ucontrol move oreX oreY 
+		jump SearchAtCoords always
+
+		CheckBlock:
+			ucontrol getBlock oreX oreY type building floor
+			jump NoOre notEqual type @air
+		
+			op add floorReturn @counter 1
+			jump GetMinedFloor always
+
+			jump OreFound equal minedFloor floor
+			jump NoOre notEqual minedOre @sand
+		CheckSand:
+			jump OreFound equal floor @darksand
+			jump NoOre always
+		
+	SearchNearDrop:
+		GoToDrop:
+			ucontrol within dropX dropY 1 isNearDrop
+			jump LocateOre equal isNearDrop true
+			ucontrol boost true
+			ucontrol approach dropX dropY 1
+			jump GoToDrop always
+		
+		LocateOre:
+			set locateI 0
+			LocateLoop:
+				ulocate ore core true minedOre oreX oreY oreFound oreMine
+				jump OreFound equal oreFound true
+				op add locateI locateI 1
+				jump LocateLoop lessThan locateI 10
+			jump NoOre always
+
+	OreFound:
+		set releaseStart @time
+		set oreFound true
+		op sub oreCoreDistX coreX oreX
+		op sub oreCoreDistY coreY oreY
+		op len oreCoreDist oreCoreDistX oreCoreDistY
+		jump DropEarly lessThanEq oreCoreDist coreRange
+
+		op sub oreDropDistX dropX oreX
+		op sub oreDropDistY dropY oreY
+		op len oreDropDist oreDropDistX oreDropDistY
+		op add targetRange miningRange dropRange
+		jump Start lessThanEq targetRange oreDropDist
+
+	DropEarly:
+		# if the mine is near the core, we need to drop
+		# before full to prevent auto drop to core
+		op mul cap cap 0.6
+		op floor cap cap
+		jump Start always
+
+GetMinedFloor:
+	sensor id minedOre @id
+	op mul offset id 2
+	op add @counter @counter offset
+	
+	set minedFloor @ore-copper
+	set @counter floorReturn
+	set minedFloor @ore-lead
+	set @counter floorReturn
+	set minedFloor null
+	set @counter floorReturn
+	set minedFloor null
+	set @counter floorReturn
+	set minedFloor @sand-floor
+	set @counter floorReturn
+	set minedFloor @ore-coal
+	set @counter floorReturn
+	set minedFloor @ore-titanium
+	set @counter floorReturn
+	set minedFloor null
+	set @counter floorReturn
+	set minedFloor @ore-scrap
+	set @counter floorReturn
+
+#-------------------------------------------------
+Array:
+#-------------------------------------------------
+ArraySet:
+	op mul offset arrayIndex 2
+	op add @counter @counter offset
+
+	set unit0 unit
+	set @counter arrayReturn
+	set unit1 unit
+	set @counter arrayReturn
+	set unit2 unit
+	set @counter arrayReturn
+	set unit3 unit
+	set @counter arrayReturn
+	set unit4 unit
+	set @counter arrayReturn
+	set unit5 unit
+	set @counter arrayReturn
+	set unit6 unit
+	set @counter arrayReturn
+	set unit7 unit
+	set @counter arrayReturn
+	set unit8 unit
+	set @counter arrayReturn
+	set unit9 unit
+	set @counter arrayReturn
+
+	set unit10 unit
+	set @counter arrayReturn
+	set unit11 unit
+	set @counter arrayReturn
+	
+	
+ArrayGet:
+	op mul offset arrayIndex 2
+	op add @counter @counter offset
+
+	set unit unit0
+	set @counter arrayReturn
+	set unit unit1
+	set @counter arrayReturn
+	set unit unit2
+	set @counter arrayReturn
+	set unit unit3
+	set @counter arrayReturn
+	set unit unit4
+	set @counter arrayReturn
+	set unit unit5
+	set @counter arrayReturn
+	set unit unit6
+	set @counter arrayReturn
+	set unit unit7
+	set @counter arrayReturn
+	set unit unit8
+	set @counter arrayReturn
+	set unit unit9
+	set @counter arrayReturn
+
+	set unit unit10
+	set @counter arrayReturn
+	set unit unit11
+	set @counter arrayReturn
+
+
+	
