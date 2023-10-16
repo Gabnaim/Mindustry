@@ -83,8 +83,6 @@ Initialize:
 	op add charOffset charWidth charSpacing
 	op add rowOffset charHeight rowSpacing
 
-	op sub topMargin 
-
 	set clearWidth bgWidth
 	set clearHeight rowOffset
 	set clearX bgLeft
