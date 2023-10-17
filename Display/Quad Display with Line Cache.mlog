@@ -1,5 +1,7 @@
 Initialize:
 	set quad 1
+	set resetSecs 10
+	set procStartTime @time
 	
 	GetLinks:
 		jump GetLinks lessThan @links 2
@@ -135,6 +137,7 @@ Initialize:
 		op div halfRowSp rowSpacing 2
 		op add charOffset charWidth charSpacing
 		op add rowOffset charHeight rowSpacing
+		op add clearOffset charHeight halfRowSp
 
 	SetColors:
 		set bgColor %000000
@@ -145,28 +148,63 @@ Initialize:
 		op add imageSize charHeight 0
 		op idiv imagePos imageSize 2
 		op add imageX leftBounds imagePos
+		op add clearX leftBounds imageSize
+		op sub clearWidth bgRight clearX
+		op sub imgClearWidth clearX bgLeft
 
-PreStart:
+	MiscInit:
+		op mul resetMs resetSecs 1000
+		op mul past resetMs 2
+		op sub lastUpdate @time past
+
 Start:
+	op sub timeSinceUpdate @time lastUpdate
+	jump StartCycle lessThan timeSinceUpdate resetMs
+
+	Refresh:
+		set row 0
+		set i minI
+		set lastStock null
+		op sub imageY topBounds imagePos
+		op sub rowClearY topBounds clearOffset
+		RefreshLoop:
+			op add arrayReturn @counter 1
+			jump SetLastStock always
+
+			lookup item material i
+			draw col bgColor 
+			draw rect bgLeft rowClearY imgClearWidth rowOffset
+			draw col imgColor
+			draw image imageX imageY material imageSize
+			op sub imageY imageY rowOffset
+			op sub rowClearY rowClearY rowOffset
+			op add row row 1
+			op add i i 1
+			jump RefreshLoop lessThan row 4
+
+		draw col bgColor
+		draw rect bgLeft marginClearY bgWidth marginClearHeight
+		draw stroke stroke
+		drawflush display
+		
+StartCycle:
 	set startTime @time
 	set i minI
 	set row 0
 	op sub curY topBounds charHeight
-	draw col bgColor
-	draw rect bgLeft marginClearY bgWidth marginClearHeight
-	draw stroke stroke
 	
 StartLine:
 	GetMaterial:
 		lookup item material i
 		sensor stock source material
-
 		op add arrayReturn @counter 1
 		jump GetLastStock always
 		jump NextLine strictEqual lastStock stock
 
+	SaveStock:
 		op add arrayReturn @counter 1
 		jump SetLastStock always
+		set lastUpdate @time
 
 	CalcLineDrawParams:
 		set curX rightBounds
@@ -176,18 +214,15 @@ StartLine:
 	ClearLine:
 		draw col bgColor
 		op sub clearY curY halfRowSp
-		draw rect bgLeft clearY bgWidth rowOffset
+		draw rect clearX clearY clearWidth rowOffset
+		draw col fontColor
 
-		draw col imgColor
-		draw image imageX midY material imageSize
-		
 	PrintDigits:
 		op mod digit stock 10
 		op idiv stock stock 10
 		
 	DrawDigit:
 		op sub curX curX charOffset
-		draw col fontColor
 		op add @counter @counter digit
 		jump Draw0 equal digit 0
 		jump Draw1 equal digit 1
