@@ -145,7 +145,6 @@ Initialize:
 		op add imageSize charHeight 0
 		op idiv imagePos imageSize 2
 		op add imageX leftBounds imagePos
-		op add afterImageX leftBounds imageSize
 
 PreStart:
 Start:
