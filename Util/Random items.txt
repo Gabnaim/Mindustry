@@ -1,0 +1,18 @@
+Initialize:
+	set minI 4
+	set maxI 10
+	
+Start:
+	op sub range maxI minI
+	op rand rando range 
+	op floor rando rando
+	op add id rando minI
+	lookup item material id
+
+	set l 0
+	LinkLoop:
+		getlink link l
+		control config link material
+		op add l l 1
+		jump LinkLoop lessThan l @links
+
