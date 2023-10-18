@@ -3,7 +3,6 @@ Initialize:
 	set useMemory true
 	set maxUnitIndex 37 #Serpulo
 	set TOTAL_ADDR 38
-	set maxUnits 150 #if unitcount is going nuts, we should reset
 	
 	GetMemory:
 		set memory cell1
@@ -12,10 +11,10 @@ Initialize:
 
 Start:
 	set unitTypes 0
-	set unitIndex 0
+	set i 0
 
 ProcessUnitType:
-	lookup unit unitType unitIndex
+	lookup unit unitType i
 
 	ubind unitType
 	jump NextUnitType equal @unit null
@@ -40,12 +39,12 @@ FinishGroup:
 	print ": "
 	print units
 	print "\n"
-	write units memory unitIndex
+	write units memory i
 	op add unitTypes unitTypes 1
 
 NextUnitType:
-	op add unitIndex unitIndex 1
-	jump ProcessUnitType lessThanEq unitIndex maxUnitIndex
+	op add i i 1
+	jump ProcessUnitType lessThanEq i maxUnitIndex
 	
 Finish:
 	set totalTypes unitTypes
