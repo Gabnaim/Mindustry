@@ -1,7 +1,6 @@
 Initialize:
 	set quad 1
-	set resetSecs 10
-	set procStartTime @time
+	set refreshMs 20000
 	
 	GetLinks:
 		jump GetLinks lessThan @links 2
@@ -51,11 +50,8 @@ Initialize:
 		EndCalcFont:
 	
 	CalcQuadrants:
-		set gridCols 2
-		set gridRows 2
-		set quadSize 4
-		op mul maxI quad quadSize
-		op sub minI maxI quadSize
+		op mul maxI quad 4
+		op sub minI maxI 4
 		jump Quad2 equal quad 2
 		jump Quad3 equal quad 3
 		jump Quad4 equal quad 4
@@ -76,18 +72,16 @@ Initialize:
 			set quadRow 1
 	
 	CalcArea:
-		op div bgWidth displaySize gridCols
-		op div bgHeight displaySize gridRows
-		op mul bgRight quadCol bgWidth
-		op sub bgLeft bgRight bgWidth
-		op mul bgTop quadRow bgHeight
-		op sub bgBottom bgTop bgHeight
+		op div bgSize displaySize 2
+		op mul bgRight quadCol bgSize
+		op sub bgLeft bgRight bgSize
+		op mul bgTop quadRow bgSize
+		
 	
 		op div halfColSp colSpacing 2
 		op div halfRowSp rowSpacing 2
 
 	GetHorizontalBounds:
-		jump FullColBounds equal gridCols 1
 		jump Col2Bounds equal quadCol 2
 		Col1Bounds:
 			op add leftBounds bgLeft margin
@@ -96,39 +90,27 @@ Initialize:
 		Col2Bounds:
 			op add leftBounds bgLeft halfColSp
 			op sub rightBounds bgRight margin
-			jump EndHorizontalBounds always
-		FullColBounds:
-			op add leftBounds bgLeft margin
-			op sub rightBounds bgRight margin
 		EndHorizontalBounds:
 
 	GetVerticalBounds:
-		jump FullRowBounds equal gridRows 1
 		jump Row2Bounds equal quadRow 2
 		Row1Bounds:
 			op sub topBounds bgTop halfRowSp
-			op add bottomBounds bgBottom margin
-			set marginClearY bgBottom
-			op add marginClearHeight margin halfRowSp
+			op sub marginClearY bgTop bgSize
+			op add marginClearHeight margin rowSpacing
 			jump EndVerticalBounds always
 		Row2Bounds:
 			op sub topBounds bgTop margin
 			op sub topBounds topBounds rowSpacing
-			op add bottomBounds bgBottom halfRowSp	
 			set marginClearY topBounds
 			op sub marginClearHeight bgTop marginClearY
-			jump EndVerticalBounds always
-		FullRowBounds:
-			op sub topBounds bgTop margin
-			op sub topBounds topBounds halfRowSp
-			op add bottomBounds bgBottom margin
 		EndVerticalBounds:
 		
 	CalcFontSizeParams:
-		op mul strokes stroke 3
-		op sub freeSpace charHeight strokes
-		op div halfFreeH freeSpace 2
-		op floor midOffset halfFreeH 
+		op mul temp stroke 3
+		op sub temp charHeight temp
+		op div temp temp 2
+		op floor midOffset temp 
 		op add midOffset midOffset stroke
 		op sub topOffset charHeight stroke
 		op sub rightOffset charWidth stroke
@@ -137,7 +119,7 @@ Initialize:
 		op div halfRowSp rowSpacing 2
 		op add charOffset charWidth charSpacing
 		op add rowOffset charHeight rowSpacing
-		op add clearOffset charHeight halfRowSp
+		
 
 	SetColors:
 		set bgColor %000000
@@ -152,43 +134,40 @@ Initialize:
 		op sub clearWidth bgRight clearX
 		op sub imgClearWidth clearX bgLeft
 
-	MiscInit:
-		op mul resetMs resetSecs 1000
-		op mul past resetMs 2
-		op sub lastUpdate @time past
+Refresh:
+	set row 0
+	set i minI
+	set stock null
+	op sub imageY topBounds imagePos
+	op sub rowClearY topBounds charHeight
+	RefreshLoop:
+		op add arrayReturn @counter 1
+		jump SetLastStock always
 
-Start:
-	op sub timeSinceUpdate @time lastUpdate
-	jump StartCycle lessThan timeSinceUpdate resetMs
+		lookup item material i
+		draw col bgColor 
+		draw rect bgLeft rowClearY imgClearWidth rowOffset
+		draw col imgColor
+		draw image imageX imageY material imageSize
+		op sub imageY imageY rowOffset
+		op sub rowClearY rowClearY rowOffset
+		op add row row 1
+		op add i i 1
+		jump RefreshLoop lessThan row 4
 
-	Refresh:
-		set row 0
-		set i minI
-		set lastStock null
-		op sub imageY topBounds imagePos
-		op sub rowClearY topBounds clearOffset
-		RefreshLoop:
-			op add arrayReturn @counter 1
-			jump SetLastStock always
-
-			lookup item material i
-			draw col bgColor 
-			draw rect bgLeft rowClearY imgClearWidth rowOffset
-			draw col imgColor
-			draw image imageX imageY material imageSize
-			op sub imageY imageY rowOffset
-			op sub rowClearY rowClearY rowOffset
-			op add row row 1
-			op add i i 1
-			jump RefreshLoop lessThan row 4
-
-		draw col bgColor
-		draw rect bgLeft marginClearY bgWidth marginClearHeight
-		draw stroke stroke
-		drawflush display
+	draw col bgColor
+	draw rect bgLeft marginClearY bgSize marginClearHeight
+	draw stroke stroke
+	drawflush display
+	set lastRefresh @time
+	jump StartCycle always
 		
+Start:
+	set cycleStart @time
+	op sub sinceRefresh @time lastRefresh
+	jump Refresh greaterThan sinceRefresh refreshMs
+
 StartCycle:
-	set startTime @time
 	set i minI
 	set row 0
 	op sub curY topBounds charHeight
@@ -204,7 +183,6 @@ StartLine:
 	SaveStock:
 		op add arrayReturn @counter 1
 		jump SetLastStock always
-		set lastUpdate @time
 
 	CalcLineDrawParams:
 		set curX rightBounds
@@ -213,8 +191,7 @@ StartLine:
 
 	ClearLine:
 		draw col bgColor
-		op sub clearY curY halfRowSp
-		draw rect clearX clearY clearWidth rowOffset
+		draw rect clearX curY clearWidth rowOffset
 		draw col fontColor
 
 	PrintDigits:
@@ -250,7 +227,7 @@ NextItem:
 	jump StartLine lessThan i maxI
 
 Done:
-	op sub cycleTime @time startTime
+	op sub cycleTime @time cycleStart
 	jump Start always
 
 Draw0:
