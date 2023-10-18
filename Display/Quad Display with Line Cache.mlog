@@ -77,7 +77,6 @@ Initialize:
 		op sub bgLeft bgRight bgSize
 		op mul bgTop quadRow bgSize
 		
-	
 		op div halfColSp colSpacing 2
 		op div halfRowSp rowSpacing 2
 
@@ -120,7 +119,6 @@ Initialize:
 		op add charOffset charWidth charSpacing
 		op add rowOffset charHeight rowSpacing
 		
-
 	SetColors:
 		set bgColor %000000
 		set fontColor %ffff99
@@ -141,26 +139,31 @@ Refresh:
 	op sub imageY topBounds imagePos
 	op sub rowClearY topBounds charHeight
 	RefreshLoop:
-		op add arrayReturn @counter 1
-		jump SetLastStock always
+		ClearStockCache:
+			op add cacheReturn @counter 1
+			jump SetLastStock always
+		DrawImage:
+			lookup item material i
+			draw col bgColor 
+			draw rect bgLeft rowClearY imgClearWidth rowOffset
+			draw col imgColor
+			draw image imageX imageY material imageSize
+		RefreshNext:
+			op sub imageY imageY rowOffset
+			op sub rowClearY rowClearY rowOffset
+			op add row row 1
+			op add i i 1
+			jump RefreshLoop lessThan row 4
 
-		lookup item material i
-		draw col bgColor 
-		draw rect bgLeft rowClearY imgClearWidth rowOffset
-		draw col imgColor
-		draw image imageX imageY material imageSize
-		op sub imageY imageY rowOffset
-		op sub rowClearY rowClearY rowOffset
-		op add row row 1
-		op add i i 1
-		jump RefreshLoop lessThan row 4
+	ClearMargin:
+		draw col bgColor
+		draw rect bgLeft marginClearY bgSize marginClearHeight
+		draw stroke stroke
 
-	draw col bgColor
-	draw rect bgLeft marginClearY bgSize marginClearHeight
-	draw stroke stroke
-	drawflush display
-	set lastRefresh @time
-	jump StartCycle always
+	FinishRefresh:
+		drawflush display
+		set lastRefresh @time
+		jump StartCycle always
 		
 Start:
 	set cycleStart @time
@@ -176,12 +179,14 @@ StartLine:
 	GetMaterial:
 		lookup item material i
 		sensor stock source material
-		op add arrayReturn @counter 1
+
+	CheckChanged:
+		op add cacheReturn @counter 1
 		jump GetLastStock always
 		jump NextLine strictEqual lastStock stock
 
 	SaveStock:
-		op add arrayReturn @counter 1
+		op add cacheReturn @counter 1
 		jump SetLastStock always
 
 	CalcLineDrawParams:
@@ -230,6 +235,9 @@ Done:
 	op sub cycleTime @time cycleStart
 	jump Start always
 
+#---------------------------------------------
+# Draw Numbers
+#---------------------------------------------
 Draw0:
 	draw lineRect curX curY charWidth charHeight
 	jump NextDigit always
@@ -297,30 +305,30 @@ Draw9:
 	jump NextDigit always
 
 #----------------------------------------------------
-# Array:
+# Stock Cache
 #----------------------------------------------------
 SetLastStock:
 	op mul offset row 2
 	op add @counter @counter offset
 
 	set value0 stock
-	set @counter arrayReturn
+	set @counter cacheReturn
 	set value1 stock
-	set @counter arrayReturn
+	set @counter cacheReturn
 	set value2 stock
-	set @counter arrayReturn
+	set @counter cacheReturn
 	set value3 stock
-	set @counter arrayReturn
+	set @counter cacheReturn
 
 GetLastStock:
 	op mul offset row 2
 	op add @counter @counter offset
 
 	set lastStock value0
-	set @counter arrayReturn
+	set @counter cacheReturn
 	set lastStock value1
-	set @counter arrayReturn
+	set @counter cacheReturn
 	set lastStock value2
-	set @counter arrayReturn
+	set @counter cacheReturn
 	set lastStock value3
-	set @counter arrayReturn
+	set @counter cacheReturn
