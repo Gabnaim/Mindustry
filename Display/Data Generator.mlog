@@ -2,30 +2,16 @@ Initialize:
 	set baseChance 0.10
 	set maxNumber 24
 	set maxIndex 35
-
-	set UNITLINES_ADDR 61
-	set TIERS_ADDR 62
-	set TOTAL_ADDR 63 
 	
 	GetLinks:
 		set memory cell1
-		set switch switch1
-	jump GetLinks equal memory null
-	jump GetLinks equal switch null
-	
+		jump GetLinks equal memory null
+
+	set TOTAL_ADDR 63 
+
 Start:
-	sensor active switch @enabled
-	jump Start equal active false
-	
 	set i 0
 	set total 0
-	set unitLines 0
-	set lastUnitLine -1
-	set tier1 0
-	set tier2 0
-	set tier3 0
-	set tier4 0
-	set tier5 0
 	DataLoop:
 		op mod tier i 5
 		op sub multiplier 5 tier
@@ -40,25 +26,6 @@ Start:
 			op ceil data rando
 			write data memory i
 			op add total total 1
-		CheckLine:
-			op idiv unitLine i 5
-			jump CheckTier equal unitLine lastUnitLine
-			op add unitLines unitLines 1
-			set lastUnitLine unitLine
-			
-		CheckTier:
-			op mul offset tier 2
-			op add @counter @counter offset
-			set tier1 1
-			jump Next always
-			set tier2 1
-			jump Next always
-			set tier3 1
-			jump Next always
-			set tier4 1
-			jump Next always
-			set tier5 1
-			jump Next always
 			
 		Next:
 			op add i i 1
@@ -67,15 +34,8 @@ Start:
 	ClearLoop:
 		write 0 memory i
 		op add i i 1
-		jump ClearLoop lessThan i UNITLINES_ADDR
+		jump ClearLoop lessThan i TOTAL_ADDR
 
 		write total memory TOTAL_ADDR
-		write unitLines memory UNITLINES_ADDR
-		op add tiers tier1 tier2
-		op add tiers tiers tier3
-		op add tiers tiers tier4
-		op add tiers tiers tier5
-		write tiers memory TIERS_ADDR
 	
-	control enabled switch false
 	jump Start always
