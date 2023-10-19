@@ -27,7 +27,7 @@ Initialize:
 
 	SetColors:
 		set bgColor %000000
-		set altColor %444444
+		set gray %505050
 		set fontColor %ffff99
 		set imgColor %ffffff
 
@@ -107,9 +107,9 @@ Initialize:
 		op sub halfRectH charHeight midOffset
 		op sub halfVertH halfRectH stroke
 		
-# gonna print in a grid, row by row
 Start:
 	read total memory TOTAL_ADDR
+	jump ClearGrid equal total 0
 	jump StartCycle equal showAll true
 
 	CheckGridSize:
@@ -119,16 +119,15 @@ Start:
 		jump ClearGrid notEqual lastBracket bracket
 
 StartCycle:
+	op sub cycleTime @time cycleStart
 	set cycleStart @time
 	set i 0
-	set row 0
 	draw stroke stroke
 	op sub curY topBounds charHeight
 	op sub clearY curY halfRowSp
 
 StartRow:
 	set col 0
-	op notEqual alt alt false
 	CalcRowPositions:
 		op add colEnd leftBounds colWidth
 		set curX colEnd
@@ -150,13 +149,15 @@ StartRow:
 		draw col bgColor
 		draw rect clearX clearY colWidth rowOffset
 
-	jump NextUnit equal unitCount 0
-
+	draw col imgColor
+	jump DrawImage greaterThan unitCount 0
+	draw col gray
+		
 	DrawImage:
-		draw col imgColor
 		draw image imageX midY unitType imageSize
 
 	PrintNumber:
+		jump NextUnit equal unitCount 0
 		draw col fontColor
 
 	PrintDigits:
@@ -198,7 +199,6 @@ StartRow:
 	NextRow:
 		op sub curY curY rowOffset
 		op sub clearY clearY rowOffset
-		op add row row 1
 		jump StartRow always
 
 	Skip:
@@ -206,7 +206,6 @@ StartRow:
 		jump StartCell lessThan i maxUnitIndex
 
 Done:
-	op sub cycleTime @time cycleStart
 	jump Start equal skipEmpty false
 	jump ClearRest lessThan total lastTotal
 	set lastTotal total
