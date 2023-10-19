@@ -1,100 +1,60 @@
 Initialize:
-	set showAll true
-	
+	set minI 0
+	set maxI 18
 	GetLinks:
 		jump GetLinks lessThan @links 2
-		set i 0
-		LinkLoop:
-			getlink link i
-			sensor type link @type
-			jump FoundLargeDisplay equal type @large-logic-display
-			jump FoundCell equal type @memory-cell
-			jump NextLink always
-			FoundCell:
-				set memory link
-				jump NextLink always
-			FoundLargeDisplay:
-				set display link
-				set displaySize 176
-			NextLink:
-				op add i i 1
-				jump LinkLoop lessThan i @links
-			jump GetLinks equal display null
-			jump GetLinks equal memory null
+		set countsCell cell1
+		set cacheCell cell2
+		set display display1
+		jump GetLinks equal display null
+		jump GetLinks equal countsCell null
+		jump GetLinks equal cacheCell null
 
-	set maxUnitIndex 35 #Serpulo, not including player units
-	set TOTAL_ADDR 63 
+	set displaySize 176
 
 	SetColors:
 		set bgColor %000000
 		set gray %505050
 		set fontColor %ffff99
 		set imgColor %ffffff
+		
+	ClearGrid:
+		#jump ClearCache greaterThan minI 0
+		#draw clear 0 0 0
+		#drawflush display
 
-	SetSpacing:
-		set colSpacing 2
-		set charSpacing 2
-		op div halfColSp colSpacing 2
-
-	PrereadGrid:
-		read total memory TOTAL_ADDR
-		set lastTotal total
-		op sqrt bracket total
-		op ceil bracket bracket
-		op min bracket bracket 5
-		set lastBracket bracket
+	ClearCache:
+		set i minI
+		ClearCacheLoop:
+			write -1 cacheCell i
+			op add i i 1
+			jump ClearCacheLoop lessThan i maxI
 
 	CalcGrid:
-		ClearGrid:
-			draw clear 0 0 0
-			drawflush display
-			jump PrereadGrid equal total 0
-
-		jump FullHouse equal showAll true
-		set lastBracket bracket
-		jump FullHouse greaterThan bracket 4
-		SquareGrid:
-			set columns bracket
-			set rows bracket
-			set skipEmpty true
-			jump EndCalcGrid always
-		FullHouse:
-			set columns 5
-			set rows 7
-			set skipEmpty false
-	EndCalcGrid:
+		set columns 5
+		set rows 7
+		set colSpacing 2
+		set charSpacing 2
+		set imageSize 16
+		set rowOffset 25
+		set colOffset 35
+		op sub colWidth colOffset colSpacing
+		op div halfColSp colSpacing 2
+		op idiv imagePos imageSize 2
 
 	CalcFont:
-		op div rowOffset displaySize rows
-		op floor rowOffset rowOffset
-		op div colOffset displaySize columns
-		op floor colOffset colOffset 
-		op min rowOffset rowOffset colOffset
-		op sub colWidth colOffset colSpacing
-
-		op idiv maxImageSize colWidth 2
-		op sub imageSize rowOffset 2
-		op min imageSize imageSize maxImageSize
-
-		op mul charHeight imageSize 0.8
-		op floor charHeight charHeight
+		set charHeight 14
+		set charWidth 7
 		op sub rowSpacing rowOffset charHeight
 		op div halfRowSp rowSpacing 2
-
-		op sub textSpace colWidth imageSize
-		op div charOffset textSpace 2
-		op floor charOffset charOffset
-		op sub charWidth charOffset charSpacing
-
-		op idiv stroke charWidth 6
-		op add stroke stroke 1
-
-		op idiv imagePos imageSize 2
+		op add charOffset charWidth charSpacing
+		set stroke 2	
 
 	CalcArea:
 		op sub topBounds displaySize halfRowSp
+		op sub topRowY topBounds charHeight
 		set leftBounds halfColSp
-		op sub rightBounds displaySize halfColSp 
+		op add leftColX leftBounds colWidth
 
 	CalcFontDrawParams:
 		op mul temp stroke 3
@@ -107,53 +67,49 @@ Initialize:
 		op sub halfRectH charHeight midOffset
 		op sub halfVertH halfRectH stroke
 		
+	set lastRow -1
 Start:
-	read total memory TOTAL_ADDR
-	jump ClearGrid equal total 0
-	jump StartCycle equal showAll true
-
-	CheckGridSize:
-		op sqrt bracket total
-		op ceil bracket bracket
-		op min bracket bracket 5
-		jump ClearGrid notEqual lastBracket bracket
-
-StartCycle:
 	op sub cycleTime @time cycleStart
 	set cycleStart @time
-	set i 0
+	set i minI
 	draw stroke stroke
-	op sub curY topBounds charHeight
-	op sub clearY curY halfRowSp
-
+	
 StartRow:
-	set col 0
-	CalcRowPositions:
-		op add colEnd leftBounds colWidth
-		set curX colEnd
-		op add imageX leftBounds imagePos
-		set clearX leftBounds
+	StartCell:
+		read unitCount countsCell i
+		read lastCount cacheCell i
+		jump NextUnit equal unitCount lastCount
+		write unitCount cacheCell i
+		
+	ChangeCol:	
+		op mod col i columns
+		op mul xOffset col colOffset
+		op add curX leftColX xOffset
+		op sub colStart curX colWidth
+		op add imageX colStart imagePos
 
+	ChangeRow:
+		op idiv row i columns
+		jump EndChangeRow equal row lastRow
+		op mul yOffset rowOffset row
+		op sub curY topRowY yOffset
 		op add midY curY midOffset
 		op add topY curY topOffset
-
-	StartCell:
-		read unitCount memory i
-		jump Lookup equal skipEmpty false
-		jump Skip equal unitCount 0
-
-	Lookup:
-		lookup unit unitType i
+		op sub clearY curY halfRowSp
+		set lastRow row
+	EndChangeRow:
 
 	ClearLine:	
 		draw col bgColor
-		draw rect clearX clearY colWidth rowOffset
-
-	draw col imgColor
-	jump DrawImage greaterThan unitCount 0
-	draw col gray
+		draw rect colStart clearY colWidth rowOffset
+		
+	SetImageColor:
+		draw col imgColor
+		jump DrawImage greaterThan unitCount 0
+		draw col gray
 		
 	DrawImage:
+		lookup unit unitType i
 		draw image imageX midY unitType imageSize
 
 	PrintNumber:
@@ -185,36 +141,10 @@ StartRow:
 
 	NextUnit:
 		op add i i 1
-		jump Done greaterThanEq i maxUnitIndex
-
-	MovePosition:
-		op add col col 1
-		jump NextRow equal col columns
-		op add colEnd colEnd colOffset
-		set curX colEnd
-		op add imageX imageX colOffset
-		op add clearX clearX colOffset
-		jump StartCell always
-
-	NextRow:
-		op sub curY curY rowOffset
-		op sub clearY clearY rowOffset
-		jump StartRow always
-
-	Skip:
-		op add i i 1
-		jump StartCell lessThan i maxUnitIndex
+		jump StartCell lessThan i maxI
 
 Done:
-	jump Start equal skipEmpty false
-	jump ClearRest lessThan total lastTotal
-	set lastTotal total
-	jump Start always
-
-ClearRest:
-	draw col bgColor
-	draw rect clearX clearY displaySize rowOffset 
-	draw rect 0 0 displaySize clearY
+	drawflush display
 	jump Start always
 
 #---------------------------------------------
@@ -285,5 +215,3 @@ Draw9:
 	draw lineRect curX curY charWidth stroke
 	draw lineRect rightX curY stroke halfVertH
 	jump NextDigit always
-
-			
