@@ -1,5 +1,8 @@
 Initialize:
+	set chanceOfNonzero 0.25
+	set maxNumber 24
 	set maxIndex 35
+
 	set UNITLINES_ADDR 61
 	set TIERS_ADDR 62
 	set TOTAL_ADDR 63 
@@ -9,9 +12,6 @@ Initialize:
 		set switch switch1
 	jump GetLinks equal memory null
 	jump GetLinks equal switch null
-
-	set chanceOfNonzero 0.25
-	set maxNumber 24
 	
 Start:
 	sensor active switch @enabled
