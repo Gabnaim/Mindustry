@@ -1,6 +1,6 @@
 Initialize:
-	set rows 7
-	set columns 4
+	set skipEmpty false
+	set showEmptyImage false
 	
 	GetLinks:
 		jump GetLinks lessThan @links 2
@@ -26,27 +26,46 @@ Initialize:
 	set maxUnitIndex 35 #Serpulo, not including player units
 	set TOTAL_ADDR 63 
 
+	SetColors:
+		set bgColor %000000
+		set altColor %444444
+		set fontColor %ffff99
+		set imgColor %ffffff
+
 	SetSpacing:
 		set colSpacing 2
 		set charSpacing 2
 		op div halfColSp colSpacing 2
 
-	CalcGrid:
+	PrereadGrid:
 		read total memory TOTAL_ADDR
 		set lastTotal total
+		op sqrt bracket total
+		op ceil bracket bracket
+		set lastBracket bracket
+
+	CalcGrid:
 		ClearGrid:
 			draw clear 0 0 0
 			drawflush display
-			jump CalcGrid equal total 0
-
-		op sqrt columns total
-		op floor columns columns
-		set rows columns
-		jump EndCalcGrid lessThan columns 5
-		set columns 4
-		set rows 8
+			jump PrereadGrid equal total 0
+		
+		jump FullHouse equal skipEmpty false
+		set lastBracket bracket
+		jump FullHouse greaterThan bracket 5
+		jump Grid32 equal bracket 5
+		SquareGrid:
+			set columns bracket
+			set rows bracket
+			jump EndCalcGrid always
+		Grid32:
+			set columns 4
+			set rows 8
+			jump EndCalcGrid always 
+		FullHouse:
+			set columns 5
+			set rows 7
 	EndCalcGrid:
-
 
 	CalcFont:
 		op div rowOffset displaySize rows
@@ -91,16 +110,15 @@ Initialize:
 		op sub halfRectH charHeight midOffset
 		op sub halfVertH halfRectH stroke
 		
-	SetColors:
-		set bgColor %000000
-		set altColor %444444
-		set fontColor %ffff99
-		set imgColor %ffffff
-
 # gonna print in a grid, row by row
 Start:
 	read total memory TOTAL_ADDR
-	jump ClearGrid equal total 0
+	jump StartCycle equal skipEmpty false
+	op sqrt bracket total
+	op ceil bracket bracket
+	jump ClearGrid notEqual lastBracket bracket
+
+StartCycle:
 	set cycleStart @time
 	set i 0
 	set row 0
@@ -122,18 +140,25 @@ StartRow:
 
 	StartCell:
 		read unitCount memory i
+		jump Lookup equal skipEmpty false
 		jump Skip equal unitCount 0
+
+	Lookup:
 		lookup unit unitType i
 
 	ClearLine:	
 		draw col bgColor
 		draw rect clearX clearY colWidth rowOffset
 
+	jump DrawImage notEqual unitCount 0
+	jump PrintNumber equal showEmptyImage false
+
 	DrawImage:
 		draw col imgColor
 		draw image imageX midY unitType imageSize
 
 	PrintNumber:
+		jump NextUnit equal unitCount 0
 		draw col fontColor
 
 	PrintDigits:
@@ -184,12 +209,12 @@ StartRow:
 
 Done:
 	op sub cycleTime @time cycleStart
+	jump Start equal skipEmpty false
 	jump ClearRest lessThan total lastTotal
 	set lastTotal total
 	jump Start always
 
 ClearRest:
-	#op add clearX clearX colOffset
 	draw col bgColor
 	draw rect clearX clearY displaySize rowOffset 
 	draw rect 0 0 displaySize clearY
