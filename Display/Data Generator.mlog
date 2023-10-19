@@ -1,5 +1,5 @@
 Initialize:
-	set chanceOfNonzero 0.25
+	set baseChance 0.10
 	set maxNumber 24
 	set maxIndex 35
 
@@ -27,8 +27,11 @@ Start:
 	set tier4 0
 	set tier5 0
 	DataLoop:
+		op mod tier i 5
+		op sub multiplier 5 tier
+		op mul existChance baseChance multiplier
 		op rand rando 1
-		jump Generate lessThanEq rando chanceOfNonzero
+		jump Generate lessThanEq rando existChance
 		write 0 memory i
 		jump Next always
 
@@ -44,7 +47,6 @@ Start:
 			set lastUnitLine unitLine
 			
 		CheckTier:
-			op mod tier i 5
 			op mul offset tier 2
 			op add @counter @counter offset
 			set tier1 1

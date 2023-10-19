@@ -1,5 +1,5 @@
 Initialize:
-	set maxUnitIndex 34 #Serpulo, not including player units
+	set maxTypes 35 #Serpulo, not including player units
 	set TOTAL_ADDR 63 
 	
 	GetMemory:
@@ -7,14 +7,14 @@ Initialize:
 		jump GetMemory equal memory null
 
 Start:
-	set unitTypes 0
+	set total 0
 	set i 0
 
-ProcessUnitType:
+Count:
 	lookup unit unitType i
 
 	ubind unitType
-	jump NextUnitType equal @unit null
+	jump NoUnits equal @unit null
 	set units 0
 	set firstUnit @unit
 	jump CountProcess always
@@ -23,7 +23,7 @@ ProcessUnitType:
 		ubind unitType
 		jump FinishGroup equal firstUnit @unit
 		sensor isFirstDead firstUnit @dead
-		jump FinishGroup equal isFirstDead true
+		jump Count equal isFirstDead true
 	
 	CountProcess:
 		sensor dead @unit @dead
@@ -33,13 +33,16 @@ ProcessUnitType:
 
 FinishGroup:
 	write units memory i
-	op add unitTypes unitTypes 1
+	op add total total 1
+	jump NextType always
 
-NextUnitType:
+NoUnits:
+	write 0 memory i
+
+NextType:
 	op add i i 1
-	jump ProcessUnitType lessThanEq i maxUnitIndex
+	jump Count lessThanEq i maxTypes
 	
 Finish:
-	set totalTypes unitTypes
-	write totalTypes memory TOTAL_ADDR
+	write total memory TOTAL_ADDR
 	jump Start always
