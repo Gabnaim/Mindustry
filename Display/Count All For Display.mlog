@@ -1,13 +1,11 @@
 Initialize:
-	set maxTypes 35 #Serpulo, not including player units
-	set TOTAL_ADDR 63 
-	
+	set maxTypes 35 
+
 	GetMemory:
 		set memory cell1
 		jump GetMemory equal memory null
 
 Start:
-	set total 0
 	set i 0
 
 Count:
@@ -33,7 +31,6 @@ Count:
 
 FinishGroup:
 	write units memory i
-	op add total total 1
 	jump NextType always
 
 NoUnits:
@@ -44,5 +41,4 @@ NextType:
 	jump Count lessThanEq i maxTypes
 	
 Finish:
-	write total memory TOTAL_ADDR
 	jump Start always

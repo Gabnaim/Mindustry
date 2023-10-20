@@ -79,10 +79,6 @@ Start:
 
 StartCycle:
 	op sub cycleTime @time cycleStart
-	print "Cycle time: "
-	op floor cycleTime cycleTime
-	print cycleTime
-	printflush message1
 	set cycleStart @time
 	set i minI
 	draw stroke stroke
