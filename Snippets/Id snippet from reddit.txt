@@ -1,9 +1,0 @@
-op log ln(2) 2 0
-op mul mapArea @mapw @maph
-op log ln(ma) mapArea 0
-op idiv log2(ma) ln(ma) ln(2)
-op add procIDSize log2(ma) 1
-op floor f(thisx) @thisx 0
-op floor f(thisy) @thisy 0
-op mul procID f(thisy) @mapw
-op add procID procID f(thisx)
