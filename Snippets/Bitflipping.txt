@@ -1,0 +1,28 @@
+Initialize:
+	set length 8
+	set markedBits 0
+	set i 0
+Start:
+SetLoop:
+	op equal setMark i 7
+GetBit:
+	op shl mask 1 i
+	op and isMarked markedBits mask
+	op equal isMarked isMarked mask
+SetBit:
+	jump NextBit equal isMarked setMark
+	op xor markedBits markedBits mask
+NextBit:
+	op add i i 1
+	jump Start lessThan i length
+PrintBits:
+	set i 0
+	op shl mask 1 i
+	op and isMarked markedBits mask
+	op equal isMarked isMarked mask
+	print isMarked
+op add i i 1
+jump 12 lessThan i length
+printflush message1
+set status "end"
+jump 19 always x false
