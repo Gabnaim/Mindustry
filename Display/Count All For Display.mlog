@@ -21,11 +21,9 @@ Count:
 		ubind unitType
 		jump FinishGroup equal firstUnit @unit
 		sensor isFirstDead firstUnit @dead
-		jump Count equal isFirstDead true
+		jump Start equal isFirstDead true
 	
 	CountProcess:
-		sensor dead @unit @dead
-		jump UnitLoop equal dead true
 		op add units units 1
 		jump UnitLoop always
 
