@@ -1,3 +1,5 @@
+set name "Display Unit Counts"
+
 Initialize:
 	set minI 0
 	set maxI 18
@@ -6,29 +8,21 @@ Initialize:
 		set countsCell cell1
 		set cacheCell cell2
 		set display display1
+		set switch switch1
 		jump GetLinks equal display null
 		jump GetLinks equal countsCell null
 		jump GetLinks equal cacheCell null
+		jump GetLinks equal switch null
 
 	set displaySize 176
+	op equal isMainProc minI 0
 
 	SetColors:
 		set bgColor %000000
 		set gray %505050
-		set fontColor %ffff99
+		set mainFontColor %ffff99
+		set changedFontColor %ff0000
 		set imgColor %ffffff
-		
-	ClearGrid:
-		#jump ClearCache greaterThan minI 0
-		#draw clear 0 0 0
-		#drawflush display
-
-	ClearCache:
-		set i minI
-		ClearCacheLoop:
-			write -1 cacheCell i
-			op add i i 1
-			jump ClearCacheLoop lessThan i maxI
 
 	CalcGrid:
 		set columns 5
@@ -67,19 +61,50 @@ Initialize:
 		op sub halfRectH charHeight midOffset
 		op sub halfVertH halfRectH stroke
 		
-	set lastRow -1
+ClearCache:
+	set i minI
+	ClearCacheLoop:
+		write -1 cacheCell i
+		op add i i 1
+		jump ClearCacheLoop lessThan i 35
+
+	jump StartCycle equal isMainProc false
+	control enabled switch false
+	jump StartCycle always
+		
 Start:
+	jump StartCycle equal isMainProc false
+	sensor active switch @enabled
+	jump ClearCache equal active true
+
+StartCycle:
 	op sub cycleTime @time cycleStart
+	print "Cycle time: "
+	op floor cycleTime cycleTime
+	print cycleTime
+	printflush message1
 	set cycleStart @time
 	set i minI
 	draw stroke stroke
-	
-StartRow:
-	StartCell:
+
+StartCell:
+	Read:
 		read unitCount countsCell i
 		read lastCount cacheCell i
 		jump NextUnit equal unitCount lastCount
+
+	CheckUpdated:
+		op mul updatedCount unitCount -1
+		jump RevertUpdated equal updatedCount lastCount
+		
+	MarkUpdated:
+		write updatedCount cacheCell i
+		set fontColor changedFontColor
+		jump ChangeCol always
+
+	RevertUpdated:
 		write unitCount cacheCell i
+		set fontColor mainFontColor
 		
 	ChangeCol:	
 		op mod col i columns
@@ -101,7 +126,7 @@ StartRow:
 
 	ClearLine:	
 		draw col bgColor
-		draw rect colStart clearY colWidth rowOffset
+		draw rect colStart clearY colOffset rowOffset
 		
 	SetImageColor:
 		draw col imgColor
@@ -113,9 +138,9 @@ StartRow:
 		draw image imageX midY unitType imageSize
 
 	PrintNumber:
-		jump NextUnit equal unitCount 0
+		jump NextUnit equal unitCount 0	
 		draw col fontColor
-
+		
 	PrintDigits:
 		op mod digit unitCount 10
 		op idiv unitCount unitCount 10
