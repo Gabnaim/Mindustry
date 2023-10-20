@@ -68,6 +68,8 @@ ClearCache:
 		op add i i 1
 		jump ClearCacheLoop lessThan i 35
 
+	set lastRow -1
+
 	jump StartCycle equal isMainProc false
 	control enabled switch false
 	jump StartCycle always
