@@ -1,0 +1,13 @@
+GetLinks:
+	jump GetLinks lessThan @links 2
+	getlink tank 0
+	getlink conduit 1
+	sensor cap tank @liquidCapacity
+	jump GetLinks lessThan cap 100
+	op mul maxLevel cap 0.9
+
+Start:
+	sensor liquid tank @totalLiquids
+	op greaterThanEq tooMuch liquid maxLevel
+	control enabled conduit tooMuch
+	jump Start always
