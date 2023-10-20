@@ -4,7 +4,7 @@ Initialize:
 	set minI 0
 	set maxI 18
 	GetLinks:
-		jump GetLinks lessThan @links 2
+		jump GetLinks lessThan @links 4
 		set countsCell cell1
 		set cacheCell cell2
 		set display display1
