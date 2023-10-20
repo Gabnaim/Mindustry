@@ -356,7 +356,7 @@ Pickup:
 
 Next:
 	op add arrayIndex arrayIndex 1
-	jump Start lessThan arrayIndex maxUnits
+	jump Start lessThan arrayIndex flagged
 
 FinishGroup:
 	set arrayIndex 0
