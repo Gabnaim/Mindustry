@@ -180,6 +180,27 @@ ArraySet:
 	set value9 value
 	set @counter arrayReturn
 
+	set value10 value
+	set @counter arrayReturn
+	set value11 value
+	set @counter arrayReturn
+	set value12 value
+	set @counter arrayReturn
+	set value13 value
+	set @counter arrayReturn
+	set value14 value
+	set @counter arrayReturn
+	set value15 value
+	set @counter arrayReturn
+	set value16 value
+	set @counter arrayReturn
+	set value17 value
+	set @counter arrayReturn
+	set value18 value
+	set @counter arrayReturn
+	set value19 value
+	set @counter arrayReturn
+
 ArrayGet:
 	op mul offset i 2
 	op add @counter @counter offset
@@ -203,6 +224,27 @@ ArrayGet:
 	set value value8
 	set @counter arrayReturn
 	set value value9
+	set @counter arrayReturn
+
+	set value value10
+	set @counter arrayReturn
+	set value value11
+	set @counter arrayReturn
+	set value value12
+	set @counter arrayReturn
+	set value value13
+	set @counter arrayReturn
+	set value value14
+	set @counter arrayReturn
+	set value value15
+	set @counter arrayReturn
+	set value value16
+	set @counter arrayReturn
+	set value value17
+	set @counter arrayReturn
+	set value value18
+	set @counter arrayReturn
+	set value value19
 	set @counter arrayReturn
 
 	
