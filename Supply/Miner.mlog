@@ -246,10 +246,8 @@ Reflag:
 
 DoStuff:	
 	ubind unit
-	set releaseStart @time
 
 SelectAction:
-	set dump false
 	jump FindOre equal oreFound false
 	set status "MINING"
 	sensor isMining @unit @mining
@@ -329,13 +327,13 @@ ChangeOre:
 		jump ValidOre always
 		
 		CheckCoal:
-			jump CannotMine equal unitType @mono
+			jump UnitCannotMine equal unitType @mono
 			jump ValidOre always 
 
 		CheckTitanium:
 			jump ValidOre equal unitType @mega
 			jump ValidOre equal unitType @quasar
-			jump CannotMine always 
+			jump UnitCannotMine always 
 
 	ValidOre:
 		set lastOre minedOre
@@ -411,6 +409,7 @@ Release:
 	FinishRelease:
 		set status "IDLE"
 		set releaseStart @time
+		control config sorter null
 		set arrayIndex 0
 		jump Start always
 
@@ -435,11 +434,11 @@ NoSorter:
 	jump Error always
 
 NoTarget:
-	set error "No drop target"
+	set error "Need drop target"
 	jump Error always
 
 NoCoords:
-	set error "need coords"
+	set error "Need ore x y if using coords"
 	jump Error always
 
 NoOre:
@@ -447,7 +446,11 @@ NoOre:
 	jump Error always
 
 CannotMine:
-	set error "Cannot mine ore"
+	set error "Cannot mine material"
+	jump Error always
+
+UnitCannotMine:
+	set error "Unit cannot mine this"
 	jump Error always
 
 Error:
