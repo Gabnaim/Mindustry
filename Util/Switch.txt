@@ -1,0 +1,15 @@
+Start:
+	sensor active switch1 @enabled
+	set i 0
+GetLinks:
+	getlink building i
+	sensor type building @type
+	jump NextLink equal type @switch
+	jump NextLink equal type @message
+SetEnabled: 
+	control enabled building active
+NextLink:
+	op add i i 1
+	jump GetLinks lessThan i @links
+
+
