@@ -1,5 +1,5 @@
 Initialize:
-	
+	# note to self: use 8bit Windows-1252 encoding
 	GetLinks:
 		jump GetLinks lessThan @links 2
 		set i 0
