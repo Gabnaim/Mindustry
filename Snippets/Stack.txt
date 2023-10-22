@@ -1,0 +1,187 @@
+StackInit:
+	set stackSize 32
+	set top -1
+
+Test:
+	set pushCount 32
+	set popCount 32
+	set i 0
+	PushLoop:
+		set value i
+		op add callback @counter 1
+		jump Push always
+		jump Finish equal returnCode -1
+		op add i i 1
+		jump PushLoop lessThan i pushCount
+
+	set i 0
+	PopLoop:
+		op add callback @counter 1
+		jump Pop always
+		jump Finish equal returnCode -1
+		print value
+		op add i i 1
+		jump PopLoop lessThan i popCount
+
+Finish:
+
+	printflush message1
+
+TestEnd:
+	jump TestEnd always
+
+Pop:
+	jump StackEmpty lessThan top 0
+	set returnCode 0
+	op mul stackOffset top 2
+	op sub top top 1
+	op add @counter @counter stackOffset
+
+	set value value0
+	set @counter callback
+	set value value1
+	set @counter callback
+	set value value2
+	set @counter callback
+	set value value3
+	set @counter callback
+	set value value4
+	set @counter callback
+	set value value5
+	set @counter callback
+	set value value6
+	set @counter callback
+	set value value7
+	set @counter callback
+	set value value8
+	set @counter callback
+	set value value9
+	set @counter callback
+	set value value10
+	set @counter callback
+	set value value11
+	set @counter callback
+	set value value12
+	set @counter callback
+	set value value13
+	set @counter callback
+	set value value14
+	set @counter callback
+	set value value15
+	set @counter callback
+	set value value16
+	set @counter callback
+	set value value17
+	set @counter callback
+	set value value18
+	set @counter callback
+	set value value19
+	set @counter callback
+	set value value20
+	set @counter callback
+	set value value21
+	set @counter callback
+	set value value22
+	set @counter callback
+	set value value23
+	set @counter callback
+	set value value24
+	set @counter callback
+	set value value25
+	set @counter callback
+	set value value26
+	set @counter callback
+	set value value27
+	set @counter callback
+	set value value28
+	set @counter callback
+	set value value29
+	set @counter callback
+	set value value30
+	set @counter callback
+	set value value31
+	set @counter callback
+
+StackEmpty:
+	set returnCode -1
+	print "\nStack Empty at top "
+	print top
+	set @counter callback
+
+Push:
+	op add top top 1
+	jump StackFull greaterThanEq top stackSize
+	op mul stackOffset top 2
+	set returnCode 0
+	op add @counter @counter stackOffset
+
+	set value0 value
+	set @counter callback
+	set value1 value
+	set @counter callback
+	set value2 value
+	set @counter callback
+	set value3 value
+	set @counter callback
+	set value4 value
+	set @counter callback
+	set value5 value
+	set @counter callback
+	set value6 value
+	set @counter callback
+	set value7 value
+	set @counter callback
+	set value8 value
+	set @counter callback
+	set value9 value
+	set @counter callback
+	set value10 value
+	set @counter callback
+	set value11 value
+	set @counter callback
+	set value12 value
+	set @counter callback
+	set value13 value
+	set @counter callback
+	set value14 value
+	set @counter callback
+	set value15 value
+	set @counter callback
+	set value16 value
+	set @counter callback
+	set value17 value
+	set @counter callback
+	set value18 value
+	set @counter callback
+	set value19 value
+	set @counter callback
+	set value20 value
+	set @counter callback
+	set value21 value
+	set @counter callback
+	set value22 value
+	set @counter callback
+	set value23 value
+	set @counter callback
+	set value24 value
+	set @counter callback
+	set value25 value
+	set @counter callback
+	set value26 value
+	set @counter callback
+	set value27 value
+	set @counter callback
+	set value28 value
+	set @counter callback
+	set value29 value
+	set @counter callback
+	set value30 value
+	set @counter callback
+	set value31 value
+	set @counter callback
+
+StackFull:
+	set returnCode -1
+	print "\nStack Full at top "
+	print top
+	set @counter callback
