@@ -1,0 +1,57 @@
+Initialize:
+	set stackSize 64
+	set pushCount 10
+	set popCount 5
+
+	GetLinks:
+		set memory cell1
+		jump GetLinks equal memory null
+	
+	ClearStack:
+		set i 0
+		ClearLoop:
+			write 0 memory i
+			op add i i 1
+			jump ClearLoop lessThan i stackSize
+
+	StackInit:
+		set top -1
+
+Test:
+	
+	set i 0
+	PushLoop:
+		set value i
+		Push:
+			op add top top 1
+			jump StackFull greaterThanEq top stackSize
+			write value memory top
+		op add i i 1
+		jump PushLoop lessThan i pushCount
+
+	set i 0
+	PopLoop:
+		Pop:
+			jump StackEmpty lessThan top 0
+			read value memory top
+			op sub top top 1
+			
+		print value
+		op add i i 1
+		jump PopLoop lessThan i popCount
+
+Finish:
+	printflush message1
+
+TestEnd:
+	jump TestEnd always
+
+StackFull:
+	print "\nStack Full at top "
+	print top
+	jump Finish always
+
+StackEmpty:
+	print "\nStack Empty at top "
+	print top
+	jump Finish always
