@@ -1,0 +1,133 @@
+Initialize:
+	set displays 4
+	set rounding 1e4
+	jump Initialize greaterThan displays 8
+
+	GetLinks:
+		op add minLinks displays 1
+		jump GetLinks lessThan @links minLinks
+
+		set l 0
+		set displayI 0
+		LinkLoop:
+			getlink link l
+			sensor type link @type
+			jump FoundMessage equal type @message
+			jump FoundCell equal type @memory-cell
+			jump FoundBank equal type @memory-bank
+			jump NextLink always
+			FoundMessage:
+				set charLimit 400
+				set display link
+				sensor linkName link @name
+				op add arrayReturn @counter 1
+				jump SetDisplay always
+				op add displayI displayI 1
+				jump NextLink always
+			FoundCell:
+				set memory link
+				set cap 64
+				jump NextLink always
+			FoundBank:
+				set memory link
+				set cap 512
+			NextLink:
+				op add l l 1
+				jump LinkLoop lessThan l @links
+	
+			jump GetLinks equal memory null
+			jump GetLinks lessThan displayI displays
+
+		EndGetLinks:
+
+	op div slots cap displays
+	op ceil slots slots
+
+
+Start:
+	jump GetLinks lessThan @links minLinks
+	set displayI 0
+	
+	DisplayLoop:
+		op mul minI slots displayI
+		op add maxI minI slots
+
+		op add arrayReturn @counter 1
+		jump GetDisplay always
+
+		set i minI
+		ReadLoop:
+			read stored memory i
+			jump NextSlot equal stored 0
+			op floor rounded stored
+			jump Print equal rounded stored
+
+			Round:
+				op mul rounded stored rounding
+				op add rounded rounded 0.5
+				op floor rounded rounded
+				op div rounded rounded rounding
+				
+			Print:
+				print i
+				print " "
+				print rounded
+				print "\n"
+
+		NextSlot:
+			op add i i 1
+			jump ReadLoop lessThan i maxI
+		FinishDisplay:
+			printflush display
+			
+	NextDisplay:
+		op add displayI displayI 1
+		jump DisplayLoop lessThan displayI displays
+
+Finish:
+	jump Start always
+
+#-------------------------------------------------
+# Array:
+#-------------------------------------------------
+SetDisplay:
+	op mul offset displayI 2
+	op add @counter @counter offset
+
+	set value0 display
+	set @counter arrayReturn
+	set value1 display
+	set @counter arrayReturn
+	set value2 display
+	set @counter arrayReturn
+	set value3 display
+	set @counter arrayReturn
+	set value4 display
+	set @counter arrayReturn
+	set value5 display
+	set @counter arrayReturn
+	set value6 display
+	set @counter arrayReturn
+	set value7 display
+	set @counter arrayReturn
+	
+GetDisplay:
+	op mul offset displayI 2
+	op add @counter @counter offset
+
+	set display value0
+	set @counter arrayReturn
+	set display value1
+	set @counter arrayReturn
+	set display value2
+	set @counter arrayReturn
+	set display value3
+	set @counter arrayReturn
+	set display value4
+	set @counter arrayReturn
+	set display value5
+	set @counter arrayReturn
+	set display value6
+	set @counter arrayReturn
+	set display value7
+	set @counter arrayReturn
