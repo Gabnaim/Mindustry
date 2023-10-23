@@ -2,7 +2,7 @@ Initialize:
 	set extraBits 4
 
 GetFlag:
-	op shl procId @thisx 10
+	op shl procId @thisx 9
 	op add procId procId @thisy
 	op shl flag procId extraBits
 
