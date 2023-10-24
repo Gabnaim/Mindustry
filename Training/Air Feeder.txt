@@ -40,6 +40,7 @@ Initialize:
 			sensor cap @unit @itemCapacity
 			ulocate building core false 0 sourceX sourceY sourceFound source
 			jump GetStartInfo equal sourceFound false
+			unbind @unit
 
 	set releaseStart @time
 	set error " "
