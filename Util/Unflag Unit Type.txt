@@ -2,8 +2,7 @@ Initialize:
 	set useMemory true
 	set unitType @mono
 	set UNIT_TYPE_ADDR 0
-	set dropRange 7
-
+	
 	GetLinks:
 		set switch switch1
 		jump GetLinks equal switch null
@@ -14,7 +13,7 @@ Initialize:
 Start:	
 	sensor active switch @enabled
 	jump Start equal active false
-	jump BindUnit equal useMemory false
+	jump Unflag equal useMemory false
 
 ReadUnitType:
 	read unitTypeId memory UNIT_TYPE_ADDR
@@ -22,14 +21,21 @@ ReadUnitType:
 	jump Start greaterThan unitTypeId 55
 	lookup unit unitType unitTypeId
 
-BindUnit:
+Unflag:
 	ubind unitType
-	jump Start equal @unit null
-	ucontrol flag 0
+	jump Finish equal @unit null
+	set firstUnit @unit
+	jump UnflagProcess always
 
-	sensor carried @unit @totalItems
-	jump Start equal carried 0
+	UnflagLoop:
+		ubind unitType
+		jump Finish equal @unit firstUnit
 
-DumpUnneeded:
-	ucontrol itemDrop @air carried
+		UnflagProcess:
+			ucontrol flag 0
+			ucontrol itemDrop @air 999
+			jump UnflagLoop always
+
+Finish:
+	control enabled switch false
 	jump Start always
