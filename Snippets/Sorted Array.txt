@@ -32,25 +32,15 @@ Start:
 SetValues:
 	set i startI
 	set firstI startI
-	print "ai - value - last - found\n"
 	SetLoop:
 		op add value i 0.1
 		op add callback @counter 1
 		jump Insert always 
 		
-		print arrayIndex
-		print " "
-		print value
-		print " "
-		print last
-		print " "
-		print found
-		print "\n"
 		op add i i step
 		jump SetLoop notEqual i endI
 		
 PrintAfterSet:
-	printflush message2
 	op add printReturn @counter 1
 	jump PrintValues always
 
@@ -106,31 +96,6 @@ DoInsert:
 
 	InsertReturn:
 		set @counter insertCallback
-
-FindSpot:
-	set findSpotReturn callback
-	set arrayIndex 0
-	set searchValue value
-	op add endSearch last 1
-	op min endSearch endSearch maxIndex
-
-	FindLoop:
-		op add callback @counter 1
-		jump ArrayGet always
-		jump FoundSpot strictEqual value null
-		jump FoundSpot greaterThan value searchValue
-		op add arrayIndex arrayIndex 1
-		jump FindLoop lessThanEq arrayIndex endSearch
-	
-	SpotNotFound:
-		set found -1
-		set @counter findSpotReturn
-
-	FoundSpot:
-		set value searchValue
-		set found arrayIndex
-		set @counter findSpotReturn
-
 
 Delete:
 	set deleteCallback callback
