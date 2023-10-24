@@ -16,6 +16,7 @@ Start:
 	
 SetValues:
 	set i 0
+	set insertAfter -1
 	SetLoop:
 		#op add seed i 1
 		#op mul seed seed 10
@@ -24,11 +25,15 @@ SetValues:
 		op mul newValue i 10
 		op mul newData newValue 2
 
-		set insertAfter last
 		op add callback @counter 1
 		jump Insert always 
 	
 		op add i i 1
+		op add insertAfter insertAfter 1
+		jump NextSet notEqual i 12
+		set insertAfter 0
+		
+	NextSet:
 		jump SetLoop lessThan i length
 
 PrintAfterSet:
