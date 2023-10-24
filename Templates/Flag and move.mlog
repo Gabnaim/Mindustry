@@ -21,14 +21,16 @@ Start:
 #-------------------------------------------------
 Preflag:
 #-------------------------------------------------
+	set flagStart @time
 	Count:
 		set status "COUNT"
 		set flagged 0
 		set free 0
 		set units 0
+		set tooFar 0
 		
 		ubind unitType
-		jump Start equal @unit null
+		jump NoUnits equal @unit null
 		set firstUnit @unit
 		jump CountProcess always
 		
@@ -42,6 +44,7 @@ Preflag:
 			sensor flag @unit @flag
 			jump CountFree equal flag 0
 			jump NextCount notEqual flag procId
+			jump CountFlagged greaterThanEq flagged maxUnits
 	
 			CountFlagged:
 				op add flagged flagged 1
@@ -55,12 +58,13 @@ Preflag:
 			jump CountLoop always
 	
 		FinishCount:
-			jump Start equal flagged maxUnits
+			jump FlagDone equal flagged maxUnits
 			jump Unflag greaterThan flagged maxUnits
 	
 	Flag:
-		jump Start equal free 0
+		jump FlagDone equal free 0
 
+		set status "FLAG"
 		ubind unitType
 		set firstUnit @unit
 		jump FlagProcess always
@@ -77,20 +81,36 @@ Preflag:
 	
 		ProcessFree: 
 			sensor controlled @unit @controlled
+			jump CheckDistance equal controlled 0
 			jump NextFlag greaterThanEq controlled 2
+	
+			CheckDistance:
+				jump FlagUnit lessThanEq maxDistance 0
+				sensor x @unit @x
+				sensor y @unit @y
+				op sub xDiff @thisx x
+				op sub yDiff @thisy y
+				op len distance xDiff yDiff
+				jump UnitTooFar greaterThan distance maxDistance
 	
 			FlagUnit:
 				ucontrol flag procId
 				op add flagged flagged 1
 				ucontrol move moveX moveY
+
+		UnitTooFar:
+			op add tooFar tooFar 1
 		
 		NextFlag:
 			jump FlagLoop lessThan flagged maxUnits
 		
 		FinishFlag:
-			jump Start always
+			jump FlagDone equal flagged maxUnits
+			jump NoUnits equal flagged 0
+			jump FlagDone always
 	
 	Unflag:
+		set status "UNFLAG"		
 
 		ubind unitType
 		set firstUnit @unit
@@ -114,4 +134,19 @@ Preflag:
 			jump UnflagLoop greaterThan flagged maxUnits
 		
 		FlagDone:
+			op sub flagTime @time flagStart
+			control enabled switch false
 			jump Start always
+
+#-------------------------------------------------
+Errors:
+#-------------------------------------------------
+
+NoUnits:
+	jump TooFar greaterThan tooFar 0
+	set error "No free units"
+	jump Preflag always
+
+TooFar:
+	set error "Some units are too far"
+	jump Preflag always
