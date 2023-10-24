@@ -1,0 +1,41 @@
+Inutialize:
+	set number 123.456789
+	set decimals 4
+	set maxChars 16
+
+	set value number
+
+Start:
+	op mod fraction number 1
+	op sub intPart number fraction
+
+PrintInt:
+	set value intPart
+	IntLoop:
+		op mod digit value 10
+		op idiv value value 10
+		print digit
+		jump IntLoop greaterThan value 0
+	jump Finish equal fraction 0
+
+PrintFraction:
+	jump PrintDot greaterThanEq intPart 1
+	print "0"
+	PrintDot:	
+		print "."
+	set i 0
+	FractionLoop:
+		op mul fraction fraction 10
+		op floor digit fraction
+		op mod fraction fraction 1
+		
+		print digit
+		op add i i 1
+		jump Finish greaterThan i decimals
+		jump FractionLoop greaterThan fraction 0
+
+Finish:
+	printflush message1
+
+End:
+	jump End always
