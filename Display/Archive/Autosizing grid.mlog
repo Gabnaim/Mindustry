@@ -1,0 +1,289 @@
+Initialize:
+	set showAll true
+	
+	GetLinks:
+		jump GetLinks lessThan @links 2
+		set i 0
+		LinkLoop:
+			getlink link i
+			sensor type link @type
+			jump FoundLargeDisplay equal type @large-logic-display
+			jump FoundCell equal type @memory-cell
+			jump NextLink always
+			FoundCell:
+				set memory link
+				jump NextLink always
+			FoundLargeDisplay:
+				set display link
+				set displaySize 176
+			NextLink:
+				op add i i 1
+				jump LinkLoop lessThan i @links
+			jump GetLinks equal display null
+			jump GetLinks equal memory null
+
+	set maxUnitIndex 35 #Serpulo, not including player units
+	set TOTAL_ADDR 63 
+
+	SetColors:
+		set bgColor %000000
+		set gray %505050
+		set fontColor %ffff99
+		set imgColor %ffffff
+
+	SetSpacing:
+		set colSpacing 2
+		set charSpacing 2
+		op div halfColSp colSpacing 2
+
+	PrereadGrid:
+		read total memory TOTAL_ADDR
+		set lastTotal total
+		op sqrt bracket total
+		op ceil bracket bracket
+		op min bracket bracket 5
+		set lastBracket bracket
+
+	CalcGrid:
+		ClearGrid:
+			draw clear 0 0 0
+			drawflush display
+			jump PrereadGrid equal total 0
+
+		jump FullHouse equal showAll true
+		set lastBracket bracket
+		jump FullHouse greaterThan bracket 4
+		SquareGrid:
+			set columns bracket
+			set rows bracket
+			set skipEmpty true
+			jump EndCalcGrid always
+		FullHouse:
+			set columns 5
+			set rows 7
+			set skipEmpty false
+	EndCalcGrid:
+
+	CalcFont:
+		op div rowOffset displaySize rows
+		op floor rowOffset rowOffset
+		op div colOffset displaySize columns
+		op floor colOffset colOffset 
+		op min rowOffset rowOffset colOffset
+		op sub colWidth colOffset colSpacing
+
+		op idiv maxImageSize colWidth 2
+		op sub imageSize rowOffset 2
+		op min imageSize imageSize maxImageSize
+
+		op mul charHeight imageSize 0.8
+		op floor charHeight charHeight
+		op sub rowSpacing rowOffset charHeight
+		op div halfRowSp rowSpacing 2
+
+		op sub textSpace colWidth imageSize
+		op div charOffset textSpace 2
+		op floor charOffset charOffset
+		op sub charWidth charOffset charSpacing
+
+		op idiv stroke charWidth 6
+		op add stroke stroke 1
+
+		op idiv imagePos imageSize 2
+
+	CalcArea:
+		op sub topBounds displaySize halfRowSp
+		set leftBounds halfColSp
+		op sub rightBounds displaySize halfColSp 
+
+	CalcFontDrawParams:
+		op mul temp stroke 3
+		op sub temp charHeight temp
+		op div temp temp 2
+		op floor midOffset temp 
+		op add midOffset midOffset stroke
+		op sub topOffset charHeight stroke
+		op sub rightOffset charWidth stroke
+		op sub halfRectH charHeight midOffset
+		op sub halfVertH halfRectH stroke
+		
+Start:
+	read total memory TOTAL_ADDR
+	jump ClearGrid equal total 0
+	jump StartCycle equal showAll true
+
+	CheckGridSize:
+		op sqrt bracket total
+		op ceil bracket bracket
+		op min bracket bracket 5
+		jump ClearGrid notEqual lastBracket bracket
+
+StartCycle:
+	op sub cycleTime @time cycleStart
+	set cycleStart @time
+	set i 0
+	draw stroke stroke
+	op sub curY topBounds charHeight
+	op sub clearY curY halfRowSp
+
+StartRow:
+	set col 0
+	CalcRowPositions:
+		op add colEnd leftBounds colWidth
+		set curX colEnd
+		op add imageX leftBounds imagePos
+		set clearX leftBounds
+
+		op add midY curY midOffset
+		op add topY curY topOffset
+
+	StartCell:
+		read unitCount memory i
+		jump Lookup equal skipEmpty false
+		jump Skip equal unitCount 0
+
+	Lookup:
+		lookup unit unitType i
+
+	ClearLine:	
+		draw col bgColor
+		draw rect clearX clearY colWidth rowOffset
+
+	draw col imgColor
+	jump DrawImage greaterThan unitCount 0
+	draw col gray
+		
+	DrawImage:
+		draw image imageX midY unitType imageSize
+
+	PrintNumber:
+		jump NextUnit equal unitCount 0
+		draw col fontColor
+
+	PrintDigits:
+		op mod digit unitCount 10
+		op idiv unitCount unitCount 10
+		
+	DrawDigit:
+		op sub curX curX charOffset
+		op add @counter @counter digit
+		jump Draw0 equal digit 0
+		jump Draw1 equal digit 1
+		jump Draw2 equal digit 2
+		jump Draw3 equal digit 3
+		jump Draw4 equal digit 4
+		jump Draw5 equal digit 5
+		jump Draw6 equal digit 6
+		jump Draw7 equal digit 7
+		jump Draw8 equal digit 8
+		jump Draw9 equal digit 9
+	
+	NextDigit:
+		jump PrintDigits greaterThan unitCount 0
+
+	drawflush display
+
+	NextUnit:
+		op add i i 1
+		jump Done greaterThanEq i maxUnitIndex
+
+	MovePosition:
+		op add col col 1
+		jump NextRow equal col columns
+		op add colEnd colEnd colOffset
+		set curX colEnd
+		op add imageX imageX colOffset
+		op add clearX clearX colOffset
+		jump StartCell always
+
+	NextRow:
+		op sub curY curY rowOffset
+		op sub clearY clearY rowOffset
+		jump StartRow always
+
+	Skip:
+		op add i i 1
+		jump StartCell lessThan i maxUnitIndex
+
+Done:
+	jump Start equal skipEmpty false
+	jump ClearRest lessThan total lastTotal
+	set lastTotal total
+	jump Start always
+
+ClearRest:
+	draw col bgColor
+	draw rect clearX clearY displaySize rowOffset 
+	draw rect 0 0 displaySize clearY
+	jump Start always
+
+#---------------------------------------------
+# Draw Numbers
+#---------------------------------------------
+Draw0:
+	draw lineRect curX curY charWidth charHeight
+	jump NextDigit always
+
+Draw1:
+	op add rightX curX rightOffset
+	draw lineRect rightX curY stroke charHeight
+	jump NextDigit always
+
+Draw2:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth stroke
+	draw lineRect curX topY charWidth stroke
+	draw lineRect curX curY charWidth stroke
+	draw lineRect curX curY stroke halfVertH
+	draw lineRect rightX midY stroke halfVertH
+	jump NextDigit always
+	
+Draw3:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth stroke
+	draw lineRect curX topY charWidth stroke
+	draw lineRect curX curY charWidth stroke
+	draw lineRect rightX curY stroke charHeight
+	jump NextDigit always
+
+Draw4:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth stroke
+	draw lineRect curX midY stroke halfRectH
+	draw lineRect rightX curY stroke charHeight
+	jump NextDigit always
+
+Draw5:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth stroke
+	draw lineRect curX topY charWidth stroke
+	draw lineRect curX curY charWidth stroke
+	draw lineRect curX midY stroke halfVertH
+	draw lineRect rightX curY stroke halfVertH
+	jump NextDigit always
+	
+Draw6:
+	draw lineRect curX curY charWidth halfRectH
+	draw lineRect curX topY charWidth stroke
+	draw lineRect curX midY stroke halfVertH
+	jump NextDigit always
+
+Draw7:
+	op add rightX curX rightOffset
+	draw lineRect curX topY charWidth stroke
+	draw lineRect rightX curY stroke charHeight
+	jump NextDigit always
+
+Draw8:
+	draw lineRect curX curY charWidth charHeight
+	draw lineRect curX midY charWidth stroke
+	jump NextDigit always
+
+Draw9:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth halfRectH
+	draw lineRect curX curY charWidth stroke
+	draw lineRect rightX curY stroke halfVertH
+	jump NextDigit always
+
+			
