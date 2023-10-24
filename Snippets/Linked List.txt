@@ -2,7 +2,7 @@ Initialize:
 	set switch switch1
 	jump Initialize equal switch null
 
-	set length 10
+	set length 24
 	printflush message1
 
 Start:
@@ -15,10 +15,10 @@ SetValues:
 	set arrayIndex 0
 	SetLoop:
 		op add seed arrayIndex 1
-		op mul seed seed length
 		op rand value seed
 		op floor value value
 
+		print value
 		op add callback @counter 1
 		jump ArraySet always 
 	
@@ -49,7 +49,7 @@ PrintTime:
 PrintValues:
 	set arrayIndex 0
 	PrintLoop:
-		op add arrayReturn @counter 1
+		op add callback @counter 1
 		jump ArrayGet always 
 
 		print arrayIndex
@@ -61,7 +61,7 @@ PrintValues:
 		jump PrintLoop lessThan arrayIndex length
 	set @counter printReturn
 
-ArrayGet:
+ArraySet:
 	op mul offset arrayIndex 4
 	op add @counter @counter offset
 
@@ -185,7 +185,7 @@ ArrayGet:
 	set next23 next
 	set @counter callback
 
-ArraySet:
+ArrayGet:
 	op mul offset arrayIndex 4
 	op add @counter @counter offset
 
