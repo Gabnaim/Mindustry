@@ -4,6 +4,8 @@ Initialize:
 
 	set length 24
 	printflush message1
+	set head -1
+	set last -1
 
 Start:
 	sensor active switch @enabled
@@ -11,19 +13,23 @@ Start:
 
 	set start @time
 	
-SetValues:
-	set arrayIndex 0
-	SetLoop:
-		op add seed arrayIndex 1
-		op rand value seed
-		op floor value value
-
-		print value
-		op add callback @counter 1
-		jump ArraySet always 
 	
-		op add arrayIndex arrayIndex 1
-		jump SetLoop lessThan arrayIndex length
+SetValues:
+	set i 0
+	SetLoop:
+		#op add seed i 1
+		#op mul seed seed 10
+		#op rand rando seed
+		#op floor newValue rando
+		op mul newValue i 10
+		op mul newData newValue 2
+
+		set insertAfter last
+		op add callback @counter 1
+		jump Insert always 
+	
+		op add i i 1
+		jump SetLoop lessThan i length
 
 PrintAfterSet:
 	op add printReturn @counter 1
@@ -47,7 +53,8 @@ PrintTime:
 	set @counter printReturn
 
 PrintValues:
-	set arrayIndex 0
+	set i 0
+	set arrayIndex head
 	PrintLoop:
 		op add callback @counter 1
 		jump ArrayGet always 
@@ -57,9 +64,51 @@ PrintValues:
 		print value
 		print "\n"
 	
-		op add arrayIndex arrayIndex 1
-		jump PrintLoop lessThan arrayIndex length
-	set @counter printReturn
+		set arrayIndex next
+		op add i i 1
+		jump FinishPrint greaterThanEq i length
+		jump PrintLoop notEqual next -1
+
+	FinishPrint:
+		set @counter printReturn
+
+Insert:
+	#these values should be pre-set: insertAfter, newValue, newData
+
+	jump InsertHead lessThan head 0
+	set insertCallback callback
+
+	PointPreviousToNew:
+		set arrayIndex insertAfter
+		op add callback @counter 1
+		jump ArrayGet always
+
+		set after next
+		op add last last 1
+		set next last
+		
+		op add callback @counter 1
+		jump ArraySet always
+
+	InsertNewAtLastIndex:
+		set arrayIndex last
+		set value newValue
+		set data newData
+		set next after
+	
+		op add callback @counter 1
+		jump ArraySet always
+	
+	set @counter insertCallback
+
+InsertHead:
+	set head 0
+	set last 0
+	set next -1
+	set value newValue
+	set data newData
+	jump ArraySet always
+	set @counter callback
 
 ArraySet:
 	op mul offset arrayIndex 4
