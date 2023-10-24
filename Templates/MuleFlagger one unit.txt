@@ -1,0 +1,157 @@
+set name "Mule Flagger"
+
+Initialize:
+	set unitType @poly
+	set releaseWaitSecs 5
+
+GetLinks:
+	set switch switch1
+	jump GetLinks equal switch null
+	
+	set error " "
+	set status "INITIALIZE"
+
+	op shl procId @thisx 9
+	op add procId procId @thisy
+	op mul releaseWaitMs releaseWaitSecs 1000
+
+	op add nearX @thisx 1
+	op add nearY @thisy 1
+	op add farX @thisx 15
+	op add farY @thisy 15
+	set releaseX @thisx
+	op sub releaseY @thisy 10
+
+	set releaseStart @time
+	set status "START"
+
+Start:
+	sensor active switch @enabled
+	jump ActiveChanged notEqual active lastActive
+	jump Reset equal active false
+	op sub releaseWait @time releaseStart
+	jump Reset greaterThanEq releaseWait releaseWaitMs
+
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump FindMule equal muleDead true
+
+	sensor muleFlag mule @flag
+	jump StartRun equal muleFlag procId
+	jump FindMule notEqual muleFlag 0
+	RecycleMule:
+		ubind mule
+		ucontrol flag procId
+		jump StartRun always
+
+FindMule:
+	set status "FIND"
+	set mule null
+	set closest null
+	set minDistance 1000
+	
+	ubind unitType
+	jump NoUnits equal @unit null
+	set firstUnit @unit
+	jump FindProcess always
+
+	FindLoop:
+		ubind unitType
+		jump FinishCount equal firstUnit @unit
+		
+	FindProcess:
+		sensor isDead @unit @dead
+		jump FindLoop equal isDead true
+		sensor flag @unit @flag
+		jump UseMule equal flag procId
+		jump FindLoop notEqual flag 0
+		sensor controlled @unit @controlled
+		jump FindLoop greaterThanEq controlled 2
+
+	CheckDistance:
+		sensor x @unit @x
+		sensor y @unit @y
+		op sub xDiff @thisx x
+		op sub yDiff @thisy y
+		op len distance xDiff yDiff
+			
+		jump FindLoop greaterThan distance minDistance
+		set minDistance distance
+		set closest @unit
+		jump FindLoop always
+	
+	FinishCount:
+		jump NoUnits equal closest null
+		set mule closest
+		ubind mule
+		ucontrol flag procId
+		jump FindDone always
+	
+	NoUnits:
+		set error "No free units"
+		set mule null
+		set closest null
+		jump Start always
+	
+	FlagMule:
+		ucontrol flag procId
+	
+	UseMule:
+		set mule @unit
+	
+	FindDone:
+		set error " "
+
+StartRun:
+	set releaseStart @time
+	jump MoveFar equal status "MOVEFAR"
+
+	MoveNear:
+		ucontrol approach nearX nearY 3
+		ucontrol within nearX nearY 4 isNear
+		set status "MOVENEAR"
+		jump Next equal isNear false
+
+	MoveFar:
+		ucontrol approach farX farY 3
+		ucontrol within farX farY 4 isFar
+		set status "MOVEFAR"
+		jump MoveNear equal isFar true
+
+	Next:
+		jump Start always
+
+#--------------------------------------------------
+WrapUp:
+#--------------------------------------------------
+
+ActiveChanged:
+	set lastActive active
+	jump Reset equal active false
+	set status "START"
+	set error " "
+	jump Start always
+	
+Reset:
+	jump FinishRelease equal mule null
+	jump Start equal status "IDLE"
+	jump Release equal status "RELEASING"
+
+Stop:
+	ubind mule
+	ucontrol stop
+	set status "RELEASING"
+		
+Release:
+	op sub releaseWait @time releaseStart
+	jump Start lessThan releaseWait releaseWaitMs
+	
+	ubind mule
+	ucontrol flag 0
+	ucontrol move releaseX releaseY
+	set releaseStart @time
+	
+FinishRelease:
+	set status "IDLE"
+	jump Start always
