@@ -1,38 +1,53 @@
-Inutialize:
+Initialize:
 	set number 123.456789
 	set decimals 4
 	set maxChars 16
 
 	set value number
+	op mul rounder decimals -1
+	op pow rounder 10 rounder
+	op mul rounder rounder 5
+	printflush message1
 
 Start:
+	jump PrintZero equal number 0
 	op mod fraction number 1
 	op sub intPart number fraction
 
 PrintInt:
-	set value intPart
-	IntLoop:
-		op mod digit value 10
-		op idiv value value 10
-		print digit
-		jump IntLoop greaterThan value 0
-	jump Finish equal fraction 0
+	op log10 intDigits intPart
+	op floor intDigits intDigits
 
-PrintFraction:
-	jump PrintDot greaterThanEq intPart 1
-	print "0"
-	PrintDot:	
+	op add intDigits intDigits 1
+	set maxDigits intDigits
+
+	jump CalcStart equal fraction 0
+
+	op add maxDigits intDigits decimals
+	op add value value rounder
+
+	CalcStart:
+		op pow mult 10 intDigits
+		op div value number mult	
+		set i 0
+	DigitLoop:
+		op mul value value 10
+		op floor digit value
+		op mod value value 1
+
+	jump PrintDigit notEqual i intDigits
 		print "."
-	set i 0
-	FractionLoop:
-		op mul fraction fraction 10
-		op floor digit fraction
-		op mod fraction fraction 1
-		
+	
+	PrintDigit:
 		print digit
 		op add i i 1
-		jump Finish greaterThan i decimals
-		jump FractionLoop greaterThan fraction 0
+		jump Finish greaterThanEq i maxDigits
+		jump DigitLoop notEqual value 0
+
+	jump Finish always
+
+PrintZero:
+	print 0
 
 Finish:
 	printflush message1

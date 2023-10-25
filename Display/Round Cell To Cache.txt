@@ -1,0 +1,45 @@
+Initialize:
+	set maxDigits 16
+	set decimals 4
+	set cap 64
+
+	GetLinks:
+		set cacheCell cell1
+		set inputCell cell2
+		jump GetLinks equal cacheCell null
+		jump GetLinks equal inputCell null
+
+	op pow roundMult 10 decimals
+	op pow maxInt 10 maxDigits
+
+Start:
+	set i 0
+	ReadLoop:
+		read stored inputCell i
+		set rounded stored
+		jump Write equal stored 0
+
+		CheckIntPart:
+			op log10 intDigits stored 
+			op floor intDigits intDigits
+			op add intDigits intDigits 1
+
+		Round:
+			op floor rounded stored
+			jump CheckIntPart equal rounded stored
+			op mul rounded stored roundMult
+			op add rounded rounded 0.5
+			op floor rounded rounded
+			op div rounded rounded roundMult
+			
+		Write:
+			write rounded cacheCell i
+
+	NextSlot:
+		op add i i 1
+		jump ReadLoop lessThan i cap
+
+Finish:
+	set usedSlots used
+	jump Start always
+
