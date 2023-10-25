@@ -2,15 +2,17 @@ Initialize:
 	set number 123.456789
 	set decimals 4
 	set maxChars 16
+	op sub maxInts maxChars decimals
+	op sub maxInts maxInts 1
 
 	set value number
-	op mul rounder decimals -1
-	op pow rounder 10 rounder
-	op mul rounder rounder 5
 	printflush message1
 
 Start:
 	jump PrintZero equal number 0
+	op log10 mag number
+	jump Scientific greaterThan mag maxInts
+
 	op mod fraction number 1
 	op sub intPart number fraction
 

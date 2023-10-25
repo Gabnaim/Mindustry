@@ -31,15 +31,17 @@ Initialize:
 
 		EndGetLinks:
 	set displaySize 176
+	op pow roundMult 10 decimals
 
 	SetColors:
 		set bgColor %000000
 		set gray %505050
 		set fontColor %ffff99
+		set indexColor %00ffff
 		set imgColor %ffffff
 
 	SetSpacing:
-		set colSpacing 2
+		set colSpacing 4
 		set charSpacing 2
 		op div halfColSp colSpacing 2
 
@@ -86,8 +88,8 @@ Initialize:
 		op greaterThan hasFraction maxFracDigits 0
 		op add usedChars mostDigits hasFraction
 
-		# reserve 3 chars for index and space
-		op add charsPerRow usedChars 3
+		# reserve 2 chars for index
+		op add charsPerRow usedChars 2
 
 	CalcGrid:
 		set columns 2
@@ -116,6 +118,13 @@ Initialize:
 
 	CalcArea:
 		op sub topBounds displaySize halfRowSp
+
+		# data positions
+		op mul indexWidth charOffset 2
+		op mul fractionWidth charOffset decimals
+		op add dotOffset stroke charSpacing
+		op sub dotPos colWidth fractionWidth
+		op sub intPos dotPos 0
 	
 	CalcFontDrawParams:
 		op mul temp stroke 3
@@ -142,37 +151,120 @@ StartCycle:
 
 StartCol1:
 	set col 0
-	set leftBounds halfColSp
+	set leftBounds 0
 
 StartColumn:
 	op sub curY topBounds charHeight
 	op sub clearY curY halfRowSp
 	set clearX leftBounds
-	op add colEnd leftBounds colWidth
+	op add indX leftBounds indexWidth
+	op add integerX leftBounds intPos
+	op add dotX leftBounds dotPos
 	set row 0
 
 StartRow:
 	CalcRowPositions:
-		set curX colEnd
 		op add midY curY midOffset
 		op add topY curY topOffset
+		
+	GetValue:
+		read stored memory i
+		jump NextItem equal stored 0
 
 	ClearLine:
 		op sub clearY curY halfRowSp
 		draw col bgColor
 		draw rect clearX clearY colWidth rowOffset
 		
-	GetValue:
-		read value memory i
-		jump NextItem equal value 0
+	PrintIndex:
+		draw col indexColor
+		set value i
+		set curX indX
+		op add callback @counter 1
+		jump PrintDigitsBackwards always
 
-	PrintDigits:
-		op mod digit value 10
-		op idiv value value 10
-		
-	DrawDigit:
-		op sub curX curX charOffset
 		draw col fontColor
+
+	PrintInteger:
+		op floor value stored
+		set curX integerX
+		op add callback @counter 1
+		jump PrintDigitsBackwards always
+
+	PrintFraction:
+		op mod value stored 1
+		jump FinishLine equal value 0
+		set curX dotX
+		draw lineRect curX curY stroke stroke
+
+		op add curX curX dotOffset
+		op add callback @counter 1
+		jump PrintDigitsForwards always
+		
+	FinishLine:
+		drawflush display
+		op add row row 1
+		jump NextLine lessThan row rows
+
+	ChangeCol:
+		op add col col 1
+		jump Done greaterThanEq col columns
+		op add leftBounds leftBounds colOffset
+		op add i i 1
+		jump StartColumn always
+
+	NextLine:
+		op sub curY curY rowOffset
+	
+NextItem:
+	drawflush display
+	op add i i 1
+	jump StartRow lessThan i 64
+
+Done:
+	jump Start always
+
+#---------------------------------------------
+# Draw Numbers
+#---------------------------------------------
+
+PrintDigitsForwards:
+	set f 1
+	PrintFLoop:
+		op mul value value 10
+		op floor digit value
+		op mod value value 1
+		
+		DrawDigitForwards:
+			op add drawback @counter 11
+			op add @counter @counter digit
+			jump Draw0 equal digit 0
+			jump Draw1 equal digit 1
+			jump Draw2 equal digit 2
+			jump Draw3 equal digit 3
+			jump Draw4 equal digit 4
+			jump Draw5 equal digit 5
+			jump Draw6 equal digit 6
+			jump Draw7 equal digit 7
+			jump Draw8 equal digit 8
+			jump Draw9 equal digit 9
+		
+		NextDigitForwards:
+			op add f f 1
+			jump FinishPrintForward greaterThan f decimals
+			op add curX curX charOffset
+			jump PrintFLoop notEqual value 0
+
+	FinishPrintForward:
+		set @counter callback
+
+PrintDigitsBackwards:
+	op mod digit value 10
+	op idiv value value 10
+	
+	DrawDigitBackwards:
+		op sub curX curX charOffset
+		op add drawback @counter 11
 		op add @counter @counter digit
 		jump Draw0 equal digit 0
 		jump Draw1 equal digit 1
@@ -185,39 +277,18 @@ StartRow:
 		jump Draw8 equal digit 8
 		jump Draw9 equal digit 9
 	
-	NextDigit:
-		jump PrintDigits greaterThan value 0
+	NextDigitBackwards:
+		jump PrintDigitsBackwards greaterThan value 0
+		set @counter callback
 
-	FinishLine:
-		drawflush display
-		op add row row 1
-		jump ChangeCol greaterThanEq row rows
-		op sub curY curY rowOffset
-	
-NextItem:
-	op add i i 1
-	jump StartRow lessThan i 64
-
-Done:
-	jump Start always
-
-ChangeCol:
-	op add col col 1
-	jump Start greaterThanEq col columns
-	op add leftBounds leftBounds colOffset
-	jump StartColumn always
-
-#---------------------------------------------
-# Draw Numbers
-#---------------------------------------------
 Draw0:
 	draw lineRect curX curY charWidth charHeight
-	jump NextDigit always
+	set @counter drawback
 
 Draw1:
 	op add rightX curX rightOffset
 	draw lineRect rightX curY stroke charHeight
-	jump NextDigit always
+	set @counter drawback
 
 Draw2:
 	op add rightX curX rightOffset
@@ -226,7 +297,7 @@ Draw2:
 	draw lineRect curX curY charWidth stroke
 	draw lineRect curX curY stroke halfVertH
 	draw lineRect rightX midY stroke halfVertH
-	jump NextDigit always
+	set @counter drawback
 	
 Draw3:
 	op add rightX curX rightOffset
@@ -234,14 +305,14 @@ Draw3:
 	draw lineRect curX topY charWidth stroke
 	draw lineRect curX curY charWidth stroke
 	draw lineRect rightX curY stroke charHeight
-	jump NextDigit always
+	set @counter drawback
 
 Draw4:
 	op add rightX curX rightOffset
 	draw lineRect curX midY charWidth stroke
 	draw lineRect curX midY stroke halfRectH
 	draw lineRect rightX curY stroke charHeight
-	jump NextDigit always
+	set @counter drawback
 
 Draw5:
 	op add rightX curX rightOffset
@@ -250,42 +321,41 @@ Draw5:
 	draw lineRect curX curY charWidth stroke
 	draw lineRect curX midY stroke halfVertH
 	draw lineRect rightX curY stroke halfVertH
-	jump NextDigit always
+	set @counter drawback
 	
 Draw6:
 	draw lineRect curX curY charWidth halfRectH
 	draw lineRect curX topY charWidth stroke
 	draw lineRect curX midY stroke halfVertH
-	jump NextDigit always
+	set @counter drawback
 
 Draw7:
 	op add rightX curX rightOffset
 	draw lineRect curX topY charWidth stroke
 	draw lineRect rightX curY stroke charHeight
-	jump NextDigit always
+	set @counter drawback
 
 Draw8:
 	draw lineRect curX curY charWidth charHeight
 	draw lineRect curX midY charWidth stroke
-	jump NextDigit always
+	set @counter drawback
 
 Draw9:
 	op add rightX curX rightOffset
 	draw lineRect curX midY charWidth halfRectH
 	draw lineRect curX curY charWidth stroke
 	draw lineRect rightX curY stroke halfVertH
-	jump NextDigit always
+	set @counter drawback
 
 DrawDot:
 	draw lineRect curX curY stroke stroke
-	jump NextDigit always
+	set @counter drawback
 
 DrawMinus:
 	draw lineRect curX midY charWidth stroke
-	jump NextDigit always
+	set @counter drawback
 
 DrawPlus:
 	draw lineRect curX midY charWidth stroke
 	draw lineRect curX curY stroke charHeight
-	jump NextDigit always
-
+	set @counter drawback

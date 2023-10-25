@@ -1,0 +1,33 @@
+Initialize:
+	set existChance 0.40
+	set maxNumber 10000
+	set maxIndex 64
+	set cap 64
+	
+	GetLinks:
+		set memory cell1
+		jump GetLinks equal memory null
+
+Start:
+	set i 0
+	set total 0
+	DataLoop:
+		op rand rando 1
+		jump Generate lessThanEq rando existChance
+		write 0 memory i
+		jump Next always
+
+		Generate:
+			op rand data maxNumber
+			#op ceil data rando
+			write data memory i
+			op add total total 1
+			
+		Next:
+			op add i i 1
+			jump DataLoop lessThan i maxIndex
+
+	ClearLoop:
+		write 0 memory i
+		op add i i 1
+		jump Start lessThan i cap
