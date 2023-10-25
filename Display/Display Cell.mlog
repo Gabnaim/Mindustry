@@ -1,16 +1,10 @@
 Initialize:
-	set displays 4
 	set maxDigits 16
 	set decimals 4
-	
-	jump Initialize greaterThan displays 8
+	set maxRows 16
 
 	GetLinks:
-		op add minLinks displays 1
-		jump GetLinks lessThan @links minLinks
-
 		set l 0
-		set displayI 0
 		LinkLoop:
 			getlink link l
 			sensor type link @type
@@ -20,11 +14,6 @@ Initialize:
 			jump NextLink always
 			FoundLargeDisplay:
 				set display link
-				set display link
-				sensor linkName link @name
-				op add arrayReturn @counter 1
-				jump SetDisplay always
-				op add displayI displayI 1
 				jump NextLink always
 			FoundCell:
 				set memory link
@@ -38,18 +27,10 @@ Initialize:
 				jump LinkLoop lessThan l @links
 	
 			jump GetLinks equal memory null
-			jump GetLinks lessThan displayI displays
+			jump GetLinks equal display null
 
 		EndGetLinks:
-
-	op pow roundMult 10 decimals
-	op pow maxInt 10 maxDigits
-
 	set displaySize 176
-	set maxRows 16
-	set charsPerRow 24
-	op div slots cap displays
-	op ceil slots slots
 
 	SetColors:
 		set bgColor %000000
@@ -63,63 +44,168 @@ Initialize:
 		op div halfColSp colSpacing 2
 
 	Preread:
+		set prereadStart @time
 		set i 0
-		set usedSlots 0
+		set total 0
+		set maxIntDigits 0
+		set maxFracDigits 0
 		PrereadLoop:
 			read stored memory i
 			jump NextPreread equal stored 0
-			op add usedSlots usedSlots 1
+
+			CalcIntLength:
+				op log10 intDigits stored
+				op floor intDigits intDigits
+				op add intDigits intDigits 1
+			CheckMaxInt:
+				jump CalcFractionDigits lessThanEq intDigits maxIntDigits
+				set maxIntDigits intDigits
+			CalcFractionDigits:
+				jump Count equal maxFracDigits decimals
+				op mod fraction stored 1
+				jump Count equal fraction 0
+				set fracDigits 1
+				FracCountLoop:
+					op mul fraction fraction 10
+					op mod digit fraction 1
+					jump CheckMaxFrac equal digit 0
+					op add fracDigits fracDigits 1
+					jump FracCountLoop lessThan fracDigits decimals
+			CheckMaxFrac:
+				jump Count lessThanEq fracDigits maxFracDigits
+				set maxFracDigits fracDigits
+			Count:
+				op add total total 1
 			NextPreread:
 				op add i i 1
-				jump Preread lessThan i cap
+				jump PrereadLoop lessThan i cap
+		op sub prereadTime @time prereadStart
 
+	CalcWidth:
+		op add mostDigits maxIntDigits maxFracDigits
+		op greaterThan hasFraction maxFracDigits 0
+		op add usedChars mostDigits hasFraction
+
+		# reserve 3 chars for index and space
+		op add charsPerRow usedChars 3
+
+	CalcGrid:
+		set columns 2
+		op div rows total columns
+		op min rows rows maxRows
+		
+		op div rowOffset displaySize rows
+		op floor rowOffset rowOffset
+		op div colOffset displaySize columns
+		op floor colOffset colOffset 
+		op min rowOffset rowOffset colOffset
+		op sub colWidth colOffset colSpacing
+
+	CalcFont:
+		op mul charHeight rowOffset 0.8
+		op floor charHeight charHeight
+		op sub rowSpacing rowOffset charHeight
+		op div halfRowSp rowSpacing 2
+
+		op div charOffset colWidth charsPerRow
+		op floor charOffset charOffset
+		op sub charWidth charOffset charSpacing
+
+		op idiv stroke charWidth 6
+		op add stroke stroke 1
+
+	CalcArea:
+		op sub topBounds displaySize halfRowSp
+	
+	CalcFontDrawParams:
+		op mul temp stroke 3
+		op sub temp charHeight temp
+		op div temp temp 2
+		op floor midOffset temp 
+		op add midOffset midOffset stroke
+		op sub topOffset charHeight stroke
+		op sub rightOffset charWidth stroke
+		op sub halfRectH charHeight midOffset
+		op sub halfVertH halfRectH stroke
+
+	ClearGrid:
+		draw clear 0 0 0
+		drawflush display
+		jump Preread equal total 0
 
 Start:
-	jump GetLinks lessThan @links minLinks
-	set displayI 0
-	set used 0
+StartCycle:
+	op sub cycleTime @time cycleStart
+	set cycleStart @time
+	set i 0
+	draw stroke stroke
+
+StartCol1:
+	set col 0
+	set leftBounds halfColSp
+
+StartColumn:
+	op sub curY topBounds charHeight
+	op sub clearY curY halfRowSp
+	set clearX leftBounds
+	op add colEnd leftBounds colWidth
+	set row 0
+
+StartRow:
+	CalcRowPositions:
+		set curX colEnd
+		op add midY curY midOffset
+		op add topY curY topOffset
+
+	ClearLine:
+		op sub clearY curY halfRowSp
+		draw col bgColor
+		draw rect clearX clearY colWidth rowOffset
+		
+	GetValue:
+		read value memory i
+		jump NextItem equal value 0
+
+	PrintDigits:
+		op mod digit value 10
+		op idiv value value 10
+		
+	DrawDigit:
+		op sub curX curX charOffset
+		draw col fontColor
+		op add @counter @counter digit
+		jump Draw0 equal digit 0
+		jump Draw1 equal digit 1
+		jump Draw2 equal digit 2
+		jump Draw3 equal digit 3
+		jump Draw4 equal digit 4
+		jump Draw5 equal digit 5
+		jump Draw6 equal digit 6
+		jump Draw7 equal digit 7
+		jump Draw8 equal digit 8
+		jump Draw9 equal digit 9
 	
-	DisplayLoop:
-		op mul minI slots displayI
-		op add maxI minI slots
+	NextDigit:
+		jump PrintDigits greaterThan value 0
 
-		op add arrayReturn @counter 1
-		jump GetDisplay always
+	FinishLine:
+		drawflush display
+		op add row row 1
+		jump ChangeCol greaterThanEq row rows
+		op sub curY curY rowOffset
+	
+NextItem:
+	op add i i 1
+	jump StartRow lessThan i 64
 
-		set i minI
-		ReadLoop:
-			read stored memory i
-			jump NextSlot equal stored 0
-			op floor rounded stored
-			jump Print equal rounded stored
-
-			Round:
-				op mul rounded stored roundMult
-				op add rounded rounded 0.5
-				op floor rounded rounded
-				op div rounded rounded roundMult
-				
-			Print:
-				print i
-				print " "
-				print rounded
-				print "\n"
-			
-			op add used used 1
-
-		NextSlot:
-			op add i i 1
-			jump ReadLoop lessThan i maxI
-		FinishDisplay:
-			printflush display
-			
-	NextDisplay:
-		op add displayI displayI 1
-		jump DisplayLoop lessThan displayI displays
-
-Finish:
-	set usedSlots used
+Done:
 	jump Start always
+
+ChangeCol:
+	op add col col 1
+	jump Start greaterThanEq col columns
+	op add leftBounds leftBounds colOffset
+	jump StartColumn always
 
 #---------------------------------------------
 # Draw Numbers
@@ -203,47 +289,3 @@ DrawPlus:
 	draw lineRect curX curY stroke charHeight
 	jump NextDigit always
 
-#-------------------------------------------------
-# Array:
-#-------------------------------------------------
-SetDisplay:
-	op mul offset displayI 2
-	op add @counter @counter offset
-
-	set value0 display
-	set @counter arrayReturn
-	set value1 display
-	set @counter arrayReturn
-	set value2 display
-	set @counter arrayReturn
-	set value3 display
-	set @counter arrayReturn
-	set value4 display
-	set @counter arrayReturn
-	set value5 display
-	set @counter arrayReturn
-	set value6 display
-	set @counter arrayReturn
-	set value7 display
-	set @counter arrayReturn
-	
-GetDisplay:
-	op mul offset displayI 2
-	op add @counter @counter offset
-
-	set display value0
-	set @counter arrayReturn
-	set display value1
-	set @counter arrayReturn
-	set display value2
-	set @counter arrayReturn
-	set display value3
-	set @counter arrayReturn
-	set display value4
-	set @counter arrayReturn
-	set display value5
-	set @counter arrayReturn
-	set display value6
-	set @counter arrayReturn
-	set display value7
-	set @counter arrayReturn
