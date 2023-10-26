@@ -84,10 +84,7 @@ Initialize:
 		op sub prereadTime @time prereadStart
 
 	CalcWidth:
-		op add mostDigits maxIntDigits maxFracDigits
-		op greaterThan hasFraction maxFracDigits 0
-		op add usedChars mostDigits hasFraction
-
+		op add usedChars maxIntDigits maxFracDigits
 		# reserve 2 chars for index
 		op add charsPerRow usedChars 2
 
@@ -112,6 +109,8 @@ Initialize:
 		op div charOffset colWidth charsPerRow
 		op floor charOffset charOffset
 		op sub charWidth charOffset charSpacing
+		op min charWidth charWidth 6
+		op add charOffset charWidth charSpacing
 
 		op idiv stroke charWidth 6
 		op add stroke stroke 1
@@ -121,7 +120,7 @@ Initialize:
 
 		# data positions
 		op mul indexWidth charOffset 2
-		op mul fractionWidth charOffset decimals
+		op mul fractionWidth charOffset maxFracDigits
 		op add dotOffset stroke charSpacing
 		op sub dotPos colWidth fractionWidth
 		op sub intPos dotPos 0
