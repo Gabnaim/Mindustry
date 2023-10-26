@@ -1,7 +1,8 @@
 Initialize:
 	set existChance 0.40
 	set maxNumber 10000
-	set maxIndex 64
+	set minI 0
+	set maxI 64
 	set cap 64
 	
 	GetLinks:
@@ -11,6 +12,12 @@ Initialize:
 Start:
 	set i 0
 	set total 0
+	StartClearLoop:
+		write 0 memory i
+		op add i i 1
+		jump StartClearLoop lessThan i minI
+	
+	set i minI
 	DataLoop:
 		op rand rando 1
 		jump Generate lessThanEq rando existChance
@@ -25,9 +32,11 @@ Start:
 			
 		Next:
 			op add i i 1
-			jump DataLoop lessThan i maxIndex
+			jump DataLoop lessThan i maxI
 
-	ClearLoop:
+	EndClearLoop:
 		write 0 memory i
 		op add i i 1
-		jump Start lessThan i cap
+		jump EndClearLoop lessThan i cap
+
+	jump Start always

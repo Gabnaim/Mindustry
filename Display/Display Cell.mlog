@@ -206,10 +206,15 @@ Done:
 		draw col bgColor
 		draw rect leftBounds 0 halfDisplay clearY
 		drawflush display
+		jump ClearDisplay2 equal display display1
 		jump Start equal col 1
 	ClearCol2:
 		draw rect halfDisplay 0 halfDisplay displaySize
 		drawflush display
+		jump Start equal display display2
+	ClearDisplay2:
+		draw clear 0 0 0
+		drawflush display2	
 	jump Start always
 
 #---------------------------------------------
