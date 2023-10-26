@@ -4,10 +4,11 @@ Initialize:
 	set rows 16
 	set columns 2
 	set displaySize 176
+	set maxDisplays 8
 
 	GetLinks:
 		set l 0
-		set displays 0
+		set displayI 0
 		LinkLoop:
 			getlink link l
 			sensor type link @type
@@ -16,15 +17,11 @@ Initialize:
 			jump FoundLargeDisplay equal type @large-logic-display
 			jump NextLink always
 			FoundLargeDisplay:
-				jump Display2 notEqual display1 null
-				Display1:
-					set display1 link
-					op add displays displays 1
-					jump NextLink always
-				Display2: 
-					set display2 link
-					op add displays displays 1
-					jump NextLink always
+				set display link
+				op add displayReturn @counter 1
+				jump SetDisplay always
+				op add displayI displayI 1
+				jump NextLink always
 			FoundCell:
 				set memory link
 				set cap 64
@@ -37,10 +34,9 @@ Initialize:
 				jump LinkLoop lessThan l @links
 	
 			jump GetLinks equal memory null
+			set displays displayI
 			jump GetLinks equal displays 0
-
-		EndGetLinks:
-
+		
 	SetColors:
 		set bgColor %000000
 		set gray %505050
@@ -52,10 +48,13 @@ Initialize:
 		set colSpacing 4
 		set charSpacing 2
 		set margin 0
+
+	PrecalcVariables:
 		op div halfColSp colSpacing 2
 		op div halfDisplay displaySize 2
 		op mul itemsPerDisplay rows columns
-
+		op mul maxDataItems itemsPerDisplay displays
+		
 	CalcGrid:
 		op mul margins margin 2
 		op sub available displaySize margins
@@ -64,7 +63,7 @@ Initialize:
 		op div colOffset available columns
 		op floor colOffset colOffset 
 		op min rowOffset rowOffset colOffset
-		op sub colWidth colOffset colSpacing		
+		op sub colWidth colOffset colSpacing	
 
 	CalcFont:
 		op mul charHeight rowOffset 0.8
@@ -100,28 +99,37 @@ Initialize:
 		op sub halfRectH charHeight midOffset
 		op sub halfVertH halfRectH stroke
 
-	ClearGrid:
-		draw clear 0 0 0
-		drawflush display1
-		draw clear 0 0 0
-		drawflush display2
-
 	set i 0
+	set displayI 0
+
+ClearAll:
+	op add displayReturn @counter 1
+	jump GetDisplay always
+	draw clear 0 0 0
+	drawflush display
+	op add displayI displayI 1
+	jump ClearAll lessThan displayI displays
+
+	set displayI 0
+	jump StartCycle always
 
 Start:
-StartDisplay:
-	set display display1
-	jump StartCycle equal displays 1
-	jump StartCycle equal i 0
 	jump StartCycle greaterThanEq i cap
-	set display display2
-	jump StartCol1 always
+	jump StartDisplay lessThan dataItems maxDataItems
 
 StartCycle:
 	op sub cycleTime @time cycleStart
 	set cycleStart @time
 	set i 0
 	set dataItems 0
+	set displayI 0
+
+StartDisplay:
+	op add temp dataItems 1
+	op idiv displayI temp itemsPerDisplay
+
+	op add displayReturn @counter 1
+	jump GetDisplay always
 
 StartCol1:
 	draw stroke stroke
@@ -131,7 +139,7 @@ StartCol1:
 StartColumn:
 	op sub curY topBounds charHeight
 	op sub clearY curY halfRowSp
-	set clearX leftBounds
+	op sub clearX leftBounds margin
 	op add indX leftBounds indexWidth
 	op add integerX leftBounds intPos
 	op add dotX leftBounds dotPos
@@ -150,11 +158,11 @@ StartRow:
 	ClearLine:
 		op sub clearY curY halfRowSp
 		draw col bgColor
-		draw rect clearX clearY colWidth rowOffset
+		draw rect clearX clearY colOffset rowOffset
 		
 	PrintIndex:
 		draw col indexColor
-		set value i
+		set printValue i
 		set curX indX
 		op add callback @counter 1
 		jump PrintDigitsBackwards always
@@ -162,15 +170,15 @@ StartRow:
 		draw col fontColor
 
 	PrintInteger:
-		op floor value stored
+		op floor printValue stored
 		set curX integerX
 		op add callback @counter 1
 		jump PrintDigitsBackwards always
 
 	PrintFraction:
 		jump FinishLine equal decimals 0
-		op mod value stored 1
-		jump FinishLine equal value 0
+		op mod printValue stored 1
+		jump FinishLine equal printValue 0
 		op add curX integerX stroke
 		draw lineRect curX curY stroke stroke
 
@@ -204,17 +212,24 @@ Skip:
 Done:
 	ClearEmptyArea:
 		draw col bgColor
-		draw rect leftBounds 0 halfDisplay clearY
+		draw rect leftBounds 0 colOffset clearY
 		drawflush display
-		jump ClearDisplay2 equal display display1
-		jump Start equal col 1
-	ClearCol2:
-		draw rect halfDisplay 0 halfDisplay displaySize
+	ClearCols:
+		op add col col 1
+		jump ClearDisplays equal col columns
+		op add clearX leftBounds colOffset
+		op sub clearX leftBounds margin
+		draw rect clearX displaySize displaySize
 		drawflush display
-		jump Start equal display display2
-	ClearDisplay2:
+
+	ClearDisplays:
+		op add displayI displayI 1
+		jump Start greaterThanEq displayI displays
+		op add displayReturn @counter 1
+		jump GetDisplay always
 		draw clear 0 0 0
-		drawflush display2	
+		drawflush display	
+		jump ClearDisplays always
 	jump Start always
 
 #---------------------------------------------
@@ -224,9 +239,9 @@ Done:
 PrintDigitsForwards:
 	set f 1
 	PrintFLoop:
-		op mul value value 10
-		op floor digit value
-		op mod value value 1
+		op mul printValue printValue 10
+		op floor digit printValue
+		op mod printValue printValue 1
 		
 		DrawDigitForwards:
 			op add drawback @counter 11
@@ -246,14 +261,14 @@ PrintDigitsForwards:
 			op add f f 1
 			jump FinishPrintForward greaterThan f decimals
 			op add curX curX charOffset
-			jump PrintFLoop notEqual value 0
+			jump PrintFLoop notEqual printValue 0
 
 	FinishPrintForward:
 		set @counter callback
 
 PrintDigitsBackwards:
-	op mod digit value 10
-	op idiv value value 10
+	op mod digit printValue 10
+	op idiv printValue printValue 10
 	
 	DrawDigitBackwards:
 		op sub curX curX charOffset
@@ -271,7 +286,7 @@ PrintDigitsBackwards:
 		jump Draw9 equal digit 9
 	
 	NextDigitBackwards:
-		jump PrintDigitsBackwards greaterThan value 0
+		jump PrintDigitsBackwards greaterThan printValue 0
 		set @counter callback
 
 Draw0:
@@ -352,3 +367,45 @@ DrawPlus:
 	draw lineRect curX midY charWidth stroke
 	draw lineRect curX curY stroke charHeight
 	set @counter drawback
+
+SetDisplay:
+	op mul offset displayI 2
+	op add @counter @counter offset
+
+	set value0 display
+	set @counter displayReturn
+	set value1 display
+	set @counter displayReturn
+	set value2 display
+	set @counter displayReturn
+	set value3 display
+	set @counter displayReturn
+	set value4 display
+	set @counter displayReturn
+	set value5 display
+	set @counter displayReturn
+	set value6 display
+	set @counter displayReturn
+	set value7 display
+	set @counter displayReturn
+
+GetDisplay:
+	op mul offset displayI 2
+	op add @counter @counter offset
+
+	set display value0
+	set @counter displayReturn
+	set display value1
+	set @counter displayReturn
+	set display value2
+	set @counter displayReturn
+	set display value3
+	set @counter displayReturn
+	set display value4
+	set @counter displayReturn
+	set display value5
+	set @counter displayReturn
+	set display value6
+	set @counter displayReturn
+	set display value7
+	set @counter displayReturn
