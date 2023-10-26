@@ -9,6 +9,16 @@ Initialize:
 		set memory cell1
 		jump GetLinks equal memory null
 
+	PrintInfo:
+		print "Generates random numbers\n"
+		op mul existPct existChance 100
+		print "Chance of existance: "
+		print existPct
+		print "%\n"
+		print "Max Number: "
+		print maxNumber
+		printflush message1
+
 Start:
 	set i 0
 	set total 0
