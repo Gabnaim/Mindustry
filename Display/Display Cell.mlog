@@ -7,6 +7,7 @@ Initialize:
 
 	GetLinks:
 		set l 0
+		set displays 0
 		LinkLoop:
 			getlink link l
 			sensor type link @type
@@ -15,8 +16,15 @@ Initialize:
 			jump FoundLargeDisplay equal type @large-logic-display
 			jump NextLink always
 			FoundLargeDisplay:
-				set display link
-				jump NextLink always
+				jump Display2 notEqual display1 null
+				Display1:
+					set display1 link
+					op add displays displays 1
+					jump NextLink always
+				Display2: 
+					set display2 link
+					op add displays displays 1
+					jump NextLink always
 			FoundCell:
 				set memory link
 				set cap 64
@@ -29,7 +37,7 @@ Initialize:
 				jump LinkLoop lessThan l @links
 	
 			jump GetLinks equal memory null
-			jump GetLinks equal display null
+			jump GetLinks equal displays 0
 
 		EndGetLinks:
 
@@ -46,6 +54,7 @@ Initialize:
 		set margin 0
 		op div halfColSp colSpacing 2
 		op div halfDisplay displaySize 2
+		op mul itemsPerDisplay rows columns
 
 	CalcGrid:
 		op mul margins margin 2
@@ -93,16 +102,29 @@ Initialize:
 
 	ClearGrid:
 		draw clear 0 0 0
-		drawflush display
+		drawflush display1
+		draw clear 0 0 0
+		drawflush display2
+
+	set i 0
 
 Start:
+StartDisplay:
+	set display display1
+	jump StartCycle equal displays 1
+	jump StartCycle equal i 0
+	jump StartCycle greaterThanEq i cap
+	set display display2
+	jump StartCol1 always
+
 StartCycle:
 	op sub cycleTime @time cycleStart
 	set cycleStart @time
 	set i 0
-	draw stroke stroke
+	set dataItems 0
 
 StartCol1:
+	draw stroke stroke
 	set col 0
 	set leftBounds margin
 
@@ -122,7 +144,8 @@ StartRow:
 		
 	GetValue:
 		read stored memory i
-		jump NextItem equal stored 0
+		jump Skip equal stored 0
+		op add dataItems dataItems 1
 
 	ClearLine:
 		op sub clearY curY halfRowSp
@@ -158,31 +181,35 @@ StartRow:
 	FinishLine:
 		drawflush display
 		op add row row 1
-		jump NextLine lessThan row rows
-
-	ChangeCol:
-		op add col col 1
-		jump Done greaterThanEq col columns
-		op add leftBounds leftBounds colOffset
-		op add i i 1
-		jump StartColumn always
-
-	NextLine:
-		op sub curY curY rowOffset
 	
 NextItem:
-	drawflush display
 	op add i i 1
-	jump StartRow lessThan i 64
+	jump Done greaterThanEq i cap 
+	jump ChangeCol equal row rows
+
+NextLine:
+	op sub curY curY rowOffset
+	jump StartRow always
+
+ChangeCol:
+	op add col col 1
+	jump Start greaterThanEq col columns
+	op add leftBounds leftBounds colOffset
+	jump StartColumn always
+
+Skip:
+	op add i i 1
+	jump StartRow lessThan i cap 
 
 Done:
-	jump Start equal row rows
 	ClearEmptyArea:
 		draw col bgColor
 		draw rect leftBounds 0 halfDisplay clearY
+		drawflush display
 		jump Start equal col 1
 	ClearCol2:
 		draw rect halfDisplay 0 halfDisplay displaySize
+		drawflush display
 	jump Start always
 
 #---------------------------------------------
