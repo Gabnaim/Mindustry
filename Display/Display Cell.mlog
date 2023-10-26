@@ -3,6 +3,7 @@ Initialize:
 	set decimals 4
 	set rows 16
 	set columns 2
+	set displaySize 176
 
 	GetLinks:
 		set l 0
@@ -31,8 +32,6 @@ Initialize:
 			jump GetLinks equal display null
 
 		EndGetLinks:
-	set displaySize 176
-	op pow roundMult 10 decimals
 
 	SetColors:
 		set bgColor %000000
@@ -44,15 +43,19 @@ Initialize:
 	SetSpacing:
 		set colSpacing 4
 		set charSpacing 2
+		set margin 0
 		op div halfColSp colSpacing 2
+		op div halfDisplay displaySize 2
 
 	CalcGrid:
-		op div rowOffset displaySize rows
+		op mul margins margin 2
+		op sub available displaySize margins
+		op div rowOffset available rows
 		op floor rowOffset rowOffset
-		op div colOffset displaySize columns
+		op div colOffset available columns
 		op floor colOffset colOffset 
 		op min rowOffset rowOffset colOffset
-		op sub colWidth colOffset colSpacing
+		op sub colWidth colOffset colSpacing		
 
 	CalcFont:
 		op mul charHeight rowOffset 0.8
@@ -75,9 +78,7 @@ Initialize:
 		# data positions
 		op mul indexWidth charOffset 2
 		op mul fractionWidth charOffset decimals
-		op add dotOffset stroke charSpacing
-		op sub dotPos colWidth fractionWidth
-		op sub intPos dotPos 0
+		op sub intPos colWidth fractionWidth
 	
 	CalcFontDrawParams:
 		op mul temp stroke 3
@@ -103,7 +104,7 @@ StartCycle:
 
 StartCol1:
 	set col 0
-	set leftBounds 0
+	set leftBounds margin
 
 StartColumn:
 	op sub curY topBounds charHeight
@@ -144,12 +145,13 @@ StartRow:
 		jump PrintDigitsBackwards always
 
 	PrintFraction:
+		jump FinishLine equal decimals 0
 		op mod value stored 1
 		jump FinishLine equal value 0
-		set curX dotX
+		op add curX integerX stroke
 		draw lineRect curX curY stroke stroke
 
-		op add curX curX dotOffset
+		op add curX curX charSpacing
 		op add callback @counter 1
 		jump PrintDigitsForwards always
 		
@@ -174,6 +176,13 @@ NextItem:
 	jump StartRow lessThan i 64
 
 Done:
+	jump Start equal row rows
+	ClearEmptyArea:
+		draw col bgColor
+		draw rect leftBounds 0 halfDisplay clearY
+		jump Start equal col 1
+	ClearCol2:
+		draw rect halfDisplay 0 halfDisplay displaySize
 	jump Start always
 
 #---------------------------------------------
