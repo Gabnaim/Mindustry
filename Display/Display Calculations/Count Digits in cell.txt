@@ -1,0 +1,37 @@
+Preread:
+		set prereadStart @time
+		set i 0
+		set total 0
+		set maxIntDigits 0
+		set maxFracDigits 0
+		PrereadLoop:
+			read stored memory i
+			jump NextPreread equal stored 0
+
+			CalcIntLength:
+				op log10 intDigits stored
+				op floor intDigits intDigits
+				op add intDigits intDigits 1
+			CheckMaxInt:
+				jump CalcFractionDigits lessThanEq intDigits maxIntDigits
+				set maxIntDigits intDigits
+			CalcFractionDigits:
+				jump Count equal maxFracDigits decimals
+				op mod fraction stored 1
+				jump Count equal fraction 0
+				set fracDigits 1
+				FracCountLoop:
+					op mul fraction fraction 10
+					op mod digit fraction 1
+					jump CheckMaxFrac equal digit 0
+					op add fracDigits fracDigits 1
+					jump FracCountLoop lessThan fracDigits decimals
+			CheckMaxFrac:
+				jump Count lessThanEq fracDigits maxFracDigits
+				set maxFracDigits fracDigits
+			Count:
+				op add total total 1
+			NextPreread:
+				op add i i 1
+				jump PrereadLoop lessThan i cap
+		op sub prereadTime @time prereadStart

@@ -1,7 +1,8 @@
 Initialize:
-	set maxDigits 16
+	set charsPerRow 12
 	set decimals 4
-	set maxRows 16
+	set rows 16
+	set columns 2
 
 	GetLinks:
 		set l 0
@@ -45,54 +46,7 @@ Initialize:
 		set charSpacing 2
 		op div halfColSp colSpacing 2
 
-	Preread:
-		set prereadStart @time
-		set i 0
-		set total 0
-		set maxIntDigits 0
-		set maxFracDigits 0
-		PrereadLoop:
-			read stored memory i
-			jump NextPreread equal stored 0
-
-			CalcIntLength:
-				op log10 intDigits stored
-				op floor intDigits intDigits
-				op add intDigits intDigits 1
-			CheckMaxInt:
-				jump CalcFractionDigits lessThanEq intDigits maxIntDigits
-				set maxIntDigits intDigits
-			CalcFractionDigits:
-				jump Count equal maxFracDigits decimals
-				op mod fraction stored 1
-				jump Count equal fraction 0
-				set fracDigits 1
-				FracCountLoop:
-					op mul fraction fraction 10
-					op mod digit fraction 1
-					jump CheckMaxFrac equal digit 0
-					op add fracDigits fracDigits 1
-					jump FracCountLoop lessThan fracDigits decimals
-			CheckMaxFrac:
-				jump Count lessThanEq fracDigits maxFracDigits
-				set maxFracDigits fracDigits
-			Count:
-				op add total total 1
-			NextPreread:
-				op add i i 1
-				jump PrereadLoop lessThan i cap
-		op sub prereadTime @time prereadStart
-
-	CalcWidth:
-		op add usedChars maxIntDigits maxFracDigits
-		# reserve 2 chars for index
-		op add charsPerRow usedChars 2
-
 	CalcGrid:
-		set columns 2
-		op div rows total columns
-		op min rows rows maxRows
-		
 		op div rowOffset displaySize rows
 		op floor rowOffset rowOffset
 		op div colOffset displaySize columns
@@ -120,7 +74,7 @@ Initialize:
 
 		# data positions
 		op mul indexWidth charOffset 2
-		op mul fractionWidth charOffset maxFracDigits
+		op mul fractionWidth charOffset decimals
 		op add dotOffset stroke charSpacing
 		op sub dotPos colWidth fractionWidth
 		op sub intPos dotPos 0
@@ -139,7 +93,6 @@ Initialize:
 	ClearGrid:
 		draw clear 0 0 0
 		drawflush display
-		jump Preread equal total 0
 
 Start:
 StartCycle:
