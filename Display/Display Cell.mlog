@@ -74,7 +74,8 @@ Initialize:
 		op div charOffset colWidth charsPerRow
 		op floor charOffset charOffset
 		op sub charWidth charOffset charSpacing
-		op min charWidth charWidth 6
+		op min charWidth charWidth charHeight
+		op max charWidth charWidth 3
 		op add charOffset charWidth charSpacing
 
 		op idiv stroke charWidth 6
@@ -84,11 +85,19 @@ Initialize:
 		op sub topBounds displaySize halfRowSp
 
 		# data positions
+		
 		op mul indexWidth charOffset 2
-		op mul fractionWidth charOffset decimals
+		op sub fractionSpaces decimals 1
+		op mul fractionSpaces decimals charSpacing
+		op mul fractionText decimals charWidth
+		op add fractionWidth fractionText fractionSpaces
+		op max dotOffset stroke charSpacing
+		op add dotOffset dotOffset stroke
 		op sub intPos colWidth fractionWidth
+		jump CalcFontParams equal decimals 0
+		op sub intPos intPos dotOffset
 	
-	CalcFontDrawParams:
+	CalcFontParams:
 		op mul temp stroke 3
 		op sub temp charHeight temp
 		op div temp temp 2
@@ -182,7 +191,7 @@ StartRow:
 		op add curX integerX stroke
 		draw lineRect curX curY stroke stroke
 
-		op add curX curX charSpacing
+		op add curX curX dotOffset
 		op add callback @counter 1
 		jump PrintDigitsForwards always
 		
