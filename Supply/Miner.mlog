@@ -1,7 +1,7 @@
 set name "Miner"
 
 Initialize:
-	set unitType @quasar
+	set unitType @pulsar
 	set maxUnits 3
 	set maxDistance 100 # do not bind if further away
 	set releaseWaitSecs 300
@@ -207,10 +207,13 @@ Preflag:
 
 PreStart:
 	set oreFound false
-	set status "IDLE"
+	set status "START"
 	set error " "
 	set arrayIndex 0
 	set releaseStart @time
+
+	sensor oreChoice sorter @config
+	jump ChangeOre notEqual oreChoice null
 
 #-------------------------------------------------
 MainLoop:
@@ -219,6 +222,7 @@ Start:
 	sensor oreChoice sorter @config
 	jump ChangeOre notEqual oreChoice lastChoice
 	jump Reset equal oreChoice null
+
 	op sub releaseWait @time releaseStart
 	jump Reset greaterThanEq releaseWait releaseWaitMs
 	jump Start equal status "ERROR"
@@ -310,10 +314,10 @@ ChangeOre:
 	jump Start equal oreChoice errorIcon
 	set error " "
 	jump Reset equal oreChoice null
-	
+
 	set status "CHANGEORE"
 	set oreFound false
-
+		
 	ValidateOre:
 		sensor id oreChoice @id
 		jump CannotMine greaterThan id 9
@@ -339,7 +343,7 @@ ChangeOre:
 		set lastOre minedOre
 		set minedOre oreChoice
 		jump Start always
-
+		
 Reset:
 	jump Start equal status "IDLE"
 	jump Release equal status "RELEASING"
