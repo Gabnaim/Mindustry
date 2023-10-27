@@ -20,12 +20,14 @@ Initialize:
 	op add procId procId @thisy
 
 	set errorIcon @blast-compound
+	set errorResume @counter
 
 	set arrayLength 12
 	jump TooMany greaterThan maxUnits arrayLength
 
-	set sorter sorter1
-	jump NoSorter equal sorter null
+	GetSorter:
+		set sorter sorter1
+		jump GetSorter equal sorter null
 
 	GetLinks:
 		set l 0
@@ -38,18 +40,17 @@ Initialize:
 		NextLink:
 			op add l l 1
 			jump LinkLoop lessThan l @links
-
-		jump NoTarget equal dropTarget null
+		jump GetLinks equal dropTarget null
 
 	CheckConfig:
 		jump Preflag equal useCoords false
 		jump NoCoords equal oreX 0
 		jump NoCoords equal oreY 0
-
+	
 #-------------------------------------------------
 Preflag:
 #-------------------------------------------------
-	set flagStart @time
+	set errorResume @counter
 	Count:
 		set status "COUNT"
 		set flagged 0
@@ -170,7 +171,6 @@ Preflag:
 			jump UnflagLoop greaterThan flagged maxUnits
 		
 		FlagDone:
-			op sub flagTime @time flagStart
 
 	ClearArray:
 		jump ClearDone equal flagged maxUnits
@@ -218,6 +218,7 @@ PreStart:
 #-------------------------------------------------
 MainLoop:
 #-------------------------------------------------
+set errorResume @counter
 Start:
 	sensor oreChoice sorter @config
 	jump ChangeOre notEqual oreChoice lastChoice
@@ -225,7 +226,6 @@ Start:
 
 	op sub releaseWait @time releaseStart
 	jump Reset greaterThanEq releaseWait releaseWaitMs
-	jump Start equal status "ERROR"
 
 CheckUnit:
 	op add arrayReturn @counter 1
@@ -311,8 +311,6 @@ WrapUp:
 #--------------------------------------------------
 ChangeOre:
 	set lastChoice oreChoice
-	jump Start equal oreChoice errorIcon
-	set error " "
 	jump Reset equal oreChoice null
 
 	set status "CHANGEORE"
@@ -345,8 +343,16 @@ ChangeOre:
 		jump Start always
 		
 Reset:
+	jump ResetLinks lessThan @links 2
+	jump Start equal status "START"
 	jump Start equal status "IDLE"
 	jump Release equal status "RELEASING"
+	jump Stop always
+
+ResetLinks:
+	set dropTarget null
+	set sorter null
+	jump Initialize always
 
 Stop:
 	set status "STOPPING"
@@ -420,6 +426,10 @@ Release:
 #-------------------------------------------------
 Errors:
 #-------------------------------------------------
+NoSorter:
+	set error "Need sorter"
+	jump GetSorter always
+
 NoUnits:
 	jump TooFar greaterThan tooFar 0
 	set error "No free units"
@@ -433,10 +443,6 @@ TooMany:
 	set error "Max 12 units supported"
 	jump Error always
 	
-NoSorter:
-	set error "Need sorter"
-	jump Error always
-
 NoTarget:
 	set error "Need drop target"
 	jump Error always
@@ -458,9 +464,18 @@ UnitCannotMine:
 	jump Error always
 
 Error:
+	set saveStatus status
 	set status "ERROR"
 	control config sorter errorIcon
-	jump Start always
+
+	WaitForResume:
+		sensor oreChoice sorter @config
+		jump WaitForResume equal oreChoice errorIcon
+
+	Resume:
+		set error " "
+		set status saveStatus
+		set @counter errorResume
 
 #-------------------------------------------------
 SubRoutines:
