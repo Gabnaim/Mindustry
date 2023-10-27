@@ -20,6 +20,8 @@ GetLinks:
 	jump Start equal useMemory false
 	jump GetLinks equal memory null
 
+	set cycleStart @time
+
 Start:
 	set lastUnitType unitType
 	jump Bind equal useMemory false
@@ -104,5 +106,7 @@ Reset:
 	set units 0
 	set firstUnit null
 	printflush message1
+	op sub cycleTime @time cycleStart
+	set cycleStart @time
 	jump Start always
 

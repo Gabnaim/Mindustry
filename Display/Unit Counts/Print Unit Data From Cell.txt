@@ -1,0 +1,77 @@
+set name "Print Unit Data"
+
+Initialize:
+	set UNIT_TYPE_ADDR 0
+	set TOTAL_ADDR 1
+	set FIRST_UNIT_ADDR 2
+	#24 bits flag 
+	# 9 bits number of items carried
+	# 4 bits item carried
+	# 8 bits health
+	# 5 bits payloadCount
+	# 1 bit payloadClass (unit/building)
+	# 8 bits payloadType
+	set mask9 511
+	set mask8 255
+	set mask5 31
+	set mask4 15
+
+GetLinks:
+	set memory cell1
+	set cap 64
+	jump GetLinks equal memory null
+
+Start:
+	op sub cycleTime @time cycleStart
+	set cycleStart @time
+	read unitTypeId memory UNIT_TYPE_ADDR
+	read total memory TOTAL_ADDR
+	set i FIRST_UNIT_ADDR
+	op add totalUnits total FIRST_UNIT_ADDR
+
+	ReadLoop:
+		set hasData false
+		read data memory i
+		jump Next equal data 0
+
+	PrintFlag:
+		op shr flag data 35
+		jump PrintCarried equal flag 0
+		print flag
+		print " "
+		set hasData true
+	
+	PrintCarried:
+		op shr carried data 26
+		op and carried carried mask9
+		jump PrintHealth equal carried 0
+		print carried
+		print " "
+		set hasData true
+		
+		op shr carriedItem data 22
+		op and carriedItem carriedItem mask4
+		lookup item material carriedItem
+		print material
+		print " "
+
+	PrintHealth:
+		op shr health data 14
+		op and healthPct health mask8
+		jump PrintEnd equal healthPct 0
+		print healthPct
+		print "%"
+		set hasData true
+		
+	PrintEnd:
+		jump Next equal hasData false
+		print "\n"
+	
+Next:
+	op add i i 1
+	jump ReadLoop lessThan i totalUnits
+
+Done:
+	printflush message1
+	jump Start always
+

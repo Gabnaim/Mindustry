@@ -6,7 +6,7 @@ Initialize:
 	set FIRST_UNIT_ADDR 2
 	#24 bits flag 
 	# 9 bits number of items carried
-	# 4 bits item carried
+	# 4 bits item carried 
 	# 8 bits health
 	# 5 bits payloadCount
 	# 1 bit payloadClass (unit/building)
@@ -21,13 +21,21 @@ GetLinks:
 	set lastUnitType unitType
 
 Start:
+	op sub cycleTime @time cycleStart
+	set cycleStart @time
+
+	read unitTypeId memory UNIT_TYPE_ADDR
+	lookup unit unitType unitTypeId
 	set i FIRST_UNIT_ADDR
 	set units 0
+	jump BindFirst notEqual unitType lastUnitType
+	jump ProcessUnit notEqual firstUnit null 
 
-	ubind unitType
-	jump Start equal @unit null
-	set firstUnit @unit
-	jump ProcessUnit always
+	BindFirst:
+		ubind unitType
+		jump Start equal @unit null
+		set firstUnit @unit
+		jump ProcessUnit always
 
 	InfoLoop:
 		ubind unitType
@@ -36,45 +44,55 @@ Start:
 		jump FinishGroup equal firstDead true
 		
 	ProcessUnit:
-		read unitTypeId memory UNIT_TYPE_ADDR
-		lookup unit unitType unitTypeId
-		jump Reset notEqual unitType lastUnitType
-
 		set data 0
+
+	WriteFlag:
 		sensor flag @unit @flag
 		
 		op shl data flag 9
 		sensor carried @unit @totalItems
 		op add data data carried
-	
+
+	WriteItem:
 		op shl data data 4
+		jump WriteHealth equal carried 0
 		sensor material @unit @firstItem
 		sensor carriedId material @id
 		op add data data carriedId 
 	
+	WriteHealth:
 		op shl data data 8
 		sensor maxHealth @unit @maxHealth
 		sensor health @unit @health
+		jump WritePayload equal health maxHealth
+
 		op mul health health 100
 		op idiv healthPct health maxHealth
 		op add data data healthPct
 	
-		op shl data data 5
+	WritePayload:
 		sensor payloadCount @unit @payloadCount
+		jump SkipPayload equal payloadCount 0
+
+		op shl data data 5
 		op add data data payloadCount
-	
+
 		op shl data data 1
 		sensor payloadType @unit @payloadType
 		sensor payloadId @payloadType @id
 		lookup unit checkUnitType payloadId
 		op equal isUnit checkUnitType @payloadType
 		op add data data isUnit
-	
+
+	WritePayloadType:
 		op shl data data 8
 		op add data data payloadId
+		jump Write always
+
+	SkipPayload:
+		op shl data data 14
 			
 	Write:
-		jump Next equal data 0
 		write data memory i
 	
 Next:
