@@ -1,0 +1,93 @@
+set name "Unit Info To Cell"
+
+Initialize:
+	set UNIT_TYPE_ADDR 0
+	set TOTAL_ADDR 1
+	set FIRST_UNIT_ADDR 2
+	#24 bits flag 
+	# 9 bits number of items carried
+	# 4 bits item carried
+	# 8 bits health
+	# 5 bits payloadCount
+	# 1 bit payloadClass (unit/building)
+	# 8 bits payloadType
+
+GetLinks:
+	set memory cell1
+	jump GetLinks equal memory null
+
+	read unitTypeId memory UNIT_TYPE_ADDR
+	lookup unit unitType unitTypeId
+	set lastUnitType unitType
+
+Start:
+	set i FIRST_UNIT_ADDR
+	set units 0
+
+	ubind unitType
+	jump Start equal @unit null
+	set firstUnit @unit
+	jump ProcessUnit always
+
+	InfoLoop:
+		ubind unitType
+		jump FinishGroup equal firstUnit @unit
+		sensor firstDead firstUnit @dead
+		jump FinishGroup equal firstDead true
+		
+	ProcessUnit:
+		read unitTypeId memory UNIT_TYPE_ADDR
+		lookup unit unitType unitTypeId
+		jump Reset notEqual unitType lastUnitType
+
+		set data 0
+		sensor flag @unit @flag
+		
+		op shl data flag 9
+		sensor carried @unit @totalItems
+		op add data data carried
+	
+		op shl data data 4
+		sensor material @unit @firstItem
+		sensor carriedId material @id
+		op add data data carriedId 
+	
+		op shl data data 8
+		sensor maxHealth @unit @maxHealth
+		sensor health @unit @health
+		op mul health health 100
+		op idiv healthPct health maxHealth
+		op add data data healthPct
+	
+		op shl data data 5
+		sensor payloadCount @unit @payloadCount
+		op add data data payloadCount
+	
+		op shl data data 1
+		sensor payloadType @unit @payloadType
+		sensor payloadId @payloadType @id
+		lookup unit checkUnitType payloadId
+		op equal isUnit checkUnitType @payloadType
+		op add data data isUnit
+	
+		op shl data data 8
+		op add data data payloadId
+			
+	Write:
+		jump Next equal data 0
+		write data memory i
+	
+Next:
+	op add i i 1
+	jump InfoLoop always
+	
+Reset:
+FinishGroup:
+	set lastUnitType unitType
+	op sub totalUnits i FIRST_UNIT_ADDR
+	write totalUnits memory TOTAL_ADDR 
+	jump Start always
+
+
+	
+
