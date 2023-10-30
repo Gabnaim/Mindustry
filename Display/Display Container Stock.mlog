@@ -1,4 +1,5 @@
 Initialize:
+	set autoResize false
 	GetLinks:
 		jump GetLinks lessThan @links 2
 		set i 0
@@ -34,7 +35,7 @@ Initialize:
 				jump CountLoop lessThan i 16
 
 	Resize:
-		set displayRows 4
+		jump Font8Rows equal autoResize false
 		jump Font8Rows greaterThan rowCount 4
 		Font4Rows:
 			set charHeight 16
@@ -186,6 +187,7 @@ NextItem:
 Done:
 	op sub cycleTime @time startTime
 	set rowCount row
+	jump CheckColEnd equal autoResize false
 
 CheckResize:
 	jump Need2Cols greaterThan rowCount 4
@@ -194,11 +196,24 @@ CheckResize:
 		jump Start always
 	Need2Cols: 
 		jump Resize equal columns 1
+		jump MoveToCol1 always
+
+	CheckColEnd:
+		jump MoveToCol1 equal greaterThanEq rowCount 8
+		ClearThisCol:
+			draw col bgColor
+			draw rect bgLeft 0 halfWidth curY
+			jump MoveToCol1 greaterThan rowCount 4
+
+		ClearCol2:
+			draw rect halfWidth 0 halfWidth fisplaySize
+
 		MoveToCol1:
 			set leftBounds margin
 			op sub rightBounds halfWidth halfColSp
 			op add imageX leftBounds imagePos
 			set bgLeft 0
+			drawflush display
 			jump Start always
 
 Draw0:
