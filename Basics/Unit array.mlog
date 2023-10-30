@@ -104,7 +104,6 @@ Preflag:
 	
 		ProcessFree: 
 			sensor controlled @unit @controlled
-			jump CheckDistance equal controlled 0
 			jump NextFlag greaterThanEq controlled 2
 	
 			CheckDistance:
