@@ -115,6 +115,7 @@ Initialize:
 		drawflush display
 	
 Start:
+	jump GetLinks lessThan @links 2
 	draw stroke stroke
 	set startTime @time
 	set i 0
