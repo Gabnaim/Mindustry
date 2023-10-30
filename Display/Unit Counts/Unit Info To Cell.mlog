@@ -40,10 +40,12 @@ Start:
 	InfoLoop:
 		ubind unitType
 		jump FinishGroup equal firstUnit @unit
-		sensor firstDead firstUnit @dead
-		jump FinishGroup equal firstDead true
 		
 	ProcessUnit:
+		sensor firstDead firstUnit @dead
+		jump FinishGroup equal firstDead true
+		sensor isDead @unit @dead
+		jump InfoLoop equal isDead true
 		set data 0
 
 	WriteFlag:
