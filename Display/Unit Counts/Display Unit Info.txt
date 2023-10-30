@@ -1,0 +1,358 @@
+Initialize:
+	set charsPerRow 12
+	set rows 16
+	set displaySize 176
+	set maxDisplays 2
+
+	GetLinks:
+		set l 0
+		set displayI 0
+		LinkLoop:
+			getlink link l
+			sensor type link @type
+			jump FoundCell equal type @memory-cell
+			jump FoundLargeDisplay equal type @large-logic-display
+			jump NextLink always
+			FoundLargeDisplay:
+				set display link
+				op add displayReturn @counter 1
+				jump SetDisplay always
+				op add displayI displayI 1
+				jump NextLink always
+			FoundCell:
+				set memory link
+			NextLink:
+				op add l l 1
+				jump LinkLoop lessThan l @links
+	
+			jump GetLinks equal memory null
+			set displays displayI
+			jump GetLinks equal displays 0
+
+	DataLayout:
+		set UNIT_TYPE_ADDR 0
+		set TOTAL_ADDR 1
+		set FIRST_UNIT_ADDR 2
+		#24 bits flag 
+		# 9 bits number of items carried
+		# 4 bits item carried
+		# 8 bits health
+		# 5 bits payloadCount
+		# 1 bit payloadClass (unit/building)
+		# 8 bits payloadType
+		set mask9 511
+		set mask8 255
+		set mask5 31
+		set mask4 15
+		
+	SetColors:
+		set bgColor %000000
+		set fontColor %ffff99
+		set indexColor %00ffff
+		set imgColor %ffffff
+		set altBgColor %303030
+
+	SetSpacing:
+		set rowSpacing 3
+		set colSpacing 4
+		set charSpacing 2
+		set margin 4
+		set flagChars 6
+		op div halfColSp colSpacing 2
+		op mul maxDataItems rows displays
+
+	CalcFont:
+		set charHeight 8
+		set charWidth 5
+		set stroke 1
+		op add rowOffset charHeight rowSpacing	
+		op div halfRowSp rowSpacing 2
+		op add charOffset charWidth charSpacing
+
+	CalcArea:
+		op sub topBounds displaySize halfRowSp
+		set leftBounds margin
+
+		# data positions
+		set imageSize charHeight
+		op div imagePos imageSize 2
+
+		op add imageX leftBounds imagePos
+		op mul carriedWidth charOffset 2
+		op add imageRight leftBounds imageSize
+		op add carriedX imageRight carriedWidth
+
+		op mul healthWidth charOffset 4
+		op add healthX carriedX colSpacing
+		op add healthX healthX healthWidth
+
+		op mul flagWidth charOffset flagChars
+		op add flagX healthX colSpacing
+		op add flagX flagX flagWidth
+
+		op add pctDotSize stroke 1
+
+		set clearX 0
+	
+	CalcFontParams:
+		op mul temp stroke 3
+		op sub temp charHeight temp
+		op div temp temp 2
+		op floor midOffset temp 
+		op add midOffset midOffset stroke
+		op sub topOffset charHeight stroke
+		op sub rightOffset charWidth stroke
+		op sub halfRectH charHeight midOffset
+		op sub halfVertH halfRectH stroke
+
+ClearAll:
+	op add displayReturn @counter 1
+	jump GetDisplay always
+	draw clear 0 0 0
+	drawflush display
+	op add displayI displayI 1
+	jump ClearAll lessThan displayI displays
+
+	set displayI 0
+	jump StartCycle always
+
+Start:
+	jump StartCycle greaterThanEq i maxI
+	jump StartDisplay lessThan dataItems maxDataItems
+
+StartCycle:
+	op sub cycleTime @time cycleStart
+	set cycleStart @time
+
+	read unitTypeId memory UNIT_TYPE_ADDR
+	lookup unit unitType unitTypeId
+
+	read total memory TOTAL_ADDR
+	op add maxI total FIRST_UNIT_ADDR
+	set i FIRST_UNIT_ADDR
+	set dataItems 0
+	set displayI 0
+
+StartDisplay:
+	op add temp dataItems 1
+	op idiv displayI temp rows
+
+	op add displayReturn @counter 1
+	jump GetDisplay always
+
+	draw stroke stroke
+	op sub curY topBounds charHeight	
+	set row 0
+
+StartRow:
+	GetValue:
+		read data memory i
+		jump Skip equal data 0
+		op add dataItems dataItems 1
+
+	CalcRowPositions:	
+		op add midY curY midOffset
+		op add topY curY topOffset
+
+	ClearLine:
+		op sub clearY curY halfRowSp
+		op mod even row 2
+		draw col bgColor
+		jump DrawClear equal even 0
+			draw col altBgColor
+		DrawClear:
+			draw rect clearX clearY displaySize rowOffset
+
+	draw col fontColor
+
+	PrintCarried:
+		op shr carried data 26
+		op and carried carried mask9
+		jump PrintHealth equal carried 0
+
+		op shr carriedItem data 22
+		op and carriedItem carriedItem mask4
+		lookup item material carriedItem
+
+		draw col imgColor
+		draw image imageX midY material imageSize
+
+		draw col fontColor
+
+		set printValue carried
+		set curX carriedX
+		op add callback @counter 1
+		jump PrintDigitsBackwards always
+
+	PrintHealth:
+		op shr health data 14
+		op and healthPct health mask8
+		jump PrintFlag equal healthPct 0
+
+	DrawPercent:
+		op sub curX healthX charOffset
+		op add rightX curX rightOffset
+		draw line curX curY rightX topY
+		draw rect curX topY pctDotSize pctDotSize 
+		draw rect rightX curY pctDotSize pctDotSize 
+
+		set printValue healthPct
+		op add callback @counter 1
+		jump PrintDigitsBackwards always
+
+	PrintFlag:
+		op shr flag data 35
+		jump FinishLine equal flag 0
+		draw col fontColor
+		set curX flagX
+		set printValue flag
+		op add callback @counter 1
+		jump PrintDigitsBackwards always
+		
+	FinishLine:
+		drawflush display
+		op add row row 1
+	
+NextItem:
+	op add i i 1
+	jump Done greaterThanEq i maxI 
+	jump Done equal row rows
+
+NextLine:
+	op sub curY curY rowOffset
+	jump StartRow always
+
+Skip:
+	op add i i 1
+	jump StartRow lessThan i maxI 
+
+Done:
+	ClearEmptyArea:
+		draw col bgColor
+		draw rect 0 0 displaySize clearY
+		drawflush display
+		jump Start equal display value1
+
+	ClearDisplay1:
+		draw clear 0 0 0
+		drawflush value1	
+		jump Start always
+
+#---------------------------------------------
+# Draw Numbers
+#---------------------------------------------
+
+PrintDigitsBackwards:
+	op mod digit printValue 10
+	op idiv printValue printValue 10
+	
+	DrawDigitBackwards:
+		op sub curX curX charOffset
+		op add drawback @counter 11
+		op add @counter @counter digit
+		jump Draw0 equal digit 0
+		jump Draw1 equal digit 1
+		jump Draw2 equal digit 2
+		jump Draw3 equal digit 3
+		jump Draw4 equal digit 4
+		jump Draw5 equal digit 5
+		jump Draw6 equal digit 6
+		jump Draw7 equal digit 7
+		jump Draw8 equal digit 8
+		jump Draw9 equal digit 9
+	
+	NextDigitBackwards:
+		jump PrintDigitsBackwards notEqual printValue 0
+		set @counter callback
+
+Draw0:
+	draw lineRect curX curY charWidth charHeight
+	set @counter drawback
+
+Draw1:
+	op add rightX curX rightOffset
+	draw lineRect rightX curY stroke charHeight
+	set @counter drawback
+
+Draw2:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth stroke
+	draw lineRect curX topY charWidth stroke
+	draw lineRect curX curY charWidth stroke
+	draw lineRect curX curY stroke halfVertH
+	draw lineRect rightX midY stroke halfVertH
+	set @counter drawback
+	
+Draw3:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth stroke
+	draw lineRect curX topY charWidth stroke
+	draw lineRect curX curY charWidth stroke
+	draw lineRect rightX curY stroke charHeight
+	set @counter drawback
+
+Draw4:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth stroke
+	draw lineRect curX midY stroke halfRectH
+	draw lineRect rightX curY stroke charHeight
+	set @counter drawback
+
+Draw5:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth stroke
+	draw lineRect curX topY charWidth stroke
+	draw lineRect curX curY charWidth stroke
+	draw lineRect curX midY stroke halfVertH
+	draw lineRect rightX curY stroke halfVertH
+	set @counter drawback
+	
+Draw6:
+	draw lineRect curX curY charWidth halfRectH
+	draw lineRect curX topY charWidth stroke
+	draw lineRect curX midY stroke halfVertH
+	set @counter drawback
+
+Draw7:
+	op add rightX curX rightOffset
+	draw lineRect curX topY charWidth stroke
+	draw lineRect rightX curY stroke charHeight
+	set @counter drawback
+
+Draw8:
+	draw lineRect curX curY charWidth charHeight
+	draw lineRect curX midY charWidth stroke
+	set @counter drawback
+
+Draw9:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth halfRectH
+	draw lineRect curX curY charWidth stroke
+	draw lineRect rightX curY stroke halfVertH
+	set @counter drawback
+
+DrawPct:
+	op add rightX curX rightOffset
+	draw line curX curY rightX topY
+	draw rect curX topY stroke stroke 
+	draw rect rightX curY stroke stroke 
+	set @counter drawback
+
+SetDisplay:
+	op mul offset displayI 2
+	op add @counter @counter offset
+
+	set value0 display
+	set @counter displayReturn
+	set value1 display
+	set @counter displayReturn
+	
+GetDisplay:
+	op mul offset displayI 2
+	op add @counter @counter offset
+
+	set display value0
+	set @counter displayReturn
+	set display value1
+	set @counter displayReturn
+	
