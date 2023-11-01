@@ -4,6 +4,7 @@ Initialize:
 	set unitType @mega
 	set supplyFromCore true
 	set minSupply 500
+	set powerSave true
 
 	set material @phase-fabric
 	set targetType @mend-projector
@@ -48,7 +49,7 @@ Initialize:
 		EndGetLinks:
 
 	op sub stockLevel targetCap 1
-	op add checkRange dropRange 1
+	op add checkRange dropRange 3
 		
 	GetStartInfo:
 		ubind unitType
@@ -135,95 +136,110 @@ FindMule:
 		set mule @unit
 	
 	FindDone:
+		ucontrol boost true
 		set error " "
 
 StartRun:
 	jump GetLinks lessThan @links neededLinks
-	
-	sensor carried mule @totalItems
-	jump Fillup equal carried 0
 
 	sensor carriedMat mule @firstItem
-	jump Fillup equal material carriedMat
+	jump FeedTargets equal material carriedMat
+	jump FeedTargets equal material null
 
 	op add callback @counter 1
 	jump DropToSource always
 
-Fillup:
-	sensor carried mule @totalItems
-	jump FeedTargets equal carried cap
-
-	op add callback @counter 1
-	jump PickupFromSource always
-
 FeedTargets:
 	set l 0
-	set status "FEED"
-	TargetLoop:
+	set damaged 0
+	BuildingLoop:
 		getlink link l
-			sensor type link @type
-			jump NextTarget notEqual type targetType
+
+		CheckHealth:
+			jump EndHealthCheck equal powerSave false
+			sensor maxHealth link @maxHealth
+			sensor health link @health
+			jump EndHealthCheck equal health maxHealth
+			op add damaged damaged 1
+			set mendEnabled true		
+		EndHealthCheck:
+
+		sensor type link @type
+		jump NextBuilding notEqual type targetType
+
+		FoundMender:
+			control enabled link mendEnabled
+
+		Fillup:
+			jump Approach equal status "APPROACH"
+			jump ApproachSource equal status "PICKUP"
+			sensor carried mule @totalItems
+			jump GetPosition greaterThan carried stockLevel
+		
+		PickupFromSource:
+			sensor sourceDead source @dead
+			jump SourceDead equal sourceDead true
+
+			sensor supply source material
+			jump NotEnough lessThan supply minSupply
+
+			set status "PICKUP"
+			ApproachSource:
+				ucontrol approach sourceX sourceY dropRange
+				ucontrol within sourceX sourceY dropRange isNearSource	
+				jump NextBuilding equal isNearSource false
+			SourcePickup:
+				set pickupI 0
+				SourcePickupLoop:
+					ucontrol itemTake source material cap
+					sensor carried mule @totalItems
+					jump EndPickup greaterThanEq carried cap
+		
+					op add pickupI pickupI 1
+					jump SourcePickupLoop lessThan pickupI 10
+		
+			EndPickup:
+	
+		GetPosition:
+			jump Approach equal status "APPROACH"
+			sensor stock link @totalItems
+			jump NextBuilding greaterThanEq stock stockLevel
+			set status "APPROACH"
 			set target link
+			set approachLink l
 			sensor targetX target @x
 			sensor targetY target @y
 	
 		Approach:
-			ucontrol within targetX targetY dropRange isNear
-			jump Drop equal isNear true
-			ucontrol move targetX targetY	
-			jump Approach always
-	
-		Drop:
-			ucontrol itemDrop target 99
-			sensor carried mule @totalItems
-			jump CheckDrop greaterThanEq carried stockLevel
-
-			op add callback @counter 1
-			jump PickupFromSource always 
-			jump Approach always
+			ucontrol approach targetX targetY dropRange
+			ucontrol within targetX targetY checkRange isNear
+			jump NextBuilding equal isNear false
 		
-		CheckDrop:
-			sensor stock target @totalItems
-			jump Approach lessThan stock stockLevel
+		Drop:
+			set status "DROP"
+			set dropI 0
+			DropLoop:
+				ucontrol itemDrop target cap
+				sensor stock target @totalItems
+				jump DropDone greaterThanEq stock stockLevel
+				sensor carried mule @totalItems
+				jump Fillup lessThan carried stockLevel
+				op add dropI dropI 1
+				jump DropLoop lessThan dropI 10
+			DropDone:
 			
-		NextTarget:
+		NextBuilding:
 			op add l l 1
-			jump TargetLoop lessThan l @links
-	
-	EndTargetLoop:
+			jump BuildingLoop lessThan l @links
 
 Finish:
+	jump Start equal powerSave false
+	op greaterThan mendEnabled damaged 0
 	jump Start always
 	
 #-------------------------------------------------
 SubRoutines:
 #-------------------------------------------------
-PickupFromSource:
-	sensor sourceDead source @dead
-	jump SourceDead equal sourceDead true
-
-	sensor supply source material
-	jump NotEnough lessThan supply minSupply
-
-	ApproachSource:
-		ucontrol boost true
-		ucontrol approach sourceX sourceY dropRange
-		ucontrol within sourceX sourceY checkRange isNearSource	
-		jump ApproachSource equal isNearSource false
-
-	SourcePickup:
-		set pickupI 0
-		SourcePickupLoop:
-			ucontrol itemTake source material cap
-			sensor carried mule @totalItems
-			jump EndPickup greaterThanEq carried cap
-
-			op add pickupI pickupI 1
-			jump SourcePickupLoop lessThan pickupI 10
-
-	EndPickup:
-		set @counter callback
-
 DropToSource:
 	ucontrol within sourceX sourceY dropRange isNear
 	jump SourceDrop equal isNear true
@@ -245,8 +261,13 @@ DropToSource:
 Errors:
 #-------------------------------------------------
 SourceDead:
-	set error "Source not found"
-	jump Start always
+	jump SetSourceDeadError equal supplyFromCore false
+	ulocate building core false 0 sourceX sourceY coreFound source 
+	jump Start equal coreFound true
+
+	SetSourceDeadError:
+		set error "Source not found"
+		jump Start always
 
 NotEnough:
 	set error "Not enough stock"

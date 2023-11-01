@@ -1,0 +1,15 @@
+GetMemory:
+	set memory cell1
+	jump GetMemory equal memory null
+
+set l 0
+LinkLoop:
+	getlink link l
+	sensor type link @type
+	jump NextLink notEqual type @mend-projector
+	sensor stock link @totalItems
+	write stock memory l
+
+NextLink:
+	op add l l 1
+	jump LinkLoop lessThan l @links
