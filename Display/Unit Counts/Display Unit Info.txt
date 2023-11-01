@@ -1,8 +1,11 @@
 Initialize:
-	set charsPerRow 12
-	set rows 16
-	set displaySize 176
-	set maxDisplays 2
+	UserConfig:
+		set rows 16
+		set flagChars 8
+
+
+	
+	
 
 	GetLinks:
 		set l 0
@@ -29,6 +32,10 @@ Initialize:
 			set displays displayI
 			jump GetLinks equal displays 0
 
+	Constants:
+		set displaySize 176
+		set maxDisplays 2
+
 	DataLayout:
 		set UNIT_TYPE_ADDR 0
 		set TOTAL_ADDR 1
@@ -40,10 +47,9 @@ Initialize:
 		# 5 bits payloadCount
 		# 1 bit payloadClass (unit/building)
 		# 8 bits payloadType
-		set mask9 511
-		set mask8 255
-		set mask5 31
-		set mask4 15
+		set MASK9 511
+		set MASK8 255
+		set MASK4 15
 		
 	SetColors:
 		set bgColor %000000
@@ -73,23 +79,24 @@ Initialize:
 		op sub topBounds displaySize halfRowSp
 		set leftBounds margin
 
-		# data positions
+	CalcDataPositions:
 		set imageSize charHeight
 		op div imagePos imageSize 2
 
-		op add imageX leftBounds imagePos
+		op mul flagWidth charOffset flagChars
+		op add flagX leftBounds flagWidth
+
+		op add imageLeft flagX colSpacing
+		op add imageX imageLeft imagePos
+		op add imageRight imageLeft imageSize
+
 		op mul carriedWidth charOffset 2
-		op add imageRight leftBounds imageSize
-		op add carriedX imageRight carriedWidth
+		op add carriedLeft imageRight colSpacing
+		op add carriedX carriedLeft carriedWidth
 
 		op mul healthWidth charOffset 4
 		op add healthX carriedX colSpacing
 		op add healthX healthX healthWidth
-
-		op mul flagWidth charOffset flagChars
-		op add flagX healthX colSpacing
-		op add flagX flagX flagWidth
-
 		op add pctDotSize stroke 1
 
 		set clearX 0
@@ -167,11 +174,11 @@ StartRow:
 
 	PrintCarried:
 		op shr carried data 26
-		op and carried carried mask9
+		op and carried carried MASK9
 		jump PrintHealth equal carried 0
 
 		op shr carriedItem data 22
-		op and carriedItem carriedItem mask4
+		op and carriedItem carriedItem MASK4
 		lookup item material carriedItem
 
 		draw col imgColor
@@ -186,7 +193,7 @@ StartRow:
 
 	PrintHealth:
 		op shr health data 14
-		op and healthPct health mask8
+		op and healthPct health MASK8
 		jump PrintFlag equal healthPct 0
 
 	DrawPercent:
@@ -227,15 +234,19 @@ Skip:
 	jump StartRow lessThan i maxI 
 
 Done:
+	jump Clear2 equal row rows
 	ClearEmptyArea:
 		draw col bgColor
 		draw rect 0 0 displaySize clearY
 		drawflush display
-		jump Start equal display value1
-
-	ClearDisplay1:
+		
+	Clear2:
+		jump Start equal displays 1
+		set displayI 1
+		op add displayReturn @counter 1
+		jump GetDisplay always
 		draw clear 0 0 0
-		drawflush value1	
+		drawflush display
 		jump Start always
 
 #---------------------------------------------
