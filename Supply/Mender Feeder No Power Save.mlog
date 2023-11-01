@@ -1,0 +1,266 @@
+set name "Mender Feeder"
+
+Initialize:
+	set unitType @mega
+	set supplyFromCore true
+	set minSupply 500
+	set powerSave true
+
+	set material @phase-fabric
+	set targetType @mend-projector
+	
+	set error " "
+	set status "INITIALIZE"
+
+	set dropRange 7
+
+	op mul procId @thisx @maph
+	op add procId procId @thisy
+	op floor procId procId
+	
+	set neededLinks 1
+	jump GetLinks equal supplyFromCore true
+	set neededLinks 2
+
+	GetLinks:
+		jump GetLinks lessThan @links neededLinks	
+		set source null
+		set l 0
+		set targetCount 0
+		LinkLoop:
+			getlink link l
+			sensor type link @type
+			jump FoundTarget equal type targetType
+			jump NextLink equal supplyFromCore true
+			sensor cap link @itemCapacity
+			jump FoundSource greaterThanEq cap 100
+		FoundTarget:
+			op add targetCount targetCount 1
+			sensor targetCap link @itemCapacity
+			jump NextLink always
+		FoundSource:
+			set source link
+		NextLink:
+			op add l l 1
+			jump LinkLoop lessThan l @links
+			jump GetLinks equal targetCount 0
+			jump EndGetLinks equal supplyFromCore true
+			jump GetLinks equal source null
+		EndGetLinks:
+
+	op sub stockLevel targetCap 1
+	op add checkRange dropRange 3
+		
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		sensor cap @unit @itemCapacity
+		sensor speed @unit @speed
+		ulocate building core false 0 coreX coreY coreFound core
+		jump GetSourceCoords equal supplyFromCore false
+		set source core
+
+	GetSourceCoords:
+		sensor sourceX source @x
+		sensor sourceY source @y
+
+	set status "START"
+	set error " "
+	set mendEnabled true
+	printflush message1
+
+#--------------------------------------------------
+MainLoop:
+#--------------------------------------------------
+Start:
+	op sub cycleTime @time cycleStart
+	set cycleStart @time
+
+CheckMule:
+	jump FindMule equal mule null
+	sensor muleDead mule @dead
+	jump FindMule equal muleDead true
+
+	sensor muleFlag mule @flag
+	jump StartRun equal muleFlag procId
+	jump FindMule notEqual muleFlag 0
+	RecycleMule:
+		ubind mule
+		ucontrol flag procId
+		jump StartRun always
+
+FindMule:
+	set status "FINDMULE"
+	set mule null
+	set closest null
+	set minDistance 1000
+	
+	ubind unitType
+	jump NoUnits equal @unit null
+	set firstUnit @unit
+	jump FindProcess always
+
+	FindLoop:
+		ubind unitType
+		jump FinishCount equal firstUnit @unit
+		
+	FindProcess:
+		sensor isDead @unit @dead
+		jump FindLoop equal isDead true
+		sensor flag @unit @flag
+		jump UseMule equal flag procId
+		jump FindLoop notEqual flag 0
+		sensor controlled @unit @controlled
+		jump FindLoop greaterThanEq controlled 2
+
+	CheckDistance:
+		sensor x @unit @x
+		sensor y @unit @y
+		op sub xDiff @thisx x
+		op sub yDiff @thisy y
+		op len distance xDiff yDiff
+			
+		jump FindLoop greaterThan distance minDistance
+		set minDistance distance
+		set closest @unit
+		jump FindLoop always
+	
+	FinishCount:
+		jump NoUnits equal closest null
+		set mule closest
+		ubind mule
+		ucontrol flag procId
+		jump FindDone always
+	
+	FlagMule:
+		ucontrol flag procId
+	
+	UseMule:
+		set mule @unit
+	
+	FindDone:
+		ucontrol boost true
+		set error " "
+
+StartRun:
+	jump GetLinks lessThan @links neededLinks
+
+	sensor carriedMat mule @firstItem
+	jump FeedTargets equal material carriedMat
+	jump FeedTargets equal material null
+
+	op add callback @counter 1
+	jump DropToSource always
+
+FeedTargets:
+	
+	set l 0
+	set damaged 0
+	BuildingLoop:
+		getlink link l
+		sensor type link @type
+		jump NextBuilding notEqual type targetType
+		
+		Fillup:
+			sensor carried mule @totalItems
+			jump GetPosition greaterThan carried stockLevel
+
+			sensor sourceDead source @dead
+			jump SourceDead equal sourceDead true
+
+			sensor supply source material
+			jump NotEnough lessThan supply minSupply
+
+			ApproachSource:
+				ucontrol approach sourceX sourceY dropRange
+				ucontrol itemTake source material cap
+				sensor carried mule @totalItems
+				jump EndPickup greaterThanEq carried cap
+		
+				op add pickupI pickupI 1
+				jump ApproachSource lessThan pickupI 1000
+			EndPickup:
+	
+		GetPosition:
+			sensor stock link @totalItems
+			jump NextBuilding greaterThanEq stock stockLevel
+			set status "APPROACH"
+			set target link
+			set targetLink l
+			sensor targetX target @x
+			sensor targetY target @y
+	
+		
+		Approach:
+			set approachI 0
+			ApproachLoop:
+				ucontrol within targetX targetY dropRange isNear
+				jump Drop equal isNear true
+				ucontrol approach targetX targetY dropRange
+
+				Drop:
+					ucontrol itemDrop target cap
+
+				sensor stock target @totalItems
+				jump DropDone greaterThanEq stock stockLevel
+				sensor carried mule @totalItems
+				jump Fillup equal carried 0
+				
+				op add approachI approachI 1
+				jump ApproachLoop lessThan approachI 200
+		
+			DropDone:
+				set l targetLink
+				print l
+				print " " 
+				print approachI
+				print "\n"
+			
+		NextBuilding:
+			op add l l 1
+			jump BuildingLoop lessThan l @links
+
+Finish:
+	printflush message1
+	jump Start always
+	
+#-------------------------------------------------
+SubRoutines:
+#-------------------------------------------------
+DropToSource:
+	ucontrol within sourceX sourceY dropRange isNear
+	jump SourceDrop equal isNear true
+	ucontrol boost true
+	ucontrol approach sourceX sourceY dropRange
+	jump DropToSource always
+
+	SourceDrop:
+		ucontrol itemDrop source cap
+		sensor carried mule @totalItems
+		jump EndSourceDrop equal carried 0
+
+		ucontrol itemDrop @air cap
+
+	EndSourceDrop:
+		set @counter callback
+
+#-------------------------------------------------
+Errors:
+#-------------------------------------------------
+SourceDead:
+	jump SetSourceDeadError equal supplyFromCore false
+	ulocate building core false 0 sourceX sourceY coreFound source 
+	jump Start equal coreFound true
+
+	SetSourceDeadError:
+		set error "Source not found"
+		jump Start always
+
+NotEnough:
+	set error "Not enough stock"
+	jump Start always
+
+NoUnits:
+	set error "No free units"
+	jump GetLinks always
+
