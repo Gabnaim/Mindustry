@@ -57,41 +57,34 @@ Start:
 	op add id baseId tier
 	lookup unit unitType id
 	jump CountUnits equal baseType lastType
-	set firstUnit null
 	set lastType baseType
 
 CountUnits:
-	set unitCount 0
-	set totalCount 0
-	set firstUnit null
+	set units 0
+	ubind unitType
+	jump FinishCount equal @unit null
+	set firstUnit @unit
+	jump CountProcess always
 
 	CountLoop:
 		sensor baseType factory @config
 		jump Start notEqual baseType lastType
-	Bind:
+
 		ubind unitType
-		jump FinishCount equal @unit null
-		sensor isDead @unit @dead
-		jump CountLoop equal isDead true
-	
 		jump FinishCount equal firstUnit @unit
-		jump Count notEqual firstUnit null
-		set firstUnit @unit
-		
-	Count:
-		op add unitCount unitCount 1
+		sensor isFirstDead firstUnit @dead
+		jump Start equal isFirstDead true
+	
+	CountProcess:
+		op add units units 1
 		jump CountLoop always
 	
 	FinishCount:
 		op add checkBuildingsReturn @counter 1
 		jump CheckBuildings always
-	
-		set lastCount totalCount
-		set firstUnit null
-		set totalCount 0
-		set unitCount 0
+		op add totalCount units builtUnits
 
-	jump DisableFactory greaterThanEq lastCount maxUnits
+	jump DisableFactory greaterThanEq totalCount maxUnits
 	
 EnableFactory:
 	control enabled factory true
@@ -125,7 +118,6 @@ CheckBuildings:
 			jump BuildingLoop lessThan i @links
 
 	FinishBuildings:
-		op add totalCount unitCount builtUnits
 		set @counter checkBuildingsReturn
 
 
