@@ -186,11 +186,10 @@ FeedTargets:
 			control enabled link mendEnabled
 		CheckMin:
 			sensor stock link @totalItems
-			jump NextBuilding greaterThanEq stock minStock
-		
-			set minStock stock
+			jump NextBuilding greaterThanEq stock minStock	
 			set target link
 			set targetLink l
+			set minStock stock
 			
 		NextBuilding:
 			op add l l 1
@@ -252,11 +251,6 @@ FeedTargets:
 Finish:
 	printflush message1
 	jump Start always
-	
-#-------------------------------------------------
-SubRoutines:
-#-------------------------------------------------
-
 
 #-------------------------------------------------
 Errors:
