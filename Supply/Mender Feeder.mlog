@@ -1,10 +1,9 @@
-set name "Smart Mender"
+set name "Mender Feeder"
 
 Initialize:
 	set unitType @mega
 	set supplyFromCore true
 	set minSupply 500
-	set powerSave true
 
 	set material @phase-fabric
 	set targetType @mend-projector
@@ -13,12 +12,10 @@ Initialize:
 	set status "INITIALIZE"
 
 	set dropRange 7
-	set releaseWaitSecs 30
 
 	op mul procId @thisx @maph
 	op add procId procId @thisy
 	op floor procId procId
-	op mul releaseWaitMs releaseWaitSecs 1000
 	
 	set neededLinks 1
 	jump GetLinks equal supplyFromCore true
@@ -38,7 +35,7 @@ Initialize:
 			jump FoundSource greaterThanEq cap 100
 		FoundTarget:
 			op add targetCount targetCount 1
-			sensor targetCap target @itemCapacity
+			sensor targetCap link @itemCapacity
 			jump NextLink always
 		FoundSource:
 			set source link
@@ -49,7 +46,9 @@ Initialize:
 			jump EndGetLinks equal supplyFromCore true
 			jump GetLinks equal source null
 		EndGetLinks:
-			set totalLinks @links
+
+	op sub stockLevel targetCap 1
+	op add checkRange dropRange 1
 		
 	GetStartInfo:
 		ubind unitType
@@ -66,16 +65,12 @@ Initialize:
 
 	set status "START"
 	set error " "
-	set lastLink 0
 	set mendEnabled true
-	set releaseStart @time
 
 #--------------------------------------------------
 MainLoop:
 #--------------------------------------------------
 Start:
-	op sub releaseWait @time releaseStart
-	jump Reset greaterThanEq releaseWait releaseWaitMs
 
 CheckMule:
 	jump FindMule equal mule null
@@ -143,100 +138,63 @@ FindMule:
 		set error " "
 
 StartRun:
-	set status "FEED"
+	jump GetLinks lessThan @links neededLinks
 	
 	sensor carried mule @totalItems
-	jump FeedTargets equal carried 0
+	jump Fillup equal carried 0
 
 	sensor carriedMat mule @firstItem
-	jump FeedTargets equal material carriedMat
+	jump Fillup equal material carriedMat
 
 	op add callback @counter 1
 	jump DropToSource always
 
+Fillup:
+	sensor carried mule @totalItems
+	jump FeedTargets equal carried cap
+
+	op add callback @counter 1
+	jump PickupFromSource always
+
 FeedTargets:
-	jump GetLinks lessThan @links neededLinks
-
 	set l 0
+	set status "FEED"
 	TargetLoop:
-		sensor carried mule @totalItems
-		jump GetTarget greaterThanEq carried 0
-		
-		op add callback @counter 1
-		jump PickupFromSource always
-
-	GetTarget:
 		getlink link l
-		sensor type link @type
+			sensor type link @type
+			jump NextTarget notEqual type targetType
+			set target link
+			sensor targetX target @x
+			sensor targetY target @y
+	
+		Approach:
+			ucontrol within targetX targetY dropRange isNear
+			jump Drop equal isNear true
+			ucontrol move targetX targetY	
+			jump Approach always
+	
+		Drop:
+			ucontrol itemDrop target 99
+			sensor carried mule @totalItems
+			jump CheckDrop greaterThanEq carried stockLevel
 
-	CheckHealth:
-		jump EndHealthCheck equal powerSave false
-		sensor maxHealth link @maxHealth
-		sensor health link @health
-		jump EndHealthCheck equal health maxHealth
-
-	DamageFound:
-		op add damaged damaged 1
-		set mendEnabled true
+			op add callback @counter 1
+			jump PickupFromSource always 
+			jump Approach always
 		
-	EndHealthCheck:
-		jump NextTarget notEqual type targetType
-		jump Feed equal powerSave false
-		control enabled link mendEnabled
+		CheckDrop:
+			sensor stock target @totalItems
+			jump Approach lessThan stock stockLevel
+			
+		NextTarget:
+			op add l l 1
+			jump TargetLoop lessThan l @links
+	
+	EndTargetLoop:
 
-	Feed:
-		set target link
-		sensor targetX target @x
-		sensor targetY target @y
-
-	Approach:
-		ucontrol within targetX targetY dropRange isNear
-		jump Drop equal isNear true
-		ucontrol approach targetX targetY dropRange
-		jump Approach always
-
-	Drop:
-		ucontrol itemDrop target cap
-		
-	NextTarget:
-		op add l l 1
-		jump TargetLoop lessThan l @links
-
-EndTargetLoop:
-	set lastLink 0
-	jump Start equal powerSave false
-	op equal mendEnabled damaged 0
-	set damaged 0
+Finish:
 	jump Start always
 	
-	
-#--------------------------------------------------
-WrapUp:
-#--------------------------------------------------
-	
-Reset:
-	jump FinishRelease equal mule null
-	jump Start equal status "IDLE"
-	jump Release equal status "RELEASING"
-
-Stop:
-	ubind mule
-	ucontrol stop
-	set status "RELEASING"
-		
-Release:
-	op sub releaseWait @time releaseStart
-	jump Start lessThan releaseWait releaseWaitMs
-	
-	ubind mule
-	ucontrol flag 0
-	ucontrol move releaseX releaseY
-	set releaseStart @time
-	
-FinishRelease:
-	set status "IDLE"
-	jump Start always
-
 #-------------------------------------------------
 SubRoutines:
 #-------------------------------------------------
@@ -247,14 +205,13 @@ PickupFromSource:
 	sensor supply source material
 	jump NotEnough lessThan supply minSupply
 
-	ucontrol within sourceX sourceY dropRange isNearSource
-	jump SourcePickup equal isNearSource true
-	ucontrol boost true
-	ucontrol approach sourceX sourceY dropRange
-	jump Start always
+	ApproachSource:
+		ucontrol boost true
+		ucontrol approach sourceX sourceY dropRange
+		ucontrol within sourceX sourceY checkRange isNearSource	
+		jump ApproachSource equal isNearSource false
 
 	SourcePickup:
-		set releaseStart time
 		set pickupI 0
 		SourcePickupLoop:
 			ucontrol itemTake source material cap
