@@ -1,7 +1,4 @@
-set sourceFile "Unit Info.txt"
-
-print "Prints flag, health, and carried item type and quantity of each unit of that type"
-printflush message1
+set name "Unit Info"
 
 Initialize:
 	set useMemory true
@@ -24,7 +21,7 @@ GetLinks:
 
 Start:
 	set lastUnitType unitType
-	jump Bind equal useMemory false
+	jump Process equal useMemory false
 
 ReadUnitType:
 	read unitTypeId memory UNIT_TYPE_ADDR
@@ -33,59 +30,60 @@ ReadUnitType:
 	lookup unit unitType unitTypeId
 	jump Reset notEqual unitType lastUnitType
 
-Bind:
+Process:
 	ubind unitType
 	jump NoUnits equal @unit null
-	sensor isDead @unit @dead
-	jump Start equal isDead true
-
-	jump FinishGroup equal firstUnit @unit
-	jump ProcessUnit notEqual firstUnit null
-
-SetFirst:
+	set units 0
 	set firstUnit @unit
+	jump ProcessUnit always
 
-ProcessUnit:
-	jump Next equal showLine false
-	set hasData false
-
-	PrintFlag:
-		jump PrintCarried equal showFlag false
-		sensor flag @unit @flag
-		jump PrintCarried equal flag 0
-		set hasData true
-		print flag
-		print " "
+	UnitLoop:
+		ubind unitType
+		jump FinishGroup equal firstUnit @unit
+		sensor isFirstDead firstUnit @dead
+		jump Start equal isFirstDead true
 	
-	PrintCarried:
-		jump PrintHealth equal showHealth false
-		sensor carried @unit @totalItems
-		jump PrintHealth equal carried 0
-		sensor material @unit @firstItem
-		set hasData true
-		print carried
-		print " "
-		print material
-		print " "
-
-	PrintHealth:
-		jump PrintEnd equal showHealth false
-		sensor maxHealth @unit @maxHealth
-		sensor health @unit @health
-		jump PrintEnd equal health maxHealth
-		op mul health health 100
-		op idiv healthPct health maxHealth
-		set hasData true
-		print healthPct
-		print "%"
+	ProcessUnit:
+		jump Next equal showLine false
+		set hasData false
+	
+		PrintFlag:
+			jump PrintCarried equal showFlag false
+			sensor flag @unit @flag
+			jump PrintCarried equal flag 0
+			set hasData true
+			print flag
+			print " "
 		
-	PrintEnd:
-		jump Next equal hasData false
-		print "\n"
+		PrintCarried:
+			jump PrintHealth equal showHealth false
+			sensor carried @unit @totalItems
+			jump PrintHealth equal carried 0
+			sensor material @unit @firstItem
+			set hasData true
+			print carried
+			print " "
+			print material
+			print " "
 	
-Next:
-	op add units units 1
-	jump Start always
+		PrintHealth:
+			jump PrintEnd equal showHealth false
+			sensor maxHealth @unit @maxHealth
+			sensor health @unit @health
+			jump PrintEnd equal health maxHealth
+			op mul health health 100
+			op idiv healthPct health maxHealth
+			set hasData true
+			print healthPct
+			print "%"
+			
+		PrintEnd:
+			jump Next equal hasData false
+			print "\n"
+	
+	Next:
+		op add units units 1
+		jump UnitLoop always
 	
 FinishGroup:
 	print unitType
@@ -103,8 +101,6 @@ InvalidType:
 	print "Invalid unit type"
 
 Reset:
-	set units 0
-	set firstUnit null
 	printflush message1
 	op sub cycleTime @time cycleStart
 	set cycleStart @time
