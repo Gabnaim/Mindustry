@@ -1,11 +1,9 @@
 Initialize:
 	UserConfig:
-		set rows 16
-		set flagChars 8
-
-
-	
-	
+		set rows 8
+		set columns 1
+		set flagChars 6
+		set charsPerRow 20
 
 	GetLinks:
 		set l 0
@@ -59,21 +57,41 @@ Initialize:
 		set altBgColor %303030
 
 	SetSpacing:
-		set rowSpacing 3
 		set colSpacing 4
 		set charSpacing 2
 		set margin 4
-		set flagChars 6
+
+	PrecalcVariables:
 		op div halfColSp colSpacing 2
-		op mul maxDataItems rows displays
+		op div halfDisplay displaySize 2
+		op mul itemsPerDisplay rows columns
+		op mul maxDataItems itemsPerDisplay displays
+		
+	CalcGrid:
+		op mul margins margin 2
+		op sub available displaySize margins
+		op div rowOffset available rows
+		op floor rowOffset rowOffset
+		op div colOffset available columns
+		op floor colOffset colOffset 
+		op min rowOffset rowOffset colOffset
+		op sub colWidth colOffset colSpacing	
 
 	CalcFont:
-		set charHeight 8
-		set charWidth 5
-		set stroke 1
-		op add rowOffset charHeight rowSpacing	
+		op mul charHeight rowOffset 0.8
+		op floor charHeight charHeight
+		op sub rowSpacing rowOffset charHeight
 		op div halfRowSp rowSpacing 2
+
+		op div charOffset colWidth charsPerRow
+		op floor charOffset charOffset
+		op sub charWidth charOffset charSpacing
+		op min charWidth charWidth charHeight
+		op max charWidth charWidth 3
 		op add charOffset charWidth charSpacing
+
+		op idiv stroke charWidth 6
+		op add stroke stroke 1
 
 	CalcArea:
 		op sub topBounds displaySize halfRowSp
