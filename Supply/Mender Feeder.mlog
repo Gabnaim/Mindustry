@@ -149,9 +149,19 @@ StartRun:
 	jump FeedTargets equal material carriedMat
 	jump FeedTargets equal material null
 
-	op add callback @counter 1
+DropToSource:
+	ucontrol within sourceX sourceY dropRange isNear
+	jump SourceDrop equal isNear true
+	ucontrol approach sourceX sourceY dropRange
 	jump DropToSource always
 
+	SourceDrop:
+		ucontrol itemDrop source cap
+		sensor carried mule @totalItems
+		jump EndSourceDrop equal carried 0
+		ucontrol itemDrop @air cap
+	EndSourceDrop:
+		
 FeedTargets:
 	set l 0
 	set minStock targetCap
@@ -246,22 +256,7 @@ Finish:
 #-------------------------------------------------
 SubRoutines:
 #-------------------------------------------------
-DropToSource:
-	ucontrol within sourceX sourceY dropRange isNear
-	jump SourceDrop equal isNear true
-	ucontrol boost true
-	ucontrol approach sourceX sourceY dropRange
-	jump DropToSource always
 
-	SourceDrop:
-		ucontrol itemDrop source cap
-		sensor carried mule @totalItems
-		jump EndSourceDrop equal carried 0
-
-		ucontrol itemDrop @air cap
-
-	EndSourceDrop:
-		set @counter callback
 
 #-------------------------------------------------
 Errors:
