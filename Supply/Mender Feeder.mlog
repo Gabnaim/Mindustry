@@ -67,11 +67,14 @@ Initialize:
 	set status "START"
 	set error " "
 	set mendEnabled true
+	printflush message1
 
 #--------------------------------------------------
 MainLoop:
 #--------------------------------------------------
 Start:
+	op sub cycleTime @time cycleStart
+	set cycleStart @time
 
 CheckMule:
 	jump FindMule equal mule null
@@ -151,91 +154,93 @@ StartRun:
 
 FeedTargets:
 	set l 0
-	set damaged 0
+	set minStock targetCap
+	set target null
+	set needMend false
 	BuildingLoop:
 		getlink link l
-
+		
 		CheckHealth:
-			jump EndHealthCheck equal powerSave false
+			jump CheckMender equal powerSave false
 			sensor maxHealth link @maxHealth
 			sensor health link @health
-			jump EndHealthCheck equal health maxHealth
-			op add damaged damaged 1
-			set mendEnabled true		
-		EndHealthCheck:
+			jump CheckMender equal health maxHealth
+			set needMend true
+			set mendEnabled true
 
-		sensor type link @type
-		jump NextBuilding notEqual type targetType
+		CheckMender:
+			sensor type link @type
+			jump NextBuilding notEqual type targetType
 
-		FoundMender:
+		SavePower:
 			control enabled link mendEnabled
-
-		Fillup:
-			jump Approach equal status "APPROACH"
-			jump ApproachSource equal status "PICKUP"
-			sensor carried mule @totalItems
-			jump GetPosition greaterThan carried stockLevel
-		
-		PickupFromSource:
-			sensor sourceDead source @dead
-			jump SourceDead equal sourceDead true
-
-			sensor supply source material
-			jump NotEnough lessThan supply minSupply
-
-			set status "PICKUP"
-			ApproachSource:
-				ucontrol approach sourceX sourceY dropRange
-				ucontrol within sourceX sourceY dropRange isNearSource	
-				jump NextBuilding equal isNearSource false
-			SourcePickup:
-				set pickupI 0
-				SourcePickupLoop:
-					ucontrol itemTake source material cap
-					sensor carried mule @totalItems
-					jump EndPickup greaterThanEq carried cap
-		
-					op add pickupI pickupI 1
-					jump SourcePickupLoop lessThan pickupI 10
-		
-			EndPickup:
-	
-		GetPosition:
-			jump Approach equal status "APPROACH"
+		CheckMin:
 			sensor stock link @totalItems
-			jump NextBuilding greaterThanEq stock stockLevel
-			set status "APPROACH"
+			jump NextBuilding greaterThanEq stock minStock
+		
+			set minStock stock
 			set target link
 			set targetLink l
-			sensor targetX target @x
-			sensor targetY target @y
-	
-		Approach:
-			ucontrol approach targetX targetY dropRange
-			ucontrol within targetX targetY checkRange isNear
-			jump NextBuilding equal isNear false
-		
-		Drop:
-			set status "DROP"
-			set dropI 0
-			DropLoop:
-				ucontrol itemDrop target cap
-				sensor stock target @totalItems
-				jump DropDone greaterThanEq stock stockLevel
-				sensor carried mule @totalItems
-				jump Fillup lessThan carried stockLevel
-				op add dropI dropI 1
-				jump DropLoop lessThan dropI 10
-			DropDone:
-				set l targetLink
 			
 		NextBuilding:
 			op add l l 1
 			jump BuildingLoop lessThan l @links
 
+		jump CheckTarget equal powerSave false
+		set mendEnabled needMend
+
+	CheckTarget:
+		jump Finish equal target null
+
+	Fillup:
+		sensor carried mule @totalItems
+		jump GetPosition greaterThan carried stockLevel
+	
+		sensor sourceDead source @dead
+		jump SourceDead equal sourceDead true
+	
+		sensor supply source material
+		jump NotEnough lessThan supply minSupply
+	
+		ApproachSource:
+			ucontrol approach sourceX sourceY dropRange
+			ucontrol itemTake source material cap
+			sensor carried mule @totalItems
+			jump EndPickup greaterThanEq carried cap
+	
+			op add pickupI pickupI 1
+			jump ApproachSource lessThan pickupI 1000
+		EndPickup:
+	
+	GetPosition:
+		sensor targetX target @x
+		sensor targetY target @y
+	
+	Approach:
+		set approachI 0
+		ApproachLoop:
+			ucontrol within targetX targetY dropRange isNear
+			jump Drop equal isNear true
+			ucontrol approach targetX targetY dropRange
+			Drop:
+				ucontrol itemDrop target cap
+	
+			sensor stock target @totalItems
+			jump DropDone greaterThanEq stock stockLevel
+			sensor carried mule @totalItems
+			jump Fillup equal carried 0
+			
+			op add approachI approachI 1
+			jump ApproachLoop lessThan approachI 200
+	
+		DropDone:
+			print targetLink
+			print " " 
+			print approachI
+			print "\n"
+	
 Finish:
-	jump Start equal powerSave false
-	op greaterThan mendEnabled damaged 0
+	printflush message1
 	jump Start always
 	
 #-------------------------------------------------
