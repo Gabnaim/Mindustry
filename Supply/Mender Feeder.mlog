@@ -206,7 +206,7 @@ FeedTargets:
 			jump NextBuilding greaterThanEq stock stockLevel
 			set status "APPROACH"
 			set target link
-			set approachLink l
+			set targetLink l
 			sensor targetX target @x
 			sensor targetY target @y
 	
@@ -227,6 +227,7 @@ FeedTargets:
 				op add dropI dropI 1
 				jump DropLoop lessThan dropI 10
 			DropDone:
+				set l targetLink
 			
 		NextBuilding:
 			op add l l 1
