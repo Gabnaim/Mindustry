@@ -43,7 +43,7 @@ Start:
 		
 	ProcessUnit:
 		sensor firstDead firstUnit @dead
-		jump FinishGroup equal firstDead true
+		jump BindFirst equal firstDead true
 		sensor isDead @unit @dead
 		jump InfoLoop equal isDead true
 		set data 0
