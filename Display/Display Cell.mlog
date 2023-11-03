@@ -220,10 +220,12 @@ NextItem:
 
 NextLine:
 	op sub curY curY rowOffset
+	drawflush display
 	jump StartRow always
 
 ChangeCol:
 	op add col col 1
+	drawflush display
 	jump Start greaterThanEq col columns
 	op add leftBounds leftBounds colOffset
 	jump StartColumn always

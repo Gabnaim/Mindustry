@@ -106,7 +106,20 @@ FinishGroup:
 	set lastUnitType unitType
 	op sub totalUnits i FIRST_UNIT_ADDR
 	write totalUnits memory TOTAL_ADDR 
+	jump Finish lessThanEq lastTotal totalUnits
+
+ClearRest:
+	op add clearEnd lastTotal FIRST_UNIT_ADDR
+	ClearLoop:
+		write 0 memory i
+		op add i i 1
+		jump ClearLoop lessThan i clearEnd
+
+Finish:
+	set lastTotal totalUnits
 	jump Start always
+	
+	
 
 
 	
