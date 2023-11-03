@@ -9,8 +9,6 @@ Initialize:
 		set maxUnits 4	
 		set maxDistance 100 # do not bind if further away
 							# set to 0 to skip
-	
-		# How long to wait before releasing units
 		set releaseWaitSecs 30
 
 	set status "INITIALIZE"
@@ -29,8 +27,6 @@ Initialize:
 	set neededLinks 1
 	jump GetLinks equal supplyFromCore true
 	set neededLinks 2
-	
-	
 
 	GetLinks:
 		jump GetLinks lessThan @links neededLinks	
@@ -321,7 +317,7 @@ FeedTargets:
 		ApproachSource:
 			ucontrol approach sourceX sourceY dropRange
 			ucontrol within sourceX sourceY checkRange isNear
-			jump ApproachSource equal isNear false
+			jump Start equal isNear false
 
 		PickupLoop:
 			ucontrol itemTake source material cap
@@ -337,40 +333,21 @@ FeedTargets:
 		sensor targetY target @y
 	
 	Approach:
-		set approachI 0
-		ApproachLoop:
-			ucontrol within targetX targetY checkRange isNear
-			jump Drop equal isNear true
-			ucontrol approach targetX targetY dropRange
-			Drop:
-				ucontrol itemDrop target cap
+		ucontrol within targetX targetY checkRange isNear
+		jump Drop equal isNear true
+		ucontrol approach targetX targetY dropRange
+		jump Start always
+	Drop:
+		ucontrol itemDrop target cap
+		jump Start always
 	
-			sensor stock target @ammo
-			jump DropDone greaterThanEq stock stockLevel
-			sensor carried mule @totalItems
-			jump Fillup equal carried 0
-			
-			op add approachI approachI 1
-			jump ApproachLoop lessThan approachI 200
-
-		#sometimes it would get stuck on the same building
-		#Perhaps the building was destroyed and rebuilt
-		#it needs a new target
-		set skipLink targetLink
-
-		DropDone:
-			print targetLink
-			print " " 
-			print approachI
-			print "\n"
+	Finish:
+		printflush message1
 	
-Finish:
-	printflush message1
-
-Next:
-	op add arrayIndex arrayIndex 1
-	jump Start lessThan arrayIndex flagged
-
+	Next:
+		op add arrayIndex arrayIndex 1
+		jump Start lessThan arrayIndex flagged
+	
 FinishGroup:
 	set arrayIndex 0
 	jump Start always
@@ -429,6 +406,19 @@ Errors:
 TooMany:
 	set error "Max 12 units supported"
 	jump GetLinks always
+
+SourceDead:
+	jump SetSourceDeadError equal supplyFromCore false
+	ulocate building core false 0 sourceX sourceY coreFound source 
+	jump Start equal coreFound true
+
+	SetSourceDeadError:
+		set error "Source not found"
+		jump Start always
+
+NotEnough:
+	set error "Not enough stock"
+	jump Start always
 	
 NoUnits:
 	jump TooFar greaterThan tooFar 0
@@ -472,31 +462,6 @@ ArraySet:
 	set @counter arrayReturn
 	set unit11 unit
 	set @counter arrayReturn
-	set unit12 unit
-	set @counter arrayReturn
-	set unit13 unit
-	set @counter arrayReturn
-	set unit14 unit
-	set @counter arrayReturn
-	set unit15 unit
-	set @counter arrayReturn
-	set unit16 unit
-	set @counter arrayReturn
-	set unit17 unit
-	set @counter arrayReturn
-	set unit18 unit
-	set @counter arrayReturn
-	set unit19 unit
-	set @counter arrayReturn
-
-	set unit20 unit
-	set @counter arrayReturn
-	set unit21 unit
-	set @counter arrayReturn
-	set unit22 unit
-	set @counter arrayReturn
-	set unit23 unit
-	set @counter arrayReturn
 
 ArrayGet:
 	op mul offset arrayIndex 2
@@ -526,29 +491,4 @@ ArrayGet:
 	set unit unit10
 	set @counter arrayReturn
 	set unit unit11
-	set @counter arrayReturn
-	set unit unit12
-	set @counter arrayReturn
-	set unit unit13
-	set @counter arrayReturn
-	set unit unit14
-	set @counter arrayReturn
-	set unit unit15
-	set @counter arrayReturn
-	set unit unit16
-	set @counter arrayReturn
-	set unit unit17
-	set @counter arrayReturn
-	set unit unit18
-	set @counter arrayReturn
-	set unit unit19
-	set @counter arrayReturn
-
-	set unit unit20
-	set @counter arrayReturn
-	set unit unit21
-	set @counter arrayReturn
-	set unit unit22
-	set @counter arrayReturn
-	set unit unit23
 	set @counter arrayReturn
