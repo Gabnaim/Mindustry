@@ -255,6 +255,7 @@ Reflag:
 
 DoStuff:	
 	ubind unit
+	set mule unit
 	set releaseStart @time
 
 StartRun:
@@ -289,8 +290,6 @@ FeedTargets:
 			jump NextBuilding lessThan ammoCap 10
 
 		CheckMin:
-			# error control: skip stuck building
-			jump NextBuilding strictEqual l skipLink
 			sensor stock link @ammo
 			jump NextBuilding greaterThanEq stock minStock	
 			set target link
@@ -301,12 +300,9 @@ FeedTargets:
 			op add l l 1
 			jump BuildingLoop lessThan l @links
 
-		set skipLink null
-		jump Finish equal target null
-
 	Fillup:
 		sensor carried mule @totalItems
-		jump GetPosition greaterThan carried 0
+		jump GetPosition greaterThan carried stockLevel
 	
 		sensor sourceDead source @dead
 		jump SourceDead equal sourceDead true
@@ -317,7 +313,7 @@ FeedTargets:
 		ApproachSource:
 			ucontrol approach sourceX sourceY dropRange
 			ucontrol within sourceX sourceY checkRange isNear
-			jump Start equal isNear false
+			jump Next equal isNear false
 
 		PickupLoop:
 			ucontrol itemTake source material cap
@@ -329,6 +325,7 @@ FeedTargets:
 		EndPickup:
 	
 	GetPosition:
+		jump Finish equal target null
 		sensor targetX target @x
 		sensor targetY target @y
 	
@@ -336,10 +333,10 @@ FeedTargets:
 		ucontrol within targetX targetY checkRange isNear
 		jump Drop equal isNear true
 		ucontrol approach targetX targetY dropRange
-		jump Start always
+		jump Next always
 	Drop:
 		ucontrol itemDrop target cap
-		jump Start always
+		jump Next always
 	
 	Finish:
 		printflush message1
