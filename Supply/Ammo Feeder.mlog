@@ -1,13 +1,10 @@
-set name "Mender Feeder"
+set name "Ammo Feeder"
 
 Initialize:
 	set unitType @mega
 	set supplyFromCore true
 	set minSupply 500
-	set powerSave true
-
-	set material @phase-fabric
-	set targetType @mend-projector
+	set material @thorium
 	
 	set error " "
 	set status "INITIALIZE"
@@ -29,14 +26,15 @@ Initialize:
 		set targetCount 0
 		LinkLoop:
 			getlink link l
-			sensor type link @type
-			jump FoundTarget equal type targetType
+			sensor ammoCap link @ammoCapacity
+			jump FoundTarget greaterThanEq ammoCap 10
 			jump NextLink equal supplyFromCore true
 			sensor cap link @itemCapacity
 			jump FoundSource greaterThanEq cap 100
+			jump NextLink always
 		FoundTarget:
 			op add targetCount targetCount 1
-			sensor targetCap link @itemCapacity
+			sensor targetCap link @ammoCapacity
 			jump NextLink always
 		FoundSource:
 			set source link
@@ -48,7 +46,8 @@ Initialize:
 			jump GetLinks equal source null
 		EndGetLinks:
 
-	op sub stockLevel targetCap 1
+	op mul stockLevel targetCap 0.9 
+	op floor stockLevel stockLevel
 	op add checkRange dropRange 1
 		
 	GetStartInfo:
@@ -66,7 +65,6 @@ Initialize:
 
 	set status "START"
 	set error " "
-	set mendEnabled true
 	printflush message1
 
 #--------------------------------------------------
@@ -166,28 +164,17 @@ FeedTargets:
 	set l 0
 	set minStock targetCap
 	set target null
-	set needMend false
 	BuildingLoop:
 		getlink link l
 		
-		CheckHealth:
-			jump CheckMender equal powerSave false
-			sensor maxHealth link @maxHealth
-			sensor health link @health
-			jump CheckMender equal health maxHealth
-			set needMend true
-			set mendEnabled true
+		CheckTurret:
+			sensor ammoCap link @ammoCapacity
+			jump NextBuilding lessThan ammoCap 10
 
-		CheckMender:
-			sensor type link @type
-			jump NextBuilding notEqual type targetType
-
-		SavePower:
-			control enabled link mendEnabled
 		CheckMin:
 			# error control: skip stuck building
 			jump NextBuilding strictEqual l skipLink
-			sensor stock link @totalItems
+			sensor stock link @ammo
 			jump NextBuilding greaterThanEq stock minStock	
 			set target link
 			set targetLink l
@@ -197,11 +184,7 @@ FeedTargets:
 			op add l l 1
 			jump BuildingLoop lessThan l @links
 
-		jump CheckTarget equal powerSave false
-		set mendEnabled needMend
 		set skipLink null
-
-	CheckTarget:
 		jump Finish equal target null
 
 	Fillup:
@@ -235,13 +218,13 @@ FeedTargets:
 	Approach:
 		set approachI 0
 		ApproachLoop:
-			ucontrol within targetX targetY dropRange isNear
+			ucontrol within targetX targetY checkRange isNear
 			jump Drop equal isNear true
 			ucontrol approach targetX targetY dropRange
 			Drop:
 				ucontrol itemDrop target cap
 	
-			sensor stock target @totalItems
+			sensor stock target @ammo
 			jump DropDone greaterThanEq stock stockLevel
 			sensor carried mule @totalItems
 			jump Fillup equal carried 0

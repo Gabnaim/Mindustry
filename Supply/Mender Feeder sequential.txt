@@ -49,7 +49,7 @@ Initialize:
 		EndGetLinks:
 
 	op sub stockLevel targetCap 1
-	op add checkRange dropRange 1
+	op add checkRange dropRange 3
 		
 	GetStartInfo:
 		ubind unitType
@@ -149,9 +149,88 @@ StartRun:
 	jump FeedTargets equal material carriedMat
 	jump FeedTargets equal material null
 
+	op add callback @counter 1
+	jump DropToSource always
+
+FeedTargets:
+	
+	set l 0
+	set damaged 0
+	BuildingLoop:
+		getlink link l
+		sensor type link @type
+		jump NextBuilding notEqual type targetType
+		
+		Fillup:
+			sensor carried mule @totalItems
+			jump GetPosition greaterThan carried stockLevel
+
+			sensor sourceDead source @dead
+			jump SourceDead equal sourceDead true
+
+			sensor supply source material
+			jump NotEnough lessThan supply minSupply
+
+			ApproachSource:
+				ucontrol approach sourceX sourceY dropRange
+				ucontrol itemTake source material cap
+				sensor carried mule @totalItems
+				jump EndPickup greaterThanEq carried cap
+		
+				op add pickupI pickupI 1
+				jump ApproachSource lessThan pickupI 1000
+			EndPickup:
+	
+		GetPosition:
+			sensor stock link @totalItems
+			jump NextBuilding greaterThanEq stock stockLevel
+			set status "APPROACH"
+			set target link
+			set targetLink l
+			sensor targetX target @x
+			sensor targetY target @y
+	
+		
+		Approach:
+			set approachI 0
+			ApproachLoop:
+				ucontrol within targetX targetY dropRange isNear
+				jump Drop equal isNear true
+				ucontrol approach targetX targetY dropRange
+
+				Drop:
+					ucontrol itemDrop target cap
+
+				sensor stock target @totalItems
+				jump DropDone greaterThanEq stock stockLevel
+				sensor carried mule @totalItems
+				jump Fillup equal carried 0
+				
+				op add approachI approachI 1
+				jump ApproachLoop lessThan approachI 200
+		
+			DropDone:
+				set l targetLink
+				print l
+				print " " 
+				print approachI
+				print "\n"
+			
+		NextBuilding:
+			op add l l 1
+			jump BuildingLoop lessThan l @links
+
+Finish:
+	printflush message1
+	jump Start always
+	
+#-------------------------------------------------
+SubRoutines:
+#-------------------------------------------------
 DropToSource:
 	ucontrol within sourceX sourceY dropRange isNear
 	jump SourceDrop equal isNear true
+	ucontrol boost true
 	ucontrol approach sourceX sourceY dropRange
 	jump DropToSource always
 
@@ -159,110 +238,11 @@ DropToSource:
 		ucontrol itemDrop source cap
 		sensor carried mule @totalItems
 		jump EndSourceDrop equal carried 0
+
 		ucontrol itemDrop @air cap
+
 	EndSourceDrop:
-		
-FeedTargets:
-	set l 0
-	set minStock targetCap
-	set target null
-	set needMend false
-	BuildingLoop:
-		getlink link l
-		
-		CheckHealth:
-			jump CheckMender equal powerSave false
-			sensor maxHealth link @maxHealth
-			sensor health link @health
-			jump CheckMender equal health maxHealth
-			set needMend true
-			set mendEnabled true
-
-		CheckMender:
-			sensor type link @type
-			jump NextBuilding notEqual type targetType
-
-		SavePower:
-			control enabled link mendEnabled
-		CheckMin:
-			# error control: skip stuck building
-			jump NextBuilding strictEqual l skipLink
-			sensor stock link @totalItems
-			jump NextBuilding greaterThanEq stock minStock	
-			set target link
-			set targetLink l
-			set minStock stock
-			
-		NextBuilding:
-			op add l l 1
-			jump BuildingLoop lessThan l @links
-
-		jump CheckTarget equal powerSave false
-		set mendEnabled needMend
-		set skipLink null
-
-	CheckTarget:
-		jump Finish equal target null
-
-	Fillup:
-		sensor carried mule @totalItems
-		jump GetPosition greaterThan carried 0
-	
-		sensor sourceDead source @dead
-		jump SourceDead equal sourceDead true
-	
-		sensor supply source material
-		jump NotEnough lessThan supply minSupply
-	
-		ApproachSource:
-			ucontrol approach sourceX sourceY dropRange
-			ucontrol within sourceX sourceY checkRange isNear
-			jump ApproachSource equal isNear false
-
-		PickupLoop:
-			ucontrol itemTake source material cap
-			sensor carried mule @totalItems
-			jump EndPickup greaterThanEq carried cap
-	
-			op add pickupI pickupI 1
-			jump PickupLoop lessThan pickupI 10
-		EndPickup:
-	
-	GetPosition:
-		sensor targetX target @x
-		sensor targetY target @y
-	
-	Approach:
-		set approachI 0
-		ApproachLoop:
-			ucontrol within targetX targetY dropRange isNear
-			jump Drop equal isNear true
-			ucontrol approach targetX targetY dropRange
-			Drop:
-				ucontrol itemDrop target cap
-	
-			sensor stock target @totalItems
-			jump DropDone greaterThanEq stock stockLevel
-			sensor carried mule @totalItems
-			jump Fillup equal carried 0
-			
-			op add approachI approachI 1
-			jump ApproachLoop lessThan approachI 200
-
-		#sometimes it would get stuck on the same building
-		#Perhaps the building was destroyed and rebuilt
-		#it needs a new target
-		set skipLink targetLink
-
-		DropDone:
-			print targetLink
-			print " " 
-			print approachI
-			print "\n"
-	
-Finish:
-	printflush message1
-	jump Start always
+		set @counter callback
 
 #-------------------------------------------------
 Errors:
@@ -283,4 +263,3 @@ NotEnough:
 NoUnits:
 	set error "No free units"
 	jump GetLinks always
-
