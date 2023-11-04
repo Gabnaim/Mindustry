@@ -68,8 +68,8 @@ Preflag:
 			SaveFlagged: 
 				set unit @unit
 				set arrayIndex flagged
-				op add arrayReturn @counter 1
-				jump ArraySet always
+				op add callback @counter 1
+				jump SetUnit always
 	
 			CountFlagged:
 				op add flagged flagged 1
@@ -121,8 +121,8 @@ Preflag:
 				ucontrol flag procId
 				set arrayIndex flagged
 				set unit @unit
-				op add arrayReturn @counter 1
-				jump ArraySet always
+				op add callback @counter 1
+				jump SetUnit always
 				op add flagged flagged 1
 
 		UnitTooFar:
@@ -168,8 +168,8 @@ Preflag:
 		set arrayIndex flagged 
 		set unit null
 		ClearLoop:
-			op add arrayReturn @counter 1
-			jump ArraySet always
+			op add callback @counter 1
+			jump SetUnit always
 			op add arrayIndex arrayIndex 1
 			jump ClearLoop lessThan arrayIndex maxUnits
 		ClearDone:
@@ -177,8 +177,8 @@ Preflag:
 	GetStartUnit:
 		jump Preflag equal maxUnits 0
 		set arrayIndex 0
-		op add arrayReturn @counter 1
-		jump ArrayGet always
+		op add callback @counter 1
+		jump GetUnit always
 		jump Preflag equal unit null
 		
 		ubind unit
@@ -202,8 +202,8 @@ Start:
 	jump Reset greaterThanEq releaseWait releaseWaitMs
 
 CheckUnit:
-	op add arrayReturn @counter 1
-	jump ArrayGet always
+	op add callback @counter 1
+	jump GetUnit always
 
 	jump Rebind equal unit null
 	sensor isDead unit @dead
@@ -219,8 +219,8 @@ Rebind:
 Reflag:
 	ubind unit
 	ucontrol flag procId
-	op add arrayReturn @counter 1
-	jump ArraySet always
+	op add callback @counter 1
+	jump SetUnit always
 
 DoStuff:	
 	ubind unit
@@ -270,8 +270,8 @@ Stop:
 	set status "STOPPING"
 	set arrayIndex 0
 	StopLoop:
-		op add arrayReturn @counter 1
-		jump ArrayGet always
+		op add callback @counter 1
+		jump GetUnit always
 		jump StopNext equal unit null
 		
 		ubind unit
@@ -288,8 +288,8 @@ Release:
 	jump Start lessThan releaseWait releaseWaitMs
 	set arrayIndex 0
 	ReleaseLoop:
-		op add arrayReturn @counter 1
-		jump ArrayGet always
+		op add callback @counter 1
+		jump GetUnit always
 		jump ReleaseNext equal unit null
 		
 		ubind unit
@@ -331,117 +331,117 @@ Error:
 	jump Error always
 
 #-------------------------------------------------
-Array:
+# Array:
 #-------------------------------------------------
-ArraySet:
+SetUnit:
 	op mul offset arrayIndex 2
 	op add @counter @counter offset
 
 	set unit0 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit1 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit2 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit3 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit4 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit5 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit6 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit7 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit8 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit9 unit
-	set @counter arrayReturn
+	set @counter callback
 
 	set unit10 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit11 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit12 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit13 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit14 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit15 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit16 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit17 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit18 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit19 unit
-	set @counter arrayReturn
+	set @counter callback
 
 	set unit20 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit21 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit22 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit23 unit
-	set @counter arrayReturn
+	set @counter callback
 
-ArrayGet:
+GetUnit:
 	op mul offset arrayIndex 2
 	op add @counter @counter offset
 
 	set unit unit0
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit1
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit2
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit3
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit4
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit5
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit6
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit7
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit8
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit9
-	set @counter arrayReturn
+	set @counter callback
 
 	set unit unit10
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit11
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit12
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit13
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit14
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit15
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit16
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit17
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit18
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit19
-	set @counter arrayReturn
+	set @counter callback
 
 	set unit unit20
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit21
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit22
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit23
-	set @counter arrayReturn
+	set @counter callback
 
 # This is only called when I want to see which units
 # are stored in the array. Remove for release code
@@ -450,8 +450,8 @@ DebugMove:
 	set status "DEBUGMOVE"
 	set arrayIndex 0
 	DebugLoop:
-		op add arrayReturn @counter 1
-		jump ArrayGet always
+		op add callback @counter 1
+		jump GetUnit always
 		jump DebugNext equal unit null
 		
 		ubind unit
