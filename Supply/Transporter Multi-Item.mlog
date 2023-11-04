@@ -1,0 +1,512 @@
+set name "Transporter"
+
+Initialize:
+	UserConfig:
+		set unitType @poly
+		set maxUnits 2
+		set material @lead
+		set takeAll true
+		set pickupHere true # if false, drop here
+		set coreTransport true # other side is core
+		# if coreTransport is false, coordinates of other target
+	    # are required
+		set otherEndX 0
+		set otherEndY 0
+
+		set maxDistance 100 # do not bind if further away
+							# set to 0 to skip
+
+		# How long to wait before releasing units
+		set releaseWaitSecs 60
+	
+	set error " "
+	set status "INITIALIZE"
+	
+	set arrayLength 12
+	jump TooMany greaterThan maxUnits arrayLength
+	op mul releaseWaitMs releaseWaitSecs 1000
+
+	CheckConfig:
+		jump CheckConfigEnd equal coreTransport true
+		jump NoEndCoords equal otherEndX 0
+		jump NoEndCoords equal otherEndY 0
+	CheckConfigEnd:
+
+	op mul procId @thisx @maph
+	op add procId procId @thisy
+	op floor procId procId
+
+	set dropRange 7
+
+	GetLinks:
+		set i 0
+		LinkLoop:
+			getlink link i
+			sensor type link @type
+			jump FoundSwitch equal type @switch
+			jump FoundContainer equal type @container
+			jump FoundContainer equal type @vault
+			jump FoundContainer equal type @core-shard
+			jump FoundContainer equal type @core-foundation
+			jump FoundContainer equal type @core-nucleus
+			jump NextLink always
+			FoundContainer:
+				set linkedStorage link
+				jump NextLink always
+			FoundSwitch:
+				set switch link
+			NextLink:
+				op add i i 1
+				jump LinkLoop lessThan i @links
+				
+				jump NoStorage equal linkedStorage null
+				jump NoSwitch equal switch null
+
+		EndGetLinks:
+
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		sensor cap @unit @itemCapacity
+		sensor range @unit @range 
+		op sub range range 1
+		op min dropRange dropRange range
+		op add checkRange dropRange 1
+		ulocate building core false 0 coreX coreY coreFound core
+
+	FindOtherEndPoint:
+		jump FindOtherEnd equal coreTransport false
+		set otherEnd core
+		jump SetEndPoints always
+
+		FindOtherEnd:
+			ucontrol within otherEndX otherEndY 1 isNear
+			jump AtOtherEnd equal isNear true
+			ucontrol move otherEndX otherEndY
+			jump FindOtherEnd always
+	
+		AtOtherEnd:
+			ulocate building storage false 0 endX endY endFound otherEnd
+			jump NoOtherEnd equal endFound false
+		
+	SetEndPoints:
+		jump PickupHere equal pickupHere true
+		DropHere:
+			set source otherEnd
+			set dropTarget linkedStorage
+			jump GetCoords always
+
+		PickupHere:
+			set source linkedStorage
+			set dropTarget otherEnd
+		
+	GetCoords:
+		sensor sourceX source @x
+		sensor sourceY source @y
+		sensor dropX dropTarget @x
+		sensor dropY dropTarget @y
+	
+#-------------------------------------------------
+Preflag:
+#-------------------------------------------------
+	set flagStart @time
+	Count:
+		set status "COUNT"
+		set flagged 0
+		set free 0
+		set units 0
+		set tooFar 0
+		
+		ubind unitType
+		jump NoUnits equal @unit null
+		set firstUnit @unit
+		jump CountProcess always
+		
+		CountLoop:
+			ubind unitType
+			jump FinishCount equal firstUnit @unit
+	
+		CountProcess:
+			sensor isDead @unit @dead
+			jump CountLoop equal isDead true
+			sensor flag @unit @flag
+			jump CountFree equal flag 0
+			jump NextCount notEqual flag procId
+			jump CountFlagged greaterThanEq flagged maxUnits
+
+			SaveFlagged: 
+				set unit @unit
+				set arrayIndex flagged
+				op add arrayReturn @counter 1
+				jump ArraySet always
+	
+			CountFlagged:
+				op add flagged flagged 1
+				jump NextCount always
+	
+			CountFree:
+				op add free free 1
+		
+		NextCount:
+			op add units units 1
+			jump CountLoop always
+	
+		FinishCount:
+			jump FlagDone equal flagged maxUnits
+			jump Unflag greaterThan flagged maxUnits
+	
+	Flag:
+		jump FlagDone equal free 0
+
+		set status "FLAG"
+		ubind unitType
+		set firstUnit @unit
+		jump FlagProcess always
+	
+		FlagLoop:
+			ubind unitType
+			jump FinishFlag equal firstUnit @unit
+	
+		FlagProcess:
+			sensor isDead @unit @dead
+			jump FlagLoop equal isDead true
+			sensor flag @unit @flag
+			jump NextFlag notEqual flag 0
+	
+		ProcessFree: 
+			sensor controlled @unit @controlled
+			jump CheckDistance equal controlled 0
+			jump NextFlag greaterThanEq controlled 2
+	
+			CheckDistance:
+				jump FlagUnit lessThanEq maxDistance 0
+				sensor x @unit @x
+				sensor y @unit @y
+				op sub xDiff @thisx x
+				op sub yDiff @thisy y
+				op len distance xDiff yDiff
+				jump UnitTooFar greaterThan distance maxDistance
+	
+			FlagUnit:
+				ucontrol flag procId
+				set arrayIndex flagged
+				set unit @unit
+				op add arrayReturn @counter 1
+				jump ArraySet always
+				op add flagged flagged 1
+
+		UnitTooFar:
+			op add tooFar tooFar 1
+		
+		NextFlag:
+			jump FlagLoop lessThan flagged maxUnits
+		
+		FinishFlag:
+			jump FlagDone equal flagged maxUnits
+			jump NoUnits equal flagged 0
+			jump FlagDone always
+	
+	Unflag:
+		set status "UNFLAG"		
+
+		ubind unitType
+		set firstUnit @unit
+		jump UnflagProcess always
+	
+		UnflagLoop:
+			ubind unitType
+			jump FlagDone equal firstUnit @unit
+	
+		UnflagProcess:
+			sensor isDead @unit @dead
+			jump UnflagLoop equal isDead true
+			sensor flag @unit @flag
+			jump NextUnflag notEqual flag procId
+	
+		UnflagUnit:
+			ucontrol flag 0
+			op sub flagged flagged 1
+		
+		NextUnflag:
+			jump UnflagLoop greaterThan flagged maxUnits
+		
+		FlagDone:
+			op sub flagTime @time flagStart
+
+	ClearArray:
+		jump ClearDone equal flagged maxUnits
+		set arrayIndex flagged 
+		set unit null
+		ClearLoop:
+			op add arrayReturn @counter 1
+			jump ArraySet always
+			op add arrayIndex arrayIndex 1
+			jump ClearLoop lessThan arrayIndex maxUnits
+		ClearDone:
+
+PreStart:
+	set status "IDLE"
+	set error " "
+	set arrayIndex 0
+	set releaseStart @time
+	sensor lastActive switch @enabled
+
+#--------------------------------------------------
+MainLoop:
+#--------------------------------------------------
+Start:
+	sensor active switch @enabled
+	jump ActiveChanged notEqual active lastActive
+	jump Reset equal active false
+	op sub releaseWait @time releaseStart
+	jump Reset greaterThanEq releaseWait releaseWaitMs
+
+CheckUnit:
+	op add arrayReturn @counter 1
+	jump ArrayGet always
+
+	jump Rebind equal unit null
+	sensor isDead unit @dead
+	jump Rebind equal isDead true
+	sensor flag unit @flag
+	jump Reflag equal flag 0
+	jump Rebind notEqual flag procId
+	jump DoStuff always
+
+Rebind:
+	jump Preflag always
+	
+Reflag:
+	ubind unit
+	ucontrol flag procId
+	op add arrayReturn @counter 1
+	jump ArraySet always
+
+DoStuff:	
+	ubind unit
+	set releaseStart @time
+	set status "TRANSPORTING"
+
+SelectAction:
+	sensor carried @unit @totalItems
+	sensor carriedItem @unit @firstItem
+	jump SelectItem equal carried 0
+	jump DropItems notEqual carriedItem material
+	jump DropItems equal carried cap
+
+SelectItem:
+	jump Pickup equal takeAll false
+	set maxStock 0
+	set i 0
+	set maxMaterial material
+	SelectLoop:
+		lookup item mat i
+		sensor stock source mat 
+		jump NextMat lessThanEq stock maxStock
+		set maxStock stock
+		set maxMaterial mat
+	NextMat:
+		op add i i 1
+		jump SelectLoop lessThan i 16
+	
+	jump Next equal maxStock 0
+	set material maxMaterial
+	jump Pickup always
+
+DumpItems:
+	ucontrol itemDrop @air carried
+	jump Pickup always
+	
+DropItems:
+	ucontrol boost true
+	ucontrol approach dropX dropY dropRange
+	ucontrol within dropX dropY checkRange isNearDrop
+	jump Next equal isNearDrop false
+
+	set dropI 0
+	DropLoop:
+		ucontrol itemDrop dropTarget carried
+		sensor carried @unit @totalItems
+		jump Pickup equal carried 0
+		op add dropI dropI 1
+		jump DropLoop lessThan dropI 100 
+
+	jump Next always
+
+Pickup:
+	ucontrol boost true
+	ucontrol approach sourceX sourceY dropRange
+	ucontrol within sourceX sourceY checkRange isNearPickup
+	jump Next equal isNearPickup false
+	
+	PickupItem:
+		set pickupI 0
+		PickupLoop:
+			ucontrol itemTake source material cap
+			sensor carried @unit @totalItems
+			jump DropItems equal carried cap
+
+			op add pickupI pickupI 1
+			jump PickupLoop lessThan pickupI 100 
+
+Next:
+	op add arrayIndex arrayIndex 1
+	jump Start lessThan arrayIndex flagged
+
+FinishGroup:
+	set arrayIndex 0
+	jump Start always
+
+#--------------------------------------------------
+WrapUp:
+#--------------------------------------------------
+
+ActiveChanged:
+	set lastActive active
+	jump Stop equal active false
+	set releaseStart @time
+	set arrayIndex 0
+	jump Start always
+
+Reset:
+	jump Start equal status "IDLE"
+	jump Release equal status "RELEASING"
+
+Stop:
+	set status "STOPPING"
+	set arrayIndex 0
+	StopLoop:
+		op add arrayReturn @counter 1
+		jump ArrayGet always
+		jump StopNext equal unit null
+		
+		ubind unit
+		ucontrol stop
+
+		StopNext:
+			op add arrayIndex arrayIndex 1
+			jump StopLoop lessThan arrayIndex maxUnits
+		set status "RELEASING"
+		set arrayIndex 0
+
+Release:
+	op sub releaseWait @time releaseStart
+	jump Start lessThan releaseWait releaseWaitMs
+	set arrayIndex 0
+	ReleaseLoop:
+		op add arrayReturn @counter 1
+		jump ArrayGet always
+		jump ReleaseNext equal unit null
+		
+		ubind unit
+		ucontrol flag 0
+
+		ReleaseNext:
+			op add arrayIndex arrayIndex 1
+			jump ReleaseLoop lessThan arrayIndex maxUnits
+		
+	FinishRelease:
+		set status "IDLE"
+		set error "Released idle units"
+		set releaseStart @time
+		set arrayIndex 0
+		jump Start always
+#-------------------------------------------------
+Errors:
+#-------------------------------------------------
+TooMany:
+	set error "Max 12 units supported"
+	jump Error always
+	
+NoSwitch:
+	set error "Need switch"
+	jump Error always
+
+NoStorage:
+	set error "Need linked storage"
+	jump Error always
+
+NoEndCoords:
+	set error "need end coords"
+	jump Error always
+
+NoOtherEnd:
+	set error "Other end not found"
+	jump Error always
+
+NoUnits:
+	jump TooFar greaterThan tooFar 0
+	set error "No free units"
+	jump Preflag always
+
+TooFar:
+	set error "Some units are too far"
+	jump Preflag always
+
+Error:
+	# idle here until user looks at error and restarts
+	jump Error always
+
+#-------------------------------------------------
+Array:
+#-------------------------------------------------
+ArraySet:
+	op mul offset arrayIndex 2
+	op add @counter @counter offset
+
+	set unit0 unit
+	set @counter arrayReturn
+	set unit1 unit
+	set @counter arrayReturn
+	set unit2 unit
+	set @counter arrayReturn
+	set unit3 unit
+	set @counter arrayReturn
+	set unit4 unit
+	set @counter arrayReturn
+	set unit5 unit
+	set @counter arrayReturn
+	set unit6 unit
+	set @counter arrayReturn
+	set unit7 unit
+	set @counter arrayReturn
+	set unit8 unit
+	set @counter arrayReturn
+	set unit9 unit
+	set @counter arrayReturn
+
+	set unit10 unit
+	set @counter arrayReturn
+	set unit11 unit
+	set @counter arrayReturn
+
+ArrayGet:
+	op mul offset arrayIndex 2
+	op add @counter @counter offset
+
+	set unit unit0
+	set @counter arrayReturn
+	set unit unit1
+	set @counter arrayReturn
+	set unit unit2
+	set @counter arrayReturn
+	set unit unit3
+	set @counter arrayReturn
+	set unit unit4
+	set @counter arrayReturn
+	set unit unit5
+	set @counter arrayReturn
+	set unit unit6
+	set @counter arrayReturn
+	set unit unit7
+	set @counter arrayReturn
+	set unit unit8
+	set @counter arrayReturn
+	set unit unit9
+	set @counter arrayReturn
+
+	set unit unit10
+	set @counter arrayReturn
+	set unit unit11
+	set @counter arrayReturn
+	
