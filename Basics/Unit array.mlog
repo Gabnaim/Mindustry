@@ -211,6 +211,7 @@ CheckUnit:
 	sensor flag unit @flag
 	jump Reflag equal flag 0
 	jump Rebind notEqual flag procId
+	jump Rebind lessThan flagged maxUnits
 	jump DoStuff always
 
 Rebind:
