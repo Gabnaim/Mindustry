@@ -1,0 +1,103 @@
+set name "AutoMiner"
+
+Initialize:
+UserConfig:
+	set unitType @poly
+
+	set miningRange 8.5
+	set dropRange 8.5
+	set status "INITIALIZE"
+
+	op add checkRange dropRange 1
+	
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		ulocate building core false 0 coreX coreY coreFound core
+		jump GetStartInfo equal coreFound false
+		sensor maxStock core @itemCapacity
+		sensor cap @unit @itemCapacity
+		sensor range @unit @range
+		op sub range range 1
+	
+	set status "IDLE"
+	set i 0
+
+	set ores 6
+	set ore0 @copper
+	set ore1 @lead
+	set ore2 @sand
+	set ore3 @coal
+	set ore4 @titanium
+	set ore5 @scrap
+	
+Start:
+	set i 0
+	ubind unitType
+	jump Start equal @unit null
+	sensor flag @unit @flag
+	jump Start notEqual flag 0
+	ucontrol boost true
+
+Mine:
+	set status "MINE"
+	sensor carried @unit @totalItems
+	sensor carriedItem @unit @firstItem
+
+	jump DropItems equal carried cap
+
+	CheckStock:
+		sensor copper core @copper
+		sensor lead core @lead
+		sensor coal core @coal
+	
+		SelectOre:
+			jump MinCopper lessThan copper lead
+			jump MinLead lessThan lead coal
+			jump MinCoal always
+			
+			MinCopper:
+				jump MinCoal lessThan coal copper
+				set minedOre @copper
+				jump EndCheckStock always
+			MinLead:
+				set minedOre @lead
+				jump EndCheckStock always
+			MinCoal:
+				set minedOre @coal
+		EndCheckStock:
+			ulocate ore core true minedOre oreX oreY oreFound oreMine
+	
+	FindOre:
+		jump MoveToOre equal carried 0
+		
+		jump DropItems notEqual carriedItem minedOre
+	
+	MoveToOre:
+		ucontrol within oreX oreY checkRange isNearMine
+		jump MineOre equal isNearMine true
+		ucontrol approach oreX oreY miningRange
+		jump Next always
+	MineOre:
+		ucontrol mine oreX oreY
+		jump Next always
+
+	DropItems:
+		ucontrol approach coreX coreY dropRange
+		ucontrol within coreX coreY checkDropRange isNearDrop
+		jump Next equal isNearDrop false
+	
+		DropLoop:
+			set dropI 0
+			LoopUntilEmpty:
+				ucontrol itemDrop core carried
+				sensor carried @unit @totalItems
+				jump Next equal carried 0
+				op add dropI dropI 1
+				jump LoopUntilEmpty lessThan dropI 100
+			
+	ulocate building core false 0 coreX coreY coreFound core 
+	jump Next always
+
+Next:
+	jump Start always

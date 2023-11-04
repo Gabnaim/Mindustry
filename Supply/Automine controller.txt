@@ -1,0 +1,99 @@
+Initialize:
+	UserConfig:
+		set mineScrap false
+
+	op add callback @counter 1
+	jump DataLayout always
+
+	GetLinks:
+		set cell cell1
+		jump GetLinks equal cell null
+
+	GetStartUnit:
+		ubind @mono
+		jump LocateCore notEqual @unit null
+		ubind @poly
+		jump LocateCore notEqual @unit null
+		ubind @mega
+		jump LocateCore notEqual @unit null
+		ubind @pulsar
+		jump LocateCore notEqual @unit null
+		ubind @quasar
+		jump GetStartUnit equal @unit null
+
+	LocateCore:
+		set scout @unit
+		ulocate building core false 0 coreX coreY coreFound core
+		jump Initialize equal coreFound false
+		write coreX cell CORE_X
+		write coreY cell CORE_Y
+	Constants:
+		set ores 5
+		op add ores ores mineScrap #skip scrap if not mined 
+
+	FindOres:
+		ucontrol move coreX coreY
+		ucontrol within coreX coreY 1 isNear
+		jump FindOres equal isNear false
+
+		set oreI 0
+		set loc ORE_LOC_START
+		FindOreLoop:
+			op add callback @counter 1
+			jump GetOre always
+			Locate:
+				ulocate ore core true ore oreX oreY oreFound oreMine
+				jump OreNotFound equal oreFound false
+				# there is a delay in locating
+				op equal xSame oreX lastOreX
+				op equal ySame oreY lastOreY
+				op and isSame xSame ySame
+				jump Locate equal isSame true
+			jump Write always
+			OreNotFound:
+				set oreX 0
+				set oreY 0
+			Write:
+				write oreX cell loc
+				op add loc loc 1
+				write oreY cell loc
+				op add loc loc 1
+			set lastOreX oreX
+			set lastOreY oreY
+		FindNextOre:
+			op add oreI oreI 1
+			jump FindOreLoop lessThan oreI ores 
+
+Start:
+	sensor coreDead core @dead
+	jump GetLinks equal coreDead true
+	jump GetLinks lessThan @links 1
+	jump Start always
+
+DataLayout:
+	set CORE_X 0
+	set CORE_Y 1
+	set ORE_LOC_START 2 #12 spots, x y for each ore
+	set ORE_LOC_LEN 12
+	set MINED_ORE 14
+	set @counter callback
+	
+GetOre:
+	op mul offset oreI 2
+	op add @counter @counter offset
+
+	set ore @copper
+	set @counter callback
+	set ore @lead
+	set @counter callback
+	set ore @sand
+	set @counter callback
+	set ore @coal
+	set @counter callback
+	set ore @titanium
+	set @counter callback
+	set ore @scrap
+	set @counter callback
+
+
+
