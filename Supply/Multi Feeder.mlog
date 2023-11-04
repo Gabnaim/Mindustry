@@ -1,4 +1,6 @@
-set name "Transporter"
+set name "Multi Feeder"
+# Supports multiple units and upto four materials, 
+# plus a return material
 
 Initialize:
 	UserConfig:
@@ -11,17 +13,18 @@ Initialize:
 		# How long to wait before releasing units
 		set releaseWaitSecs 60
 
-	set items 4
-	set material1 @copper
-	set stockLevel1 900
-	set material2 @lead
-	set stockLevel2 1000
-	set material3 @titanium
-	set stockLevel3 700
-	set material4 @silicon
-	set stockLevel4 900
-
-	set returnMaterial @surge-alloy
+		set items 4
+		set material1 @copper
+		set stockLevel1 750
+		set material2 @lead
+		set stockLevel2 1000
+		set material3 @titanium
+		set stockLevel3 500
+		set material4 @silicon
+		set stockLevel4 750
+	
+		set returnMaterial @surge-alloy
+	EndUserConfig:
 
 	set error " "
 	set status "INITIALIZE"
@@ -35,7 +38,7 @@ Initialize:
 	op floor procId procId
 
 	set dropRange 7
-	op add checkRange dropRange 1
+	op add checkRange dropRange 2
 
 	GetDropTarget:
 		set l 0
@@ -261,8 +264,11 @@ SelectMaterial:
 		# deliver it even if another stock is lower
 		jump Feed equal material carriedMat
 	
-		op div stockRate dropLevel stockLevel
-		jump NextMaterial greaterThanEq stockRate minRate
+		jump GetStockRate notEqual material lastMat
+		op add dropLevel dropLevel lastCarried
+		GetStockRate:
+			op div stockRate dropLevel stockLevel
+			jump NextMaterial greaterThanEq stockRate minRate
 
 		sensor sourceLevel source material
 		op sub available sourceLevel sourceMin
@@ -287,30 +293,33 @@ SelectMaterial:
 		op min amount needed available
 		op min amount amount cap
 
+	set lastMat material
+	set lastCarried amount
+
 	set error " "
 	set releaseStart @time
 
 Feed:
 SelectAction:
-	sensor carried @unit @totalItems
-	sensor carriedMat @unit @firstItem
+	sensor carried mule @totalItems
+	sensor carriedMat mule @firstItem
+
 	jump Pickup equal carried 0
 	jump DropToSource notEqual carriedMat material
-	jump DropItems equal carried cap
+	jump DropItems always
 
 DropToSource:
-	ucontrol within sourceX sourceY dropRange isNearSource
-	jump SourceDrop equal isNearSource true
 	ucontrol approach sourceX sourceY dropRange
-	jump Next always
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump Next equal isNearSource false
 
 	SourceDrop:
 		set releaseStart @time
 		set dropI 0
 		SourceDropLoop:
 			ucontrol itemDrop source cap
-			sensor carried @unit @totalItems
-			jump Next equal carried 0
+			sensor carried mule @totalItems
+			jump Pickup equal carried 0
 			op add dropI dropI 1
 			jump SourceDropLoop lessThan dropI 100
 
@@ -326,7 +335,7 @@ DropItems:
 	set dropI 0
 	DropLoop:
 		ucontrol itemDrop dropTarget carried
-		sensor carried @unit @totalItems
+		sensor carried mule @totalItems
 		jump Return equal carried 0
 		op add dropI dropI 1
 		jump DropLoop lessThan dropI 100
@@ -334,17 +343,17 @@ DropItems:
 	jump Next always
 
 Return:
-	jump Next strictEqual returnMaterial null
+	jump Pickup strictEqual returnMaterial null
 	sensor returnStock dropTarget returnMaterial
-	jump Next equal returnStock 0
+	jump Pickup lessThan returnStock cap
 
 	set pickupI 0
 	ReturnLoop:
 		ucontrol itemTake dropTarget returnMaterial cap
 		sensor carried mule @totalItems
-		jump Next equal carried cap
+		jump Pickup equal carried cap
 		sensor returnStock dropTarget returnMaterial
-		jump Next equal returnStock 0
+		jump Pickup equal returnStock 0
 
 		op add pickupI pickupI 1
 		jump ReturnLoop lessThan pickupI 100 
@@ -359,7 +368,7 @@ Pickup:
 	set pickupI 0
 	PickupLoop:
 		ucontrol itemTake source material cap
-		sensor carried @unit @totalItems
+		sensor carried mule @totalItems
 		jump DropItems equal carried cap
 
 		op add pickupI pickupI 1
