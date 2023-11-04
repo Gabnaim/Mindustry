@@ -9,7 +9,6 @@ Initialize:
 		set maxUnits 4	
 		set maxDistance 100 # do not bind if further away
 							# set to 0 to skip
-		set releaseWaitSecs 30
 
 	set status "INITIALIZE"
 	set error " "
@@ -19,7 +18,6 @@ Initialize:
 	op mul procId @thisx @maph
 	op add procId procId @thisy
 	op floor procId procId
-	op mul releaseWaitMs releaseWaitSecs 1000
 
 	set arrayLength 12
 	jump TooMany greaterThan maxUnits arrayLength
@@ -58,6 +56,7 @@ Initialize:
 	op mul stockLevel targetCap 0.9 
 	op floor stockLevel stockLevel
 	op add checkRange dropRange 1
+	set lastLinks @links
 		
 	GetStartInfo:
 		ubind unitType
@@ -208,29 +207,20 @@ Preflag:
 			op add arrayIndex arrayIndex 1
 			jump ClearLoop lessThan arrayIndex maxUnits
 		ClearDone:
-			
-	GetStartUnit:
-		jump Preflag equal maxUnits 0
-		set arrayIndex 0
-		op add arrayReturn @counter 1
-		jump ArrayGet always
-		jump Preflag equal unit null
-		
-		ubind unit
-		ucontrol approach @thisx @thisy 5
 
-	set status "IDLE"
+	op div targetPerUnit targetCount flagged
+	op ceil targetPerUnit targetPerUnit
+
+	set status "RUNNING"
 	set error " "
 	set arrayIndex 0
-	set releaseStart @time
-
+	
 #--------------------------------------------------
 MainLoop:
 #--------------------------------------------------
 
 Start:
-	op sub releaseWait @time releaseStart
-	jump Reset greaterThanEq releaseWait releaseWaitMs
+	jump GetLinks notEqual @links lastLinks
 
 CheckUnit:
 	op add arrayReturn @counter 1
@@ -242,6 +232,7 @@ CheckUnit:
 	sensor flag unit @flag
 	jump Reflag equal flag 0
 	jump Rebind notEqual flag procId
+	jump Rebind lessThan flagged maxUnits
 	jump DoStuff always
 
 Rebind:
@@ -256,10 +247,6 @@ Reflag:
 DoStuff:	
 	ubind unit
 	set mule unit
-	set releaseStart @time
-
-StartRun:
-	jump GetLinks lessThan @links neededLinks
 
 	sensor carriedMat mule @firstItem
 	jump FeedTargets equal material carriedMat
@@ -279,7 +266,9 @@ DropToSource:
 	EndSourceDrop:
 		
 FeedTargets:
-	set l 0
+	op mul minLink targetPerUnit arrayIndex
+	op add maxLink minLink targetPerUnit
+	set l minLink
 	set minStock targetCap
 	set target null
 	BuildingLoop:
@@ -348,54 +337,6 @@ FeedTargets:
 FinishGroup:
 	set arrayIndex 0
 	jump Start always
-
-#--------------------------------------------------
-WrapUp:
-#--------------------------------------------------
-
-Reset:
-	jump Start equal status "IDLE"
-	jump Release equal status "RELEASING"
-
-Stop:
-	set status "STOPPING"
-	set arrayIndex 0
-	StopLoop:
-		op add arrayReturn @counter 1
-		jump ArrayGet always
-		jump StopNext equal unit null
-		
-		ubind unit
-		ucontrol stop
-
-		StopNext:
-			op add arrayIndex arrayIndex 1
-			jump StopLoop lessThan arrayIndex maxUnits
-		set status "RELEASING"
-		set arrayIndex 0
-
-Release:
-	op sub releaseWait @time releaseStart
-	jump Start lessThan releaseWait releaseWaitMs
-	set arrayIndex 0
-	ReleaseLoop:
-		op add arrayReturn @counter 1
-		jump ArrayGet always
-		jump ReleaseNext equal unit null
-		
-		ubind unit
-		ucontrol flag 0
-		ucontrol move releaseX releaseY
-
-		ReleaseNext:
-			op add arrayIndex arrayIndex 1
-			jump ReleaseLoop lessThan arrayIndex maxUnits
-		
-	FinishRelease:
-		set status "IDLE"
-		set releaseStart @time
-		set arrayIndex 0
-		jump Start always
 
 #-------------------------------------------------
 Errors:
