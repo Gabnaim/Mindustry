@@ -3,22 +3,26 @@ set name "Transporter"
 Initialize:
 	UserConfig:
 		set unitType @poly
-		set maxUnits 2
-		set material @lead
-		set takeAll true
-		set pickupHere true # if false, drop here
-		set coreTransport true # other side is core
-		# if coreTransport is false, coordinates of other target
-	    # are required
-		set otherEndX 0
-		set otherEndY 0
-
+		set maxUnits 4		
+		set sourceMin 500
 		set maxDistance 100 # do not bind if further away
 							# set to 0 to skip
 
 		# How long to wait before releasing units
 		set releaseWaitSecs 60
-	
+
+	set items 4
+	set material1 @copper
+	set stockLevel1 900
+	set material2 @lead
+	set stockLevel2 1000
+	set material3 @titanium
+	set stockLevel3 700
+	set material4 @silicon
+	set stockLevel4 900
+
+	set returnMaterial @surge-alloy
+
 	set error " "
 	set status "INITIALIZE"
 	
@@ -26,85 +30,37 @@ Initialize:
 	jump TooMany greaterThan maxUnits arrayLength
 	op mul releaseWaitMs releaseWaitSecs 1000
 
-	CheckConfig:
-		jump CheckConfigEnd equal coreTransport true
-		jump NoEndCoords equal otherEndX 0
-		jump NoEndCoords equal otherEndY 0
-	CheckConfigEnd:
-
 	op mul procId @thisx @maph
 	op add procId procId @thisy
 	op floor procId procId
 
 	set dropRange 7
+	op add checkRange dropRange 1
 
-	GetLinks:
-		set i 0
+	GetDropTarget:
+		set l 0
 		LinkLoop:
-			getlink link i
+			getlink link l
 			sensor type link @type
-			jump FoundSwitch equal type @switch
-			jump FoundContainer equal type @container
-			jump FoundContainer equal type @vault
-			jump FoundContainer equal type @core-shard
-			jump FoundContainer equal type @core-foundation
-			jump FoundContainer equal type @core-nucleus
-			jump NextLink always
-			FoundContainer:
-				set linkedStorage link
-				jump NextLink always
-			FoundSwitch:
-				set switch link
-			NextLink:
-				op add i i 1
-				jump LinkLoop lessThan i @links
-				
-				jump NoStorage equal linkedStorage null
-				jump NoSwitch equal switch null
-
-		EndGetLinks:
+			sensor cap link @itemCapacity
+			jump Found greaterThanEq cap 10
+		NextLink:
+			op add l l 1
+			jump LinkLoop lessThan l @links
+			jump GetDropTarget always
+		Found:
+			set dropTarget link
+	
+	GetDropCoords:
+		sensor dropX dropTarget @x
+		sensor dropY dropTarget @y 
 
 	GetStartInfo:
 		ubind unitType
-		jump GetStartInfo equal @unit null
+		jump NoUnits equal @unit null
 		sensor cap @unit @itemCapacity
-		sensor range @unit @range 
-		op sub range range 1
-		op min dropRange dropRange range
-		op add checkRange dropRange 1
-		ulocate building core false 0 coreX coreY coreFound core
-
-	FindOtherEndPoint:
-		jump FindOtherEnd equal coreTransport false
-		set otherEnd core
-		jump SetEndPoints always
-
-		FindOtherEnd:
-			ucontrol within otherEndX otherEndY 1 isNear
-			jump AtOtherEnd equal isNear true
-			ucontrol move otherEndX otherEndY
-			jump FindOtherEnd always
-	
-		AtOtherEnd:
-			ulocate building storage false 0 endX endY endFound otherEnd
-			jump NoOtherEnd equal endFound false
-		
-	SetEndPoints:
-		jump PickupHere equal pickupHere true
-		DropHere:
-			set source otherEnd
-			set dropTarget linkedStorage
-			jump GetCoords always
-
-		PickupHere:
-			set source linkedStorage
-			set dropTarget otherEnd
-		
-	GetCoords:
-		sensor sourceX source @x
-		sensor sourceY source @y
-		sensor dropX dropTarget @x
-		sensor dropY dropTarget @y
+		ulocate building core false 0 sourceX sourceY sourceFound source
+		jump GetStartInfo equal sourceFound false
 	
 #-------------------------------------------------
 Preflag:
@@ -136,9 +92,9 @@ Preflag:
 
 			SaveFlagged: 
 				set unit @unit
-				set arrayIndex flagged
-				op add arrayReturn @counter 1
-				jump ArraySet always
+				set unitI flagged
+				op add callback @counter 1
+				jump SetUnit always
 	
 			CountFlagged:
 				op add flagged flagged 1
@@ -168,8 +124,6 @@ Preflag:
 			jump FinishFlag equal firstUnit @unit
 	
 		FlagProcess:
-			sensor isDead @unit @dead
-			jump FlagLoop equal isDead true
 			sensor flag @unit @flag
 			jump NextFlag notEqual flag 0
 	
@@ -189,10 +143,10 @@ Preflag:
 	
 			FlagUnit:
 				ucontrol flag procId
-				set arrayIndex flagged
+				set unitI flagged
 				set unit @unit
-				op add arrayReturn @counter 1
-				jump ArraySet always
+				op add callback @counter 1
+				jump SetUnit always
 				op add flagged flagged 1
 
 		UnitTooFar:
@@ -235,19 +189,19 @@ Preflag:
 
 	ClearArray:
 		jump ClearDone equal flagged maxUnits
-		set arrayIndex flagged 
+		set unitI flagged 
 		set unit null
 		ClearLoop:
-			op add arrayReturn @counter 1
-			jump ArraySet always
-			op add arrayIndex arrayIndex 1
-			jump ClearLoop lessThan arrayIndex maxUnits
+			op add callback @counter 1
+			jump SetUnit always
+			op add unitI unitI 1
+			jump ClearLoop lessThan unitI maxUnits
 		ClearDone:
 
 PreStart:
 	set status "IDLE"
 	set error " "
-	set arrayIndex 0
+	set unitI 0
 	set releaseStart @time
 	sensor lastActive switch @enabled
 
@@ -255,15 +209,12 @@ PreStart:
 MainLoop:
 #--------------------------------------------------
 Start:
-	sensor active switch @enabled
-	jump ActiveChanged notEqual active lastActive
-	jump Reset equal active false
 	op sub releaseWait @time releaseStart
 	jump Reset greaterThanEq releaseWait releaseWaitMs
 
 CheckUnit:
-	op add arrayReturn @counter 1
-	jump ArrayGet always
+	op add callback @counter 1
+	jump GetUnit always
 
 	jump Rebind equal unit null
 	sensor isDead unit @dead
@@ -271,6 +222,7 @@ CheckUnit:
 	sensor flag unit @flag
 	jump Reflag equal flag 0
 	jump Rebind notEqual flag procId
+	jump Rebind lessThan flagged maxUnits
 	jump DoStuff always
 
 Rebind:
@@ -279,46 +231,94 @@ Rebind:
 Reflag:
 	ubind unit
 	ucontrol flag procId
-	op add arrayReturn @counter 1
-	jump ArraySet always
+	op add callback @counter 1
+	jump SetUnit always
 
 DoStuff:	
 	ubind unit
+	ucontrol boost true
+	set mule unit
 	set releaseStart @time
 	set status "TRANSPORTING"
 
+SelectMaterial:
+	sensor carried mule @totalItems
+	sensor carriedMat mule @firstItem
+
+	set matI 0
+	set minIndex -1
+	set minRate 1
+	SelectLoop:
+		op add callback @counter 1
+		jump GetMaterial always 
+
+	CheckMaterial:
+		sensor dropLevel dropTarget material
+		op sub needed stockLevel dropLevel
+		jump NextMaterial lessThanEq needed 0
+
+		# if we are carrying material that is still needed,
+		# deliver it even if another stock is lower
+		jump Feed equal material carriedMat
+	
+		op div stockRate dropLevel stockLevel
+		jump NextMaterial greaterThanEq stockRate minRate
+
+		sensor sourceLevel source material
+		op sub available sourceLevel sourceMin
+		jump NextMaterial lessThanEq available 0
+	
+		set minIndex matI
+		set minRate stockRate
+
+	NextMaterial:
+		op add matI matI 1
+		jump SelectLoop lessThan matI items
+
+	jump Next equal minIndex -1
+
+	GetMinMaterial:
+		set matI minIndex
+		op add callback @counter 1
+		jump GetMaterial always 	
+
+		sensor dropLevel dropTarget material
+		op sub needed stockLevel dropLevel
+		op min amount needed available
+		op min amount amount cap
+
+	set error " "
+	set releaseStart @time
+
+Feed:
 SelectAction:
 	sensor carried @unit @totalItems
-	sensor carriedItem @unit @firstItem
-	jump SelectItem equal carried 0
-	jump DropItems notEqual carriedItem material
+	sensor carriedMat @unit @firstItem
+	jump Pickup equal carried 0
+	jump DropToSource notEqual carriedMat material
 	jump DropItems equal carried cap
 
-SelectItem:
-	jump Pickup equal takeAll false
-	set maxStock 0
-	set i 0
-	set maxMaterial material
-	SelectLoop:
-		lookup item mat i
-		sensor stock source mat 
-		jump NextMat lessThanEq stock maxStock
-		set maxStock stock
-		set maxMaterial mat
-	NextMat:
-		op add i i 1
-		jump SelectLoop lessThan i 16
-	
-	jump Next equal maxStock 0
-	set material maxMaterial
-	jump Pickup always
+DropToSource:
+	ucontrol within sourceX sourceY dropRange isNearSource
+	jump SourceDrop equal isNearSource true
+	ucontrol approach sourceX sourceY dropRange
+	jump Next always
 
-DumpItems:
-	ucontrol itemDrop @air carried
-	jump Pickup always
+	SourceDrop:
+		set releaseStart @time
+		set dropI 0
+		SourceDropLoop:
+			ucontrol itemDrop source cap
+			sensor carried @unit @totalItems
+			jump Next equal carried 0
+			op add dropI dropI 1
+			jump SourceDropLoop lessThan dropI 100
+
+		# drop to air if source is full
+		ucontrol itemDrop @air cap
+		jump Next always
 	
 DropItems:
-	ucontrol boost true
 	ucontrol approach dropX dropY dropRange
 	ucontrol within dropX dropY checkRange isNearDrop
 	jump Next equal isNearDrop false
@@ -327,46 +327,55 @@ DropItems:
 	DropLoop:
 		ucontrol itemDrop dropTarget carried
 		sensor carried @unit @totalItems
-		jump Pickup equal carried 0
+		jump Return equal carried 0
 		op add dropI dropI 1
-		jump DropLoop lessThan dropI 100 
+		jump DropLoop lessThan dropI 100
 
 	jump Next always
 
+Return:
+	jump Next strictEqual returnMaterial null
+	sensor returnStock dropTarget returnMaterial
+	jump Next equal returnStock 0
+
+	set pickupI 0
+	ReturnLoop:
+		ucontrol itemTake dropTarget returnMaterial cap
+		sensor carried mule @totalItems
+		jump Next equal carried cap
+		sensor returnStock dropTarget returnMaterial
+		jump Next equal returnStock 0
+
+		op add pickupI pickupI 1
+		jump ReturnLoop lessThan pickupI 100 
+
+	jump DropToSource always
+
 Pickup:
-	ucontrol boost true
 	ucontrol approach sourceX sourceY dropRange
 	ucontrol within sourceX sourceY checkRange isNearPickup
 	jump Next equal isNearPickup false
 	
-	PickupItem:
-		set pickupI 0
-		PickupLoop:
-			ucontrol itemTake source material cap
-			sensor carried @unit @totalItems
-			jump DropItems equal carried cap
+	set pickupI 0
+	PickupLoop:
+		ucontrol itemTake source material cap
+		sensor carried @unit @totalItems
+		jump DropItems equal carried cap
 
-			op add pickupI pickupI 1
-			jump PickupLoop lessThan pickupI 100 
+		op add pickupI pickupI 1
+		jump PickupLoop lessThan pickupI 100 
 
 Next:
-	op add arrayIndex arrayIndex 1
-	jump Start lessThan arrayIndex flagged
+	op add unitI unitI 1
+	jump Start lessThan unitI flagged
 
 FinishGroup:
-	set arrayIndex 0
+	set unitI 0
 	jump Start always
 
 #--------------------------------------------------
 WrapUp:
 #--------------------------------------------------
-
-ActiveChanged:
-	set lastActive active
-	jump Stop equal active false
-	set releaseStart @time
-	set arrayIndex 0
-	jump Start always
 
 Reset:
 	jump Start equal status "IDLE"
@@ -374,65 +383,57 @@ Reset:
 
 Stop:
 	set status "STOPPING"
-	set arrayIndex 0
+	set unitI 0
 	StopLoop:
-		op add arrayReturn @counter 1
-		jump ArrayGet always
+		op add callback @counter 1
+		jump GetUnit always
 		jump StopNext equal unit null
 		
 		ubind unit
 		ucontrol stop
 
 		StopNext:
-			op add arrayIndex arrayIndex 1
-			jump StopLoop lessThan arrayIndex maxUnits
+			op add unitI unitI 1
+			jump StopLoop lessThan unitI maxUnits
 		set status "RELEASING"
-		set arrayIndex 0
+		set unitI 0
 
 Release:
 	op sub releaseWait @time releaseStart
 	jump Start lessThan releaseWait releaseWaitMs
-	set arrayIndex 0
+	set unitI 0
 	ReleaseLoop:
-		op add arrayReturn @counter 1
-		jump ArrayGet always
+		op add callback @counter 1
+		jump GetUnit always
 		jump ReleaseNext equal unit null
 		
 		ubind unit
 		ucontrol flag 0
 
 		ReleaseNext:
-			op add arrayIndex arrayIndex 1
-			jump ReleaseLoop lessThan arrayIndex maxUnits
+			op add unitI unitI 1
+			jump ReleaseLoop lessThan unitI maxUnits
 		
 	FinishRelease:
 		set status "IDLE"
 		set error "Released idle units"
 		set releaseStart @time
-		set arrayIndex 0
+		set unitI 0
 		jump Start always
 #-------------------------------------------------
-Errors:
+# Errors:
 #-------------------------------------------------
 TooMany:
 	set error "Max 12 units supported"
-	jump Error always
-	
-NoSwitch:
-	set error "Need switch"
 	jump Error always
 
 NoStorage:
 	set error "Need linked storage"
 	jump Error always
 
-NoEndCoords:
-	set error "need end coords"
-	jump Error always
-
-NoOtherEnd:
-	set error "Other end not found"
-	jump Error always
+NotEnough:
+	set error "Not enough stock"
+	jump Start always
 
 NoUnits:
 	jump TooFar greaterThan tooFar 0
@@ -448,65 +449,85 @@ Error:
 	jump Error always
 
 #-------------------------------------------------
-Array:
+# Arrays:
 #-------------------------------------------------
-ArraySet:
-	op mul offset arrayIndex 2
+SetUnit:
+	op mul offset unitI 2
 	op add @counter @counter offset
 
 	set unit0 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit1 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit2 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit3 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit4 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit5 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit6 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit7 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit8 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit9 unit
-	set @counter arrayReturn
+	set @counter callback
 
 	set unit10 unit
-	set @counter arrayReturn
+	set @counter callback
 	set unit11 unit
-	set @counter arrayReturn
+	set @counter callback
 
-ArrayGet:
-	op mul offset arrayIndex 2
+GetUnit:
+	op mul offset unitI 2
 	op add @counter @counter offset
 
 	set unit unit0
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit1
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit2
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit3
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit4
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit5
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit6
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit7
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit8
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit9
-	set @counter arrayReturn
+	set @counter callback
 
 	set unit unit10
-	set @counter arrayReturn
+	set @counter callback
 	set unit unit11
-	set @counter arrayReturn
+	set @counter callback
+
+GetMaterial:
+	op mul offset matI 3
+	op add @counter @counter offset
+
+	set material material1
+	set stockLevel stockLevel1
+	set @counter callback
+
+	set material material2
+	set stockLevel stockLevel2
+	set @counter callback
+
+	set material material3
+	set stockLevel stockLevel3
+	set @counter callback
+
+	set material material4
+	set stockLevel stockLevel4
+	set @counter callback
 	
