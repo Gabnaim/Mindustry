@@ -2,8 +2,9 @@ Initialize:
 	set extraBits 4
 
 GetFlag:
-	op shl procId @thisx 9
+	op mul procId @thisx @maph
 	op add procId procId @thisy
+	op floor procId procId
 	op shl flag procId extraBits
 
 GetInfoMask:

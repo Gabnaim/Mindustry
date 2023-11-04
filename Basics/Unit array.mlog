@@ -22,8 +22,10 @@ Initialize:
 	op mul releaseWaitMs releaseWaitSecs 1000
 
 	GetId:
-		op shl procId @thisx 9
+		op mul procId @thisx @maph
 		op add procId procId @thisy
+		op floor procId procId
+
 
 	# this is for the test logic to make flagged visible
 	# Remove for release code

@@ -14,8 +14,10 @@ Initialize:
 
 	op min muleCount muleCount 2
 
-	op shl procId @thisx 9
+	op mul procId @thisx @maph
 	op add procId procId @thisy
+	op floor procId procId
+
 	op mul releaseWaitMs releaseWaitSecs 1000
 
 	op add nearX @thisx 1
