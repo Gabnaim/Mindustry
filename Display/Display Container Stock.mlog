@@ -199,14 +199,14 @@ CheckResize:
 		jump MoveToCol1 always
 
 	CheckColEnd:
-		jump MoveToCol1 equal greaterThanEq rowCount 8
+		jump MoveToCol1 greaterThanEq rowCount 8
 		ClearThisCol:
 			draw col bgColor
 			draw rect bgLeft 0 halfWidth curY
 			jump MoveToCol1 greaterThan rowCount 4
 
 		ClearCol2:
-			draw rect halfWidth 0 halfWidth fisplaySize
+			draw rect halfWidth 0 halfWidth displaySize
 
 		MoveToCol1:
 			set leftBounds margin
