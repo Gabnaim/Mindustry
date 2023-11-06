@@ -25,12 +25,10 @@ ProcessUnitType:
 	UnitLoop:
 		ubind unitType
 		jump FinishGroup equal firstUnit @unit
-		sensor isFirstDead firstUnit @dead
-		jump FinishGroup equal isFirstDead true
 	
 	CountProcess:
-		sensor dead @unit @dead
-		jump UnitLoop equal dead true
+		sensor isFirstDead firstUnit @dead
+		jump ProcessUnitType equal isFirstDead true
 		op add units units 1
 		jump UnitLoop always
 
