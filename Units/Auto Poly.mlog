@@ -1,0 +1,251 @@
+set name "Auto Poly"
+
+Initialize:
+	set unitType @poly
+	set withdrawDistance 23
+	set defendRadius 23
+	set miningRange 8.75
+	set dropRange 7
+	set status "INITIALIZE"
+
+	op add checkRange dropRange 1
+	op add coreRange 27.5 miningRange
+
+	op add callback @counter 1
+	jump DataLayout always
+	
+	GetStartInfo:
+		ubind unitType
+		jump GetStartInfo equal @unit null
+		ulocate building core false 0 coreX coreY coreFound core
+		jump GetStartInfo equal coreFound false
+		sensor maxStock core @itemCapacity
+		sensor cap @unit @itemCapacity
+		sensor range @unit @range
+		op sub range range 1
+			
+	# use a flip to alternate units between repair and rebuild
+	set flip false
+	
+	GetLinks:
+		set switch switch1
+		set cell cell1
+		jump GetLinks equal switch null
+		jump GetLinks equal cell null
+	
+	set status "IDLE"
+	sensor lastActive switch @enabled
+	set i 0
+	set totalUnits 0
+	set lastOreI -1
+	
+Start:
+	sensor active switch @enabled
+	jump ActiveChanged notEqual active lastActive
+	jump Start equal active false
+
+	set i 0
+	ubind unitType
+	jump Start equal @unit null
+	set firstUnit @unit
+	jump ProcessUnit always
+	
+MainLoop:
+CheckActive:
+	sensor active switch @enabled
+	jump ActiveChanged notEqual active lastActive
+	jump Start equal active false
+
+BindUnit:
+	ubind unitType
+	jump FinishGroup equal @unit firstUnit
+	sensor firstDead firstUnit @dead
+	jump FinishGroup equal firstDead true
+
+ProcessUnit:
+	sensor flag @unit @flag
+	jump BindUnit notEqual flag 0
+	ucontrol boost true
+	
+SelectAction:
+	op add checkEnemyReturn @counter 1
+	jump CheckEnemy always
+	
+	op add repairReturn @counter 1
+	jump CheckRepair always
+
+	# if the unit is still shooting but there is no
+	# enemy or damage, it has finished attacking or
+	# repairing. Withdraw to core and reset
+	sensor isShooting @unit @shooting
+	jump Withdraw equal isShooting true
+	jump Mine always
+
+CheckEnemy:
+	uradar enemy any any distance 0 1 enemy
+	jump CheckEnemyEnd equal enemy null
+
+	sensor enemyDead enemy @dead
+	jump StopShooting equal enemyDead true
+
+	set status "CHECKENEMY"
+
+	sensor enemyX enemy @x
+	sensor enemyY enemy @y
+	op sub enemyDistX coreX enemyX
+	op sub enemyDistY coreY enemyY
+	op len enemyDist enemyDistX enemyDistY
+
+	jump AttackUnit lessThanEq enemyDist defendRadius
+	jump Withdraw always
+
+	AttackUnit:
+		set status "DEFEND"
+		ucontrol approach enemyX enemyY range
+		ucontrol targetp enemy 1
+		jump Start always
+		
+	StopShooting:
+		ucontrol targetp null 0
+		set enemy null
+
+	CheckEnemyEnd:
+		set @counter checkEnemyReturn
+
+CheckRepair:
+	ulocate damaged core true 0 dmgX dmgY dmgFound damaged
+	jump CheckRepairEnd equal dmgFound false
+
+	set status "REPAIR"
+	ucontrol within dmgX dmgY range isNearDmg
+	jump DoRepair equal isNearDmg true
+	ucontrol approach dmgX dmgY range
+	jump Start always
+	
+	DoRepair:
+		# Use every second poly to rebuild
+		op notEqual flip flip true
+		jump RebuildGhost equal flip true
+	
+		ucontrol target dmgX dmgY dmgFound
+		jump Start always
+	
+	RebuildGhost:
+		# If we revert to standard AI (unbind), polies will rebuild
+		ucontrol unbind
+		jump Start always
+
+	CheckRepairEnd:
+		ucontrol target 0 0
+		set @counter repairReturn
+	
+Withdraw:
+	set status "WITHDRAW"
+	ucontrol target 0 0 0
+	ucontrol targetp null 0
+	ucontrol move coreX coreY 
+	jump Next always
+
+Mine:
+	set status "MINE"
+	
+	ReadMinedOre:
+		read oreI cell T2_ORE_ADDR
+
+		op add callback @counter 1
+		jump GetOre always
+		set minedOre ore
+
+		op mul offset oreI 3
+		op add loc ORE_LOC_START offset
+		read oreX cell loc
+		op add loc loc 1
+		read oreY cell loc
+		op add loc loc 1
+		read distance cell loc
+		op greaterThan farFromCore distance coreDistance
+	
+	MoveToOre:
+		ucontrol mine oreX oreY
+		ucontrol within oreX oreY checkRange isNearMine
+		jump MineOre equal isNearMine true
+		ucontrol approach oreX oreY miningRange
+		jump Next always
+	MineOre:
+		ucontrol mine oreX oreY
+
+Next:
+	op add i i 1
+	jump MainLoop always
+
+FinishGroup:
+	set totalUnits i
+	op div checkOffset totalUnits 2
+	op add checkDropRange dropRange checkOffset
+	jump Start always
+
+ActiveChanged:
+	set lastActive active
+	jump Stop equal active false
+	jump Start always
+
+Stop:
+	set status "STOP"
+	ubind unitType
+	jump FinishStop equal @unit null
+	set firstUnit @unit
+	jump StopProcess always
+
+	StopLoop:
+		ubind unitType
+		jump FinishStop equal firstUnit @unit
+	
+		StopProcess:
+			sensor flag @unit @flag
+			jump StopLoop notEqual flag 0
+
+		Dump:
+			ucontrol approach coreX coreY dropRange
+			ucontrol within coreX coreY dropRange isNearDrop
+			jump Dump equal isNearDrop false
+
+			ucontrol itemDrop core 999
+			sensor carried @unit @totalItems
+			jump StopUnit equal carried 0
+			ucontrol itemDrop @air 999
+
+		StopUnit:
+			ucontrol stop
+			ucontrol unbind
+			jump StopLoop always
+
+	FinishStop:
+		set status "IDLE"
+		jump Start always
+
+DataLayout:
+	set UNIT_TYPE_ADDR 0
+	set T1_ORE_ADDR 1
+	set T2_ORE_ADDR 2
+	set T3_ORE_ADDR 3
+	set ORE_LOC_START 4 # 6x3 spots: x, y and coreDistance
+						# for each ore
+	
+	set @counter callback
+	
+GetOre:
+	op mul offset oreI 2
+	op add @counter @counter offset
+
+	set ore @copper
+	set @counter callback
+	set ore @lead
+	set @counter callback
+	set ore @sand
+	set @counter callback
+	set ore @scrap
+	set @counter callback
+	set ore @coal
+	set @counter callback
+	set ore @titanium
+	set @counter callback
