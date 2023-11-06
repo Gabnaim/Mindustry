@@ -130,13 +130,16 @@ Initialize:
 		op sub halfRectH charHeight midOffset
 		op sub halfVertH halfRectH stroke
 
-ClearAll:
-	op add displayReturn @counter 1
-	jump GetDisplay always
-	draw clear 0 0 0
-	drawflush display
-	op add displayI displayI 1
-	jump ClearAll lessThan displayI displays
+	set displayI 0
+	ClearAll:
+		jump EndClearAll greaterThanEq displayI displays
+		op add displayReturn @counter 1
+		jump GetDisplay always
+		draw clear 0 0 0
+		drawflush display
+		op add displayI displayI 1
+		jump ClearAll lessThan displayI displays
+	EndClearAll:
 
 	set displayI 0
 	jump StartCycle always
@@ -241,7 +244,7 @@ StartRow:
 NextItem:
 	op add i i 1
 	jump Done greaterThanEq i maxI 
-	jump Done equal row rows
+	jump Start equal row rows
 
 NextLine:
 	op sub curY curY rowOffset
@@ -252,18 +255,9 @@ Skip:
 	jump StartRow lessThan i maxI 
 
 Done:
-	jump Clear2 equal row rows
 	ClearEmptyArea:
 		draw col bgColor
 		draw rect 0 0 displaySize clearY
-		drawflush display
-		
-	Clear2:
-		jump Start equal displays 1
-		set displayI 1
-		op add displayReturn @counter 1
-		jump GetDisplay always
-		draw clear 0 0 0
 		drawflush display
 		jump Start always
 
