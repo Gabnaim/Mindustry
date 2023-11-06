@@ -1,0 +1,28 @@
+Initialize:
+	set unitType @mono
+
+Start:
+	set i 0
+	ubind unitType
+	set firstUnit @unit
+	jump CountProcess always
+
+	CountLoop:
+		ubind unitType
+		jump FinishGroup equal firstUnit @unit
+	
+		CountProcess:
+			sensor isFirstDead firstUnit @dead
+			jump Start equal isFirstDead true
+
+		Next:
+			op add i i 1
+			jump CountLoop always
+
+FinishGroup:
+	print unitType
+	print ": "
+	print i
+	print "\n"
+	printflush message1
+	jump Start always
