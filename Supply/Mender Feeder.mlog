@@ -53,7 +53,7 @@ Initialize:
 		
 	GetStartInfo:
 		ubind unitType
-		jump GetStartInfo equal @unit null
+		jump Prestart equal @unit null
 		sensor cap @unit @itemCapacity
 		sensor speed @unit @speed
 		ulocate building core false 0 coreX coreY coreFound core
@@ -64,6 +64,7 @@ Initialize:
 		sensor sourceX source @x
 		sensor sourceY source @y
 
+Prestart:
 	set status "START"
 	set error " "
 	set mendEnabled true
@@ -203,6 +204,7 @@ FeedTargets:
 
 	CheckTarget:
 		jump Finish equal target null
+		jump Finish equal mule null
 
 	Fillup:
 		sensor carried mule @totalItems
@@ -282,5 +284,6 @@ NotEnough:
 
 NoUnits:
 	set error "No free units"
-	jump GetLinks always
+	set mule null
+	jump FeedTargets always
 
