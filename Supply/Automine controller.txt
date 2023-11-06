@@ -1,9 +1,16 @@
+set name "Automine Controller"
 Initialize:
-	UserConfig:
-		set mineScrap false
+	set mineScrap false
 
-	op add callback @counter 1
-	jump DataLayout always
+	Constants:
+		op add callback @counter 1
+		jump DataLayout always
+
+		set ores 6
+		set scrapI 3
+		set t1maxI 3
+		set t2maxI 4
+		set t3maxI 5
 
 	GetLinks:
 		set cell cell1
@@ -25,12 +32,9 @@ Initialize:
 		set scout @unit
 		ulocate building core false 0 coreX coreY coreFound core
 		jump Initialize equal coreFound false
-		write coreX cell CORE_X
-		write coreY cell CORE_Y
-	Constants:
-		set ores 5
-		op add ores ores mineScrap #skip scrap if not mined 
-
+		write coreX cell CORE_X_ADDR
+		write coreY cell CORE_Y_ADDR
+ 
 	FindOres:
 		ucontrol move coreX coreY
 		ucontrol within coreX coreY 1 isNear
@@ -49,7 +53,12 @@ Initialize:
 				op equal ySame oreY lastOreY
 				op and isSame xSame ySame
 				jump Locate equal isSame true
+
+			op sub xDist coreX oreX
+			op sub yDist coreY oreY
+			op len oreDist xDist yDist
 			jump Write always
+
 			OreNotFound:
 				set oreX 0
 				set oreY 0
@@ -58,24 +67,65 @@ Initialize:
 				op add loc loc 1
 				write oreY cell loc
 				op add loc loc 1
+				write oreDist cell loc
+				op add loc loc 1
 			set lastOreX oreX
 			set lastOreY oreY
+			
 		FindNextOre:
 			op add oreI oreI 1
 			jump FindOreLoop lessThan oreI ores 
 
+	set startTime @time
 Start:
 	sensor coreDead core @dead
 	jump GetLinks equal coreDead true
+	jump GetLinks equal core null #can happen if upgraded
 	jump GetLinks lessThan @links 1
+	op sub sinceStart @time startTime
+	jump GetLinks greaterThan sinceStart 60000
+
+FindMinStock:
+	set oreI 0
+	set minI -1
+	set minStock 99999
+	MinLoop:
+		jump CheckOre notEqual oreI scrapI
+		jump SetT1 equal mineScrap false
+
+		CheckOre:
+			op add callback @counter 1
+			jump GetOre always
+
+			sensor stock core ore
+			jump NextStock greaterThanEq stock minStock
+		SetMin:
+			set minStock stock
+			set minI oreI
+
+		jump NextStock lessThan oreI t1MaxI
+		jump NextStock equal oreI t3MaxI
+		jump SetT2 equal oreI t2maxI
+		SetT1:
+			write minI cell T1_ORE_ADDR
+			jump NextStock always
+		SetT2:
+			write minI cell T2_ORE_ADDR
+	NextStock:
+		op add oreI oreI 1
+		jump MinLoop lessThan oreI ores 
+
+	write minI cell T3_ORE_ADDR
 	jump Start always
 
 DataLayout:
-	set CORE_X 0
-	set CORE_Y 1
-	set ORE_LOC_START 2 #12 spots, x y for each ore
-	set ORE_LOC_LEN 12
-	set MINED_ORE 14
+	set UNIT_TYPE_ADDR 0
+	set T1_ORE_ADDR 1
+	set T2_ORE_ADDR 2
+	set T3_ORE_ADDR 3
+	set ORE_LOC_START 4 # 6x3 spots: x, y and coreDistance
+						# for each ore
+	
 	set @counter callback
 	
 GetOre:
@@ -88,12 +138,13 @@ GetOre:
 	set @counter callback
 	set ore @sand
 	set @counter callback
+	set ore @scrap
+	set @counter callback
 	set ore @coal
 	set @counter callback
 	set ore @titanium
 	set @counter callback
-	set ore @scrap
-	set @counter callback
+	
 
 
 

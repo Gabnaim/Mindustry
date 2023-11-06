@@ -1,7 +1,6 @@
 set name "AutoMiner"
 
 Initialize:
-UserConfig:
 	set unitType @poly
 
 	set miningRange 8.5
@@ -22,14 +21,6 @@ UserConfig:
 	
 	set status "IDLE"
 	set i 0
-
-	set ores 6
-	set ore0 @copper
-	set ore1 @lead
-	set ore2 @sand
-	set ore3 @coal
-	set ore4 @titanium
-	set ore5 @scrap
 	
 Start:
 	set i 0
@@ -101,3 +92,35 @@ Mine:
 
 Next:
 	jump Start always
+
+DataLayout:
+	set UNIT_TYPE_ADDR 0
+	set T1_ORE_ADDR 1
+	set T2_ORE_ADDR 2
+	set T3_ORE_ADDR 3
+	set ORE_LOC_START 4 # 6x3 spots: x, y and coreDistance
+						# for each ore
+	
+	set @counter callback
+	
+GetOre:
+	op mul offset oreI 2
+	op add @counter @counter offset
+
+	set ore @copper
+	set @counter callback
+	set ore @lead
+	set @counter callback
+	set ore @sand
+	set @counter callback
+	set ore @scrap
+	set @counter callback
+	set ore @coal
+	set @counter callback
+	set ore @titanium
+	set @counter callback
+	
+
+
+
+
