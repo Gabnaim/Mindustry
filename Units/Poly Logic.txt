@@ -56,8 +56,6 @@ BindUnit:
 	jump FinishGroup equal firstDead true
 
 ProcessUnit:
-	sensor isDead @unit @dead
-	jump BindUnit equal isDead true
 	sensor flag @unit @flag
 	jump BindUnit notEqual flag 0
 	ucontrol boost true
@@ -145,27 +143,34 @@ Mine:
 	set status "MINE"
 	sensor carried @unit @totalItems
 	jump DropItems equal carried cap
-	#jump FindOre greaterThan i 0
 
 	CheckStock:
 		sensor copper core @copper
 		sensor lead core @lead
 		sensor coal core @coal
+		sensor sand core @sand
 	
 		SelectOre:
 			jump MinCopper lessThan copper lead
 			jump MinLead lessThan lead coal
-			jump MinCoal always
+			jump MinCoal lessThan coal sand
+			set minedOre @sand
+			jump EndCheckStock always
 			
 			MinCopper:
 				jump MinCoal lessThan coal copper
+				jump MinSand lessThan sand copper
 				set minedOre @copper
 				jump EndCheckStock always
 			MinLead:
+				jump MinSand lessThan sand lead
 				set minedOre @lead
 				jump EndCheckStock always
 			MinCoal:
-				set minedOre @coal
+				set minedOre @coal	
+				jump EndCheckStock always		
+			MinSand:
+				set minedOre @sand
 		EndCheckStock:
 			ulocate ore core true minedOre oreX oreY oreFound oreMine
 	
@@ -175,6 +180,7 @@ Mine:
 		jump DropItems notEqual carriedItem minedOre
 	
 	MoveToOre:
+		ucontrol mine oreX oreY
 		ucontrol within oreX oreY checkRange isNearMine
 		jump MineOre equal isNearMine true
 		ucontrol approach oreX oreY miningRange
