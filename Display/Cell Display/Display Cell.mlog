@@ -235,6 +235,8 @@ Skip:
 	jump StartRow lessThan i cap 
 
 Done:
+	jump ClearEmptyArea greaterThan row 0
+	set clearY displaySize
 	ClearEmptyArea:
 		draw col bgColor
 		draw rect leftBounds 0 colOffset clearY
