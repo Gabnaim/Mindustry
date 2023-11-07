@@ -265,13 +265,13 @@ Finish:
 Errors:
 #-------------------------------------------------
 SourceDead:
-	jump SourceDeadError equal supplyFromCore false
+	jump GetLinks equal supplyFromCore false
 	ulocate building core false 0 coreX coreY coreFound core 
 	jump SourceDeadError equal coreFound false
 	set sourceX coreX
 	set sourceY coreY
 	set source core
-	jump Start always
+	jump Start always	
 
 	SourceDeadError:
 		set error "Source not found"
