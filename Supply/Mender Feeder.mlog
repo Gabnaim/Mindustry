@@ -5,6 +5,7 @@ Initialize:
 	set supplyFromCore true
 	set minSupply 500
 	set powerSave true
+	set feedMenders true
 
 	set material @phase-fabric
 	set targetType @mend-projector
@@ -13,11 +14,16 @@ Initialize:
 	set status "INITIALIZE"
 
 	set dropRange 7
+	set baseRange 10.62
+	op add boostedRange baseRange 6.25
 
 	op mul procId @thisx @maph
 	op add procId procId @thisy
 	op floor procId procId
 	
+	op or hasFunction powerSave feedMenders
+	jump NoFunction equal hasFunction false
+
 	set neededLinks 1
 	jump GetLinks equal supplyFromCore true
 	set neededLinks 2
@@ -51,9 +57,9 @@ Initialize:
 	op sub stockLevel targetCap 1
 	op add checkRange dropRange 1
 		
-	GetStartInfo:
+	GetStartUnit:
 		ubind unitType
-		jump Prestart equal @unit null
+		jump NoUnits equal @unit null
 		sensor cap @unit @itemCapacity
 		sensor speed @unit @speed
 		ulocate building core false 0 coreX coreY coreFound core
@@ -144,11 +150,13 @@ FindMule:
 		set error " "
 
 StartRun:
+	set status "RUNNING"
 	jump GetLinks lessThan @links neededLinks
+	jump ProcessBuildings equal feedMenders false
 
 	sensor carriedMat mule @firstItem
-	jump FeedTargets equal material carriedMat
-	jump FeedTargets equal material null
+	jump ProcessBuildings equal material carriedMat
+	jump ProcessBuildings equal material null
 
 DropToSource:
 	ucontrol within sourceX sourceY dropRange isNear
@@ -163,32 +171,23 @@ DropToSource:
 		ucontrol itemDrop @air cap
 	EndSourceDrop:
 		
-FeedTargets:
+ProcessBuildings:
 	set l 0
 	set minStock targetCap
 	set target null
-	set needMend false
 	BuildingLoop:
 		getlink link l
-		
-		CheckHealth:
-			jump CheckMender equal powerSave false
-			sensor maxHealth link @maxHealth
-			sensor health link @health
-			jump CheckMender equal health maxHealth
-			set needMend true
-			set mendEnabled true
+		sensor type link @type
+		jump NextBuilding notEqual type targetType
+		sensor stock link @totalItems
 
-		CheckMender:
-			sensor type link @type
-			jump NextBuilding notEqual type targetType
+		FindDamage:
+			ulocate damaged core true @copper dmgX dmgY dmgFound damaged
+			control enabled link dmgFound
 
-		SavePower:
-			control enabled link mendEnabled
 		CheckMin:
 			# error control: skip stuck building
 			jump NextBuilding strictEqual l skipLink
-			sensor stock link @totalItems
 			jump NextBuilding greaterThanEq stock minStock	
 			set target link
 			set targetLink l
@@ -198,17 +197,11 @@ FeedTargets:
 			op add l l 1
 			jump BuildingLoop lessThan l @links
 
-		jump CheckTarget equal powerSave false
-		set mendEnabled needMend
-		set skipLink null
-
-	CheckTarget:
-		jump Finish equal target null
-		jump Finish equal mule null
+		set skipLink null	
 
 	Fillup:
 		sensor carried mule @totalItems
-		jump GetPosition greaterThan carried 0
+		jump EndPickup greaterThan carried stockLevel
 	
 		sensor sourceDead source @dead
 		jump SourceDead equal sourceDead true
@@ -229,6 +222,8 @@ FeedTargets:
 			op add pickupI pickupI 1
 			jump PickupLoop lessThan pickupI 10
 		EndPickup:
+
+		jump Finish equal target null
 	
 	GetPosition:
 		sensor targetX target @x
@@ -270,11 +265,15 @@ Finish:
 Errors:
 #-------------------------------------------------
 SourceDead:
-	jump SetSourceDeadError equal supplyFromCore false
-	ulocate building core false 0 sourceX sourceY coreFound source 
-	jump Start equal coreFound true
+	jump SourceDeadError equal supplyFromCore false
+	ulocate building core false 0 coreX coreY coreFound core 
+	jump SourceDeadError equal coreFound false
+	set sourceX coreX
+	set sourceY coreY
+	set source core
+	jump Start always
 
-	SetSourceDeadError:
+	SourceDeadError:
 		set error "Source not found"
 		jump Start always
 
@@ -285,5 +284,13 @@ NotEnough:
 NoUnits:
 	set error "No free units"
 	set mule null
-	jump FeedTargets always
+	jump GetStartUnit always
+
+NoFunction:
+	set error "Both powerSave and feedMenders are off"
+	jump Error always
+
+Error:
+	set status "ERROR"
+	jump Error always
 
