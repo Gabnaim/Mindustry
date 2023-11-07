@@ -1,7 +1,8 @@
 Initialize:
 	UserConfig:
 		set unitType @poly
-		set useMemory false
+		set readTypeFromCell false
+		set UNIT_TYPE_ADDR 0
 		set skipEmpty false
 		set rows 16
 		set columns 1
@@ -32,33 +33,17 @@ Initialize:
 
 			set displays displayI
 			jump GetLinks equal displays 0
-			jump EndGetLinks equal useMemory false
+			jump EndGetLinks equal readTypeFromCell false
 			jump GetLinks equal memory null
 		EndGetLinks:	
 			
 	Constants:
 		set displaySize 176
 		set maxDisplays 4
-
-	DataLayout:
-		set UNIT_TYPE_ADDR 0
-		set TOTAL_ADDR 1
-		set FIRST_UNIT_ADDR 2
-		#24 bits flag 
-		# 9 bits number of items carried
-		# 4 bits item carried
-		# 8 bits health
-		# 5 bits payloadCount
-		# 1 bit payloadClass (unit/building)
-		# 8 bits payloadType
-		set MASK9 511
-		set MASK8 255
-		set MASK4 15
 		
 	SetColors:
 		set bgColor %000000
 		set fontColor %ffff99
-		set indexColor %00ffff
 		set imgColor %ffffff
 		set altBgColor %303030
 
@@ -98,6 +83,7 @@ Initialize:
 
 		op idiv stroke charWidth 6
 		op add stroke stroke 1
+		op add pctDotSize stroke 1
 
 	CalcArea:
 		op sub topBounds displaySize halfRowSp
@@ -110,18 +96,18 @@ Initialize:
 		op mul flagWidth charOffset flagChars
 		op add flagX leftBounds flagWidth
 
-		op add imageLeft flagX colSpacing
-		op add imageX imageLeft imagePos
-		op add imageRight imageLeft imageSize
+		op add imageOffset colSpacing imagePos
+		op add imageX flagX imageOffset
 
 		op mul carriedWidth charOffset 2
-		op add carriedLeft imageRight colSpacing
-		op add carriedX carriedLeft carriedWidth
+		op add carriedOffset imagePos colSpacing
+		op add carriedOffset carriedOffset carriedWidth
 
-		op mul healthWidth charOffset 4
-		op add healthX carriedX colSpacing
-		op add healthX healthX healthWidth
-		op add pctDotSize stroke 1
+		op add carriedX imageX carriedOffset
+
+		op mul healthWidth charOffset 3
+		op add healthOffset healthWidth colSpacing
+		op add healthX carriedX healthOffset
 
 		set clearX 0
 	
@@ -153,7 +139,7 @@ Start:
 
 	jump GetLinks notEqual @links lastLinks
 	
-	jump StartUnitBind equal useMemory false
+	jump StartUnitBind equal readTypeFromCell false
 	read unitTypeId memory UNIT_TYPE_ADDR
 	lookup unit unitType unitTypeId
 	
@@ -177,8 +163,20 @@ StartDisplay:
 	op add displayReturn @counter 1
 	jump GetDisplay always
 
+StartCol1:
 	draw stroke stroke
-	op sub curY topBounds charHeight	
+	set col 0
+
+StartColumn:
+	op sub curY topBounds charHeight
+	op sub clearY curY halfRowSp
+
+	op sub clearX leftBounds margin
+	op add flagX leftBounds flagWidth
+	op add imageX flagX imageOffset
+	op add carriedX imageX carriedOffset
+	op add healthX carriedX healthOffset
+
 	set row 0
 
 StartRow:
@@ -240,12 +238,15 @@ StartRow:
 		jump PrintDigitsBackwards always
 
 	PrintHealth:
-		jump PrintFlag equal healthPct 0
+		jump PrintFlag equal health maxHealth
 
 		DrawPercent:
 			op sub curX healthX charOffset
 			op add rightX curX rightOffset
-			draw line curX curY rightX topY
+			op add pctBottY curY 1
+			op add pctTopY curY charHeight
+			op add pctBottX curX stroke
+			draw line pctBottX pctBottY rightX pctTopY
 			draw rect curX topY pctDotSize pctDotSize 
 			draw rect rightX curY pctDotSize pctDotSize 
 
@@ -268,11 +269,19 @@ StartRow:
 NextItem:
 	op add units units 1
 	jump Skip equal dataItems maxDataItems
-	jump StartDisplay equal row rows
+	jump ChangeCol equal row rows
 
 NextLine:
 	op sub curY curY rowOffset
+	drawflush display
 	jump StartRow always
+
+ChangeCol:
+	op add col col 1
+	drawflush display
+	jump StartDisplay greaterThanEq col columns
+	op add leftBounds leftBounds colOffset
+	jump StartColumn always
 
 Skip:
 	op add units units 1
@@ -284,9 +293,26 @@ Done:
 	set clearY displaySize
 	ClearEmptyArea:
 		draw col bgColor
-		draw rect 0 0 displaySize clearY
+		draw rect leftBounds 0 colOffset clearY
 		drawflush display
-		jump Start always
+	ClearCols:
+		op add col col 1
+		jump ClearDisplays equal col columns
+		op add clearX clearX colOffset
+		op sub clearWidth displaySize clearX
+		draw rect clearX 0 clearWidth displaySize
+		drawflush display
+
+	ClearDisplays:
+		op add displayI displayI 1
+		jump Start greaterThanEq displayI displays
+		op add displayReturn @counter 1
+		jump GetDisplay always
+		draw clear 0 0 0
+		drawflush display	
+		jump ClearDisplays always
+	jump Start always
+
 
 #---------------------------------------------
 # Draw Numbers
