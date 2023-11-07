@@ -244,9 +244,9 @@ Done:
 	ClearCols:
 		op add col col 1
 		jump ClearDisplays equal col columns
-		op add clearX leftBounds colOffset
-		op sub clearX leftBounds margin
-		draw rect clearX displaySize displaySize
+		op add clearX clearX colOffset
+		op sub clearWidth displaySize clearX
+		draw rect clearX 0 clearWidth displaySize
 		drawflush display
 
 	ClearDisplays:
