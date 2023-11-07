@@ -1,14 +1,16 @@
 Initialize:
 	UserConfig:
-		set unitType @mega
+		set unitType @poly
 		set useMemory false
-		set rows 8
+		set skipEmpty false
+		set rows 16
 		set columns 1
 		set flagChars 6
 		set charsPerRow 20
 
 	GetLinks:
 		set l 0
+		set lastLinks @links
 		set displayI 0
 		LinkLoop:
 			getlink link l
@@ -36,7 +38,7 @@ Initialize:
 			
 	Constants:
 		set displaySize 176
-		set maxDisplays 2
+		set maxDisplays 4
 
 	DataLayout:
 		set UNIT_TYPE_ADDR 0
@@ -148,6 +150,8 @@ Initialize:
 Start:
 	op sub cycleTime @time cycleStart
 	set cycleStart @time
+
+	jump GetLinks notEqual @links lastLinks
 	
 	jump StartUnitBind equal useMemory false
 	read unitTypeId memory UNIT_TYPE_ADDR
@@ -157,7 +161,6 @@ StartUnitBind:
 	set units 0
 	set dataItems 0
 	jump BindFirst notEqual unitType lastUnitType
-	set lastUnitType unitType
 	jump StartDisplay notEqual firstUnit null 
 
 	BindFirst:
@@ -165,6 +168,7 @@ StartUnitBind:
 		jump Start equal @unit null
 		set firstUnit @unit
 		sensor maxHealth @unit @maxHealth
+		set lastUnitType unitType
 
 StartDisplay:
 	op add temp dataItems 1
@@ -195,12 +199,15 @@ StartRow:
 
 	ReadHealth:
 		sensor health @unit @health
-		jump ProcessData equal health maxHealth
+		jump CheckSkip equal health maxHealth
 		op mul health health 100
 		op idiv healthPct health maxHealth
 	
-	ProcessData:
-		jump Skip equal data 0
+	CheckSkip:
+		jump UseThis notEqual data 0
+		jump Skip equal skipEmpty true
+
+	UseThis:
 		op add dataItems dataItems 1
 
 	CalcRowPositions:	
@@ -219,6 +226,7 @@ StartRow:
 	draw col fontColor
 
 	PrintCarried:
+		sensor carried @unit @totalItems
 		jump PrintHealth equal carried 0
 		sensor material @unit @firstItem
 		draw col imgColor
@@ -232,7 +240,7 @@ StartRow:
 		jump PrintDigitsBackwards always
 
 	PrintHealth:
-		jump PrintFlag equal healthPct 100
+		jump PrintFlag equal healthPct 0
 
 		DrawPercent:
 			op sub curX healthX charOffset
@@ -259,7 +267,8 @@ StartRow:
 	
 NextItem:
 	op add units units 1
-	jump Start equal row rows
+	jump Skip equal dataItems maxDataItems
+	jump StartDisplay equal row rows
 
 NextLine:
 	op sub curY curY rowOffset
@@ -387,6 +396,10 @@ SetDisplay:
 	set @counter displayReturn
 	set value1 display
 	set @counter displayReturn
+	set value2 display
+	set @counter displayReturn
+	set value3 display
+	set @counter displayReturn
 	
 GetDisplay:
 	op mul offset displayI 2
@@ -396,4 +409,7 @@ GetDisplay:
 	set @counter displayReturn
 	set display value1
 	set @counter displayReturn
-	
+	set display value2
+	set @counter displayReturn
+	set display value3
+	set @counter displayReturn
