@@ -255,6 +255,8 @@ Skip:
 	jump StartRow lessThan i maxI 
 
 Done:
+	jump ClearEmptyArea greaterThan row 0
+	set clearY displaySize
 	ClearEmptyArea:
 		draw col bgColor
 		draw rect 0 0 displaySize clearY
