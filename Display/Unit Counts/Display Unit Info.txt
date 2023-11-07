@@ -1,5 +1,7 @@
 Initialize:
 	UserConfig:
+		set unitType @mega
+		set useMemory false
 		set rows 8
 		set columns 1
 		set flagChars 6
@@ -25,11 +27,13 @@ Initialize:
 			NextLink:
 				op add l l 1
 				jump LinkLoop lessThan l @links
-	
-			jump GetLinks equal memory null
+
 			set displays displayI
 			jump GetLinks equal displays 0
-
+			jump EndGetLinks equal useMemory false
+			jump GetLinks equal memory null
+		EndGetLinks:	
+			
 	Constants:
 		set displaySize 176
 		set maxDisplays 2
@@ -141,25 +145,26 @@ Initialize:
 		jump ClearAll lessThan displayI displays
 	EndClearAll:
 
-	set displayI 0
-	jump StartCycle always
-
 Start:
-	jump StartCycle greaterThanEq i maxI
-	jump StartDisplay lessThan dataItems maxDataItems
-
-StartCycle:
 	op sub cycleTime @time cycleStart
 	set cycleStart @time
-
+	
+	jump StartUnitBind equal useMemory false
 	read unitTypeId memory UNIT_TYPE_ADDR
 	lookup unit unitType unitTypeId
-
-	read total memory TOTAL_ADDR
-	op add maxI total FIRST_UNIT_ADDR
-	set i FIRST_UNIT_ADDR
+	
+StartUnitBind:
+	set units 0
 	set dataItems 0
-	set displayI 0
+	jump BindFirst notEqual unitType lastUnitType
+	set lastUnitType unitType
+	jump StartDisplay notEqual firstUnit null 
+
+	BindFirst:
+		ubind unitType
+		jump Start equal @unit null
+		set firstUnit @unit
+		sensor maxHealth @unit @maxHealth
 
 StartDisplay:
 	op add temp dataItems 1
@@ -173,8 +178,28 @@ StartDisplay:
 	set row 0
 
 StartRow:
-	GetValue:
-		read data memory i
+	BindUnit:
+		jump ProcessUnit equal units 0
+		ubind unitType
+		jump Done equal firstUnit @unit
+
+	ProcessUnit:
+		sensor firstDead firstUnit @dead
+		jump Start equal firstDead true
+
+	ReadInfo:
+		sensor flag @unit @flag
+		set data flag
+		sensor carried @unit @totalItems
+		op add data data carried
+
+	ReadHealth:
+		sensor health @unit @health
+		jump ProcessData equal health maxHealth
+		op mul health health 100
+		op idiv healthPct health maxHealth
+	
+	ProcessData:
 		jump Skip equal data 0
 		op add dataItems dataItems 1
 
@@ -194,14 +219,8 @@ StartRow:
 	draw col fontColor
 
 	PrintCarried:
-		op shr carried data 26
-		op and carried carried MASK9
 		jump PrintHealth equal carried 0
-
-		op shr carriedItem data 22
-		op and carriedItem carriedItem MASK4
-		lookup item material carriedItem
-
+		sensor material @unit @firstItem
 		draw col imgColor
 		draw image imageX midY material imageSize
 
@@ -213,23 +232,20 @@ StartRow:
 		jump PrintDigitsBackwards always
 
 	PrintHealth:
-		op shr health data 14
-		op and healthPct health MASK8
-		jump PrintFlag equal healthPct 0
+		jump PrintFlag equal healthPct 100
 
-	DrawPercent:
-		op sub curX healthX charOffset
-		op add rightX curX rightOffset
-		draw line curX curY rightX topY
-		draw rect curX topY pctDotSize pctDotSize 
-		draw rect rightX curY pctDotSize pctDotSize 
+		DrawPercent:
+			op sub curX healthX charOffset
+			op add rightX curX rightOffset
+			draw line curX curY rightX topY
+			draw rect curX topY pctDotSize pctDotSize 
+			draw rect rightX curY pctDotSize pctDotSize 
 
 		set printValue healthPct
 		op add callback @counter 1
 		jump PrintDigitsBackwards always
 
 	PrintFlag:
-		op shr flag data 35
 		jump FinishLine equal flag 0
 		draw col fontColor
 		set curX flagX
@@ -242,8 +258,7 @@ StartRow:
 		op add row row 1
 	
 NextItem:
-	op add i i 1
-	jump Done greaterThanEq i maxI 
+	op add units units 1
 	jump Start equal row rows
 
 NextLine:
@@ -251,10 +266,11 @@ NextLine:
 	jump StartRow always
 
 Skip:
-	op add i i 1
-	jump StartRow lessThan i maxI 
+	op add units units 1
+	jump StartRow always
 
 Done:
+	set total units
 	jump ClearEmptyArea greaterThan row 0
 	set clearY displaySize
 	ClearEmptyArea:
