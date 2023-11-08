@@ -1,0 +1,185 @@
+set name "Display One Unit"
+
+Initialize:
+	UserConfig:
+		set UNIT_TYPE_ADDR 0
+		set TOTAL_ADDR 1
+
+	GetLinks:
+		set l 0
+		set lastLinks @links
+		LinkLoop:
+			getlink link l
+			sensor type link @type
+			jump FoundCell equal type @memory-cell
+			jump FoundDisplay equal type @logic-display
+			jump NextLink always
+			FoundDisplay:
+				set display link
+				jump NextLink always
+			FoundCell:
+				set memory link
+			NextLink:
+				op add l l 1
+				jump LinkLoop lessThan l @links
+
+			jump GetLinks equal display null
+			jump GetLinks equal memory null
+		EndGetLinks:	
+			
+	Constants:
+		set displaySize 80
+		
+	SetColors:
+		set bgColor %000000
+		set fontColor %ffff99
+		set imgColor %ffffff
+		
+	CalcFont:
+		set charHeight 24
+		set charWidth 10
+		set charSpacing 2
+		set stroke 2
+		set imageSize 32
+		op add charOffset charWidth charSpacing
+		op idiv charHalf charHeight 2
+		op idiv imageHalf imageSize 2
+		op idiv halfDisp displaySize 2
+		set imageY halfDisp
+		op sub imageX halfDisp imageHalf
+		op mul textWidth charWidth 2
+		op add textWidth textWidth charSpacing
+		op add textWidth textWidth charSpacing
+		op add textX halfDisp textWidth
+		op sub curY halfDisp charHalf
+		
+	
+	CalcFontParams:
+		op mul temp stroke 3
+		op sub temp charHeight temp
+		op div temp temp 2
+		op floor midOffset temp 
+		op add midOffset midOffset stroke
+		op sub topOffset charHeight stroke
+		op sub rightOffset charWidth stroke
+		op sub halfRectH charHeight midOffset
+		op sub halfVertH halfRectH stroke
+		op add midY curY midOffset
+		op add topY curY topOffset
+
+Clear:
+	draw clear 0 0 0
+	drawflush display
+
+Start:
+	jump GetLinks notEqual @links lastLinks
+	read unitTypeId memory UNIT_TYPE_ADDR
+	lookup unit unitType unitTypeId
+	read total memory TOTAL_ADDR
+	draw clear 0 0 0
+	draw col imgColor
+	draw image imageX imageY unitType imageSize
+
+	draw col fontColor
+	set curX textX
+	set printValue total
+	op add callback @counter 1
+	jump PrintDigitsBackwards always
+
+	drawflush display
+	jump Start always
+
+
+#---------------------------------------------
+# Draw Numbers
+#---------------------------------------------
+
+PrintDigitsBackwards:
+	op mod digit printValue 10
+	op idiv printValue printValue 10
+	
+	DrawDigitBackwards:
+		op sub curX curX charOffset
+		op add drawback @counter 11
+		op add @counter @counter digit
+		jump Draw0 equal digit 0
+		jump Draw1 equal digit 1
+		jump Draw2 equal digit 2
+		jump Draw3 equal digit 3
+		jump Draw4 equal digit 4
+		jump Draw5 equal digit 5
+		jump Draw6 equal digit 6
+		jump Draw7 equal digit 7
+		jump Draw8 equal digit 8
+		jump Draw9 equal digit 9
+	
+	NextDigitBackwards:
+		jump PrintDigitsBackwards notEqual printValue 0
+		set @counter callback
+
+Draw0:
+	draw lineRect curX curY charWidth charHeight
+	set @counter drawback
+
+Draw1:
+	op add rightX curX rightOffset
+	draw lineRect rightX curY stroke charHeight
+	set @counter drawback
+
+Draw2:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth stroke
+	draw lineRect curX topY charWidth stroke
+	draw lineRect curX curY charWidth stroke
+	draw lineRect curX curY stroke halfVertH
+	draw lineRect rightX midY stroke halfVertH
+	set @counter drawback
+	
+Draw3:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth stroke
+	draw lineRect curX topY charWidth stroke
+	draw lineRect curX curY charWidth stroke
+	draw lineRect rightX curY stroke charHeight
+	set @counter drawback
+
+Draw4:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth stroke
+	draw lineRect curX midY stroke halfRectH
+	draw lineRect rightX curY stroke charHeight
+	set @counter drawback
+
+Draw5:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth stroke
+	draw lineRect curX topY charWidth stroke
+	draw lineRect curX curY charWidth stroke
+	draw lineRect curX midY stroke halfVertH
+	draw lineRect rightX curY stroke halfVertH
+	set @counter drawback
+	
+Draw6:
+	draw lineRect curX curY charWidth halfRectH
+	draw lineRect curX topY charWidth stroke
+	draw lineRect curX midY stroke halfVertH
+	set @counter drawback
+
+Draw7:
+	op add rightX curX rightOffset
+	draw lineRect curX topY charWidth stroke
+	draw lineRect rightX curY stroke charHeight
+	set @counter drawback
+
+Draw8:
+	draw lineRect curX curY charWidth charHeight
+	draw lineRect curX midY charWidth stroke
+	set @counter drawback
+
+Draw9:
+	op add rightX curX rightOffset
+	draw lineRect curX midY charWidth halfRectH
+	draw lineRect curX curY charWidth stroke
+	draw lineRect rightX curY stroke halfVertH
+	set @counter drawback
+
