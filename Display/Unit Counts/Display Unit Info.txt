@@ -1,13 +1,15 @@
+set name "Display Unit Info"
+
 Initialize:
 	UserConfig:
-		set unitType @poly
-		set readTypeFromCell false
-		set UNIT_TYPE_ADDR 0
-		set skipEmpty false
-		set rows 16
+		set skipEmpty true
+		set rows 6
 		set columns 1
 		set flagChars 6
-		set charsPerRow 20
+		set charsPerRow 14
+		set unitType @poly
+		set typeFromCell true
+		set UNIT_TYPE_ADDR 0
 
 	GetLinks:
 		set l 0
@@ -33,7 +35,7 @@ Initialize:
 
 			set displays displayI
 			jump GetLinks equal displays 0
-			jump EndGetLinks equal readTypeFromCell false
+			jump EndGetLinks equal typeFromCell false
 			jump GetLinks equal memory null
 		EndGetLinks:	
 			
@@ -139,7 +141,7 @@ Start:
 
 	jump GetLinks notEqual @links lastLinks
 	
-	jump StartUnitBind equal readTypeFromCell false
+	jump StartUnitBind equal typeFromCell false
 	read unitTypeId memory UNIT_TYPE_ADDR
 	lookup unit unitType unitTypeId
 	
@@ -151,7 +153,7 @@ StartUnitBind:
 
 	BindFirst:
 		ubind unitType
-		jump Start equal @unit null
+		jump Done equal @unit null
 		set firstUnit @unit
 		sensor maxHealth @unit @maxHealth
 		set lastUnitType unitType
@@ -187,7 +189,9 @@ StartRow:
 
 	ProcessUnit:
 		sensor firstDead firstUnit @dead
-		jump Start equal firstDead true
+		jump ReadInfo equal firstDead false
+		set firstUnit null
+		jump Start always
 
 	ReadInfo:
 		sensor flag @unit @flag
@@ -239,7 +243,7 @@ StartRow:
 
 	PrintHealth:
 		jump PrintFlag equal health maxHealth
-
+	
 		DrawPercent:
 			op sub curX healthX charOffset
 			op add rightX curX rightOffset
@@ -338,7 +342,7 @@ PrintDigitsBackwards:
 		jump Draw9 equal digit 9
 	
 	NextDigitBackwards:
-		jump PrintDigitsBackwards notEqual printValue 0
+		jump PrintDigitsBackwards greaterThan printValue 0
 		set @counter callback
 
 Draw0:
