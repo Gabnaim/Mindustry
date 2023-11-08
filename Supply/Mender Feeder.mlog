@@ -61,7 +61,7 @@ Initialize:
 		
 	GetStartUnit:
 		ubind unitType
-		jump NoUnits equal @unit null
+		jump GetStartUnit equal @unit null
 		sensor cap @unit @itemCapacity
 		sensor speed @unit @speed
 		ulocate building core false 0 coreX coreY coreFound core
@@ -75,7 +75,6 @@ Initialize:
 Prestart:
 	set status "START"
 	set error " "
-	set mendEnabled true
 
 #--------------------------------------------------
 MainLoop:
@@ -100,12 +99,11 @@ CheckMule:
 
 FindMule:
 	set status "FINDMULE"
-	set mule null
 	set closest null
 	set minDistance 1000
 	
 	ubind unitType
-	jump NoUnits equal @unit null
+	jump Start equal @unit null
 	set firstUnit @unit
 	jump FindProcess always
 
@@ -114,8 +112,8 @@ FindMule:
 		jump FinishCount equal firstUnit @unit
 		
 	FindProcess:
-		sensor isDead @unit @dead
-		jump FindLoop equal isDead true
+		sensor firstDead firstUnit @dead
+		jump FindMule equal firstDead true
 		sensor flag @unit @flag
 		jump UseMule equal flag procId
 		jump FindLoop notEqual flag 0
@@ -135,7 +133,7 @@ FindMule:
 		jump FindLoop always
 	
 	FinishCount:
-		jump NoUnits equal closest null
+		jump Start equal closest null
 		set mule closest
 		ubind mule
 		ucontrol flag procId
@@ -254,8 +252,9 @@ ProcessBuildings:
 
 		#sometimes it would get stuck on the same building
 		#Perhaps the building was destroyed and rebuilt
-		#it needs a new target
-		set skipLink targetLink
+		# see if relinking helps
+		
+		jump Initialize always
 
 		DropDone:
 			print targetLink
@@ -285,7 +284,6 @@ SourceDead:
 
 NoUnits:
 	set error "No free units"
-	set mule null
 	jump GetStartUnit always
 
 NoFunction:
