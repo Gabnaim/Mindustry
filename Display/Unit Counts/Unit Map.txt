@@ -1,0 +1,87 @@
+Initialize:
+	set unitType @poly
+	set typeFromCell true
+	set UNIT_TYPE_ADDR 0
+
+	GetLinks:
+		set l 0
+		set lastLinks @links
+		LinkLoop:
+			getlink link l
+			sensor type link @type
+			jump FoundCell equal type @memory-cell
+			jump FoundLargeDisplay equal type @large-logic-display
+			jump NextLink always
+			FoundLargeDisplay:
+				set display link
+				jump NextLink always
+			FoundCell:
+				set memory link
+			NextLink:
+				op add l l 1
+				jump LinkLoop lessThan l @links
+
+			jump GetLinks equal display null
+			jump EndGetLinks equal typeFromCell false
+			jump GetLinks equal memory null
+		EndGetLinks:	
+
+	set displaySize 176
+	set margin 2
+	set unitColor %00ff00
+	op mul margins margin 2
+	op sub size displaySize margins
+
+	draw clear 0 0 0
+	drawflush display
+
+Start:
+	op sub cycleTime @time cycleStart
+	set cycleStart @time
+
+	jump GetLinks notEqual @links lastLinks
+
+	draw clear 0 0 0
+	
+	jump StartUnitBind equal typeFromCell false
+	read unitTypeId memory UNIT_TYPE_ADDR
+	lookup unit unitType unitTypeId
+
+StartUnitBind:
+	draw col unitColor
+	jump ProcessUnit notEqual firstUnit null 
+
+	ubind unitType
+	jump Done equal @unit null
+	set firstUnit @unit
+
+	UnitLoop:
+		ubind unitType
+		jump Done equal firstUnit @unit
+
+	ProcessUnit:
+		sensor firstDead firstUnit @dead
+		jump ReadLoc equal firstDead false
+		set firstUnit null
+		jump Start always
+
+	ReadLoc:
+		sensor x @unit @x
+		op div relX x @mapw
+		op mul relX relX size
+
+		sensor y @unit @y
+		op div relY y @maph
+		op mul relY relY size
+
+	Draw:
+		draw rect relX relY 2 2
+		jump UnitLoop always
+
+Done:
+	drawflush display
+	jump Start always
+	
+
+	
+
