@@ -117,6 +117,9 @@ Initialize:
 	
 Start:
 	jump GetLinks lessThan @links 2
+	sensor sourceDead source @dead
+	jump GetLinks equal sourceDead true
+
 	draw stroke stroke
 	set startTime @time
 	set i 0
