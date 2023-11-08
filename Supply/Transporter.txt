@@ -3,10 +3,10 @@ set name "Transporter"
 Initialize:
 	UserConfig:
 		set unitType @poly
-		set maxUnits 2
-		set material @lead
-		set takeAll true
-		set pickupHere true # if false, drop here
+		set maxUnits 1
+		set material @phase-fabric
+		set takeAll false
+		set pickupHere false # if false, drop here
 		set coreTransport true # other side is core
 		# if coreTransport is false, coordinates of other target
 	    # are required
@@ -32,8 +32,10 @@ Initialize:
 		jump NoEndCoords equal otherEndY 0
 	CheckConfigEnd:
 
-	op shl procId @thisx 10
-	op add procId procId @thisy
+	GetId:
+		op mul procId @thisx @maph
+		op add procId procId @thisy
+		op floor procId procId
 
 	set dropRange 7
 
@@ -58,10 +60,11 @@ Initialize:
 				op add i i 1
 				jump LinkLoop lessThan i @links
 				
-				jump NoStorage equal linkedStorage null
-				jump NoSwitch equal switch null
+				jump GetLinks equal linkedStorage null
+				jump GetLinks equal switch null
 
 		EndGetLinks:
+		set lastLinks @links
 
 #-------------------------------------------------
 Preflag:
@@ -262,6 +265,15 @@ MainLoop:
 Start:
 	sensor active switch @enabled
 	jump ActiveChanged notEqual active lastActive
+
+	jump GetLinks notEqual lastLinks @links
+
+	sensor sourceDead source @dead
+	jump SourceDead equal sourceDead true
+
+	sensor targetDead dropTarget @dead
+	jump TargetDead equal targetDead true
+
 	jump Reset equal active false
 	op sub releaseWait @time releaseStart
 	jump Reset greaterThanEq releaseWait releaseWaitMs
@@ -362,6 +374,14 @@ FinishGroup:
 	set arrayIndex 0
 	jump Start always
 
+SourceDead:
+	ucontrol getBlock sourceX sourceY type source floor
+	jump Start always
+
+TargetDead:
+	ucontrol getBlock dropX dropY type dropTarget floor
+	jump Start always
+
 #--------------------------------------------------
 WrapUp:
 #--------------------------------------------------
@@ -421,14 +441,6 @@ Errors:
 #-------------------------------------------------
 TooMany:
 	set error "Max 12 units supported"
-	jump Error always
-	
-NoSwitch:
-	set error "Need switch"
-	jump Error always
-
-NoStorage:
-	set error "Need linked storage"
 	jump Error always
 
 NoEndCoords:
