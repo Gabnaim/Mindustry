@@ -4,6 +4,7 @@ Initialize:
 	set useMemory true
 	set unitType @poly
 	set UNIT_TYPE_ADDR 0
+	set TOTAL_ADDR 1
 
 	set showFlag true
 	set showCarried true
@@ -89,6 +90,7 @@ FinishGroup:
 	print unitType
 	print ": "
 	print units
+	write units memory TOTAL_ADDR
 	jump Reset always
 
 NoUnits:
