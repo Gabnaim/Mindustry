@@ -2,8 +2,8 @@ set name "Mender Feeder"
 
 Initialize:
 	set unitType @mega
-	set supplyFromCore true
-	set minSupply 500
+	set coreSupply false
+	set minSupply 0
 	set powerSave true
 	set feedMenders true
 
@@ -14,8 +14,6 @@ Initialize:
 	set status "INITIALIZE"
 
 	set dropRange 7
-	set baseRange 10.62
-	op add boostedRange baseRange 6.25
 
 	op mul procId @thisx @maph
 	op add procId procId @thisy
@@ -25,7 +23,7 @@ Initialize:
 	jump NoFunction equal hasFunction false
 
 	set neededLinks 1
-	jump GetLinks equal supplyFromCore true
+	jump GetLinks equal coreSupply true
 	set neededLinks 2
 
 	GetLinks:
@@ -37,7 +35,7 @@ Initialize:
 			getlink link l
 			sensor type link @type
 			jump FoundTarget equal type targetType
-			jump NextLink equal supplyFromCore true
+			jump NextLink equal coreSupply true
 			sensor cap link @itemCapacity
 			jump FoundSource greaterThanEq cap 100
 		FoundTarget:
@@ -50,12 +48,16 @@ Initialize:
 			op add l l 1
 			jump LinkLoop lessThan l @links
 			jump GetLinks equal targetCount 0
-			jump EndGetLinks equal supplyFromCore true
+			jump EndGetLinks equal coreSupply true
 			jump GetLinks equal source null
 		EndGetLinks:
+	
+	set lastLinks @links
 
 	op sub stockLevel targetCap 1
 	op add checkRange dropRange 1
+	op idiv adjustedMinSupply targetCap 2
+	op min minSupply minSupply adjustedMinSupply
 		
 	GetStartUnit:
 		ubind unitType
@@ -63,7 +65,7 @@ Initialize:
 		sensor cap @unit @itemCapacity
 		sensor speed @unit @speed
 		ulocate building core false 0 coreX coreY coreFound core
-		jump GetSourceCoords equal supplyFromCore false
+		jump GetSourceCoords equal coreSupply false
 		set source core
 
 	GetSourceCoords:
@@ -74,7 +76,6 @@ Prestart:
 	set status "START"
 	set error " "
 	set mendEnabled true
-	printflush message1
 
 #--------------------------------------------------
 MainLoop:
@@ -82,6 +83,7 @@ MainLoop:
 Start:
 	op sub cycleTime @time cycleStart
 	set cycleStart @time
+	jump GetLinks notEqual lastLinks @links
 
 CheckMule:
 	jump FindMule equal mule null
@@ -175,6 +177,7 @@ ProcessBuildings:
 	set l 0
 	set minStock targetCap
 	set target null
+	set targetLink -1
 	BuildingLoop:
 		getlink link l
 		sensor type link @type
@@ -207,23 +210,26 @@ ProcessBuildings:
 		jump SourceDead equal sourceDead true
 	
 		sensor supply source material
-		jump NotEnough lessThan supply minSupply
+		jump Finish lessThan supply minSupply
 	
 		ApproachSource:
 			ucontrol approach sourceX sourceY dropRange
 			ucontrol within sourceX sourceY checkRange isNear
 			jump ApproachSource equal isNear false
 
+		set pickupI 0
 		PickupLoop:
 			ucontrol itemTake source material cap
 			sensor carried mule @totalItems
 			jump EndPickup greaterThanEq carried cap
 	
 			op add pickupI pickupI 1
-			jump PickupLoop lessThan pickupI 10
+			jump PickupLoop lessThan pickupI 100
 		EndPickup:
 
 		jump Finish equal target null
+		sensor targetDead target @dead
+		jump Initialize equal targetDead true
 	
 	GetPosition:
 		sensor targetX target @x
@@ -265,7 +271,7 @@ Finish:
 Errors:
 #-------------------------------------------------
 SourceDead:
-	jump GetLinks equal supplyFromCore false
+	jump GetLinks equal coreSupply false
 	ulocate building core false 0 coreX coreY coreFound core 
 	jump SourceDeadError equal coreFound false
 	set sourceX coreX
@@ -276,10 +282,6 @@ SourceDead:
 	SourceDeadError:
 		set error "Source not found"
 		jump Start always
-
-NotEnough:
-	set error "Not enough stock"
-	jump Start always
 
 NoUnits:
 	set error "No free units"
