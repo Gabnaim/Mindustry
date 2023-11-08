@@ -36,6 +36,10 @@ Initialize:
 			jump GetLinks equal memory null
 			set displays displayI
 			jump GetLinks equal displays 0
+
+		# need this to getBlock if memory is destroyed
+		sensor memX memory @x
+		sensor memY memory @y
 		
 	SetColors:
 		set bgColor %000000
@@ -108,20 +112,6 @@ Initialize:
 		op sub halfRectH charHeight midOffset
 		op sub halfVertH halfRectH stroke
 
-PrintInfo:
-	print "Displays cell data. Empty cells are skipped"
-	print "\nDisplays: "
-	print displays
-	print "\nRows per display: "
-	print rows
-	print "\nColumns per display: "
-	print columns
-	print "\nCharacters per row in a column: "
-	print charsPerRow
-	print "\nDecimals: "
-	print decimals
-	printflush message1
-
 	set i 0
 	set displayI 0
 
@@ -137,6 +127,9 @@ ClearAll:
 	jump StartCycle always
 
 Start:
+	sensor memDead memory @dead
+	jump MemoryDead equal memDead true
+
 	jump StartCycle greaterThanEq i cap
 	jump StartDisplay lessThan dataItems maxDataItems
 
@@ -258,6 +251,9 @@ Done:
 		drawflush display	
 		jump ClearDisplays always
 	jump Start always
+
+MemoryDead:
+	jump GetLinks always
 
 #---------------------------------------------
 # Draw Numbers
