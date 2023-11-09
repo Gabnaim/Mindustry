@@ -1,0 +1,64 @@
+Initialize:
+	set iterations 46
+	set size 176
+	set diameter 2.5
+	GetLinks:
+		set display display1
+		jump GetLinks equal display null
+
+	op div step diameter size
+	op idiv yRange size 2
+	op div halfDiam diameter 2
+	op sub xStart -0.5 halfDiam
+	set yStart 0
+	op div colorStep 255 iterations
+
+	draw clear 0 0 0
+	drawflush display
+
+Start:
+	set real xStart
+	set x 0
+	XLoop:
+		set imag YStart
+		set y 0
+		YLoop:
+			set zR 0
+			set zI 0
+			set i 0
+			MandelLoop:
+				op mul zRSquared zR zR
+				op mul zISquared zI zI
+				op add allSquared zRSquared zISquared
+				jump Outside greaterThanEq allSquared 4
+
+				op mul zRzI zR zI
+				NextMandel:
+					op add i i 1
+					jump MandelLoop lessThan i iterations
+
+				WithinSet:
+					draw color 0 0 0
+					jump DrawPixel always
+
+				Outside:
+					op mul color i colorStep
+					op floor color color
+					draw color 0 color 255
+				
+				DrawPixel:
+					draw rect x y 1 1
+
+		NextY:
+			op add y y 1
+			jump YLoop lessThan y yRange
+	NextX:
+		drawflush display
+		op add real real step
+		op add x x 1
+		jump XLoop lessThan x size
+
+	jump Start always
+
+
+	
