@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from PIL import Image
 
 ITERATIONS = 46
@@ -11,34 +12,33 @@ xStart = -0.5 - DIAMETER / 2
 yStart = 0
 colorStep = 255 / ITERATIONS
 
-def mandel(x,y):
-    real = 0
-    imag = 0
+def mandel(x0,y0):
+    zR = 0
+    zI = 0
     for i in range(ITERATIONS):
-        realSquared = real * real
-        imagSquared = imag * imag
-        tempReal = realSquared - imagSquared + x
-        imag = 2 * real * imag + y
-        real = tempReal
+        zRSquared = zR * zR
+        zISquared = zI * zI
+        zI = 2 * zR * zI + y0
+        zR = zRSquared - zISquared + x0
 
-        if realSquared + realSquared >= 4:
+        if zRSquared + zISquared > 4:
             return i     
     return ITERATIONS
     
 img = Image.new( 'RGB', (SIZE, SIZE), "black") # create a new black image
 pixels = img.load() # create the pixel map
 
-x = xStart
-y = yStart
+real = xStart
+imag = yStart
 
 for x in range(SIZE):    # for every col:
     for y in range(yRange):    # For every row
-        i = mandel(x, y)
+        i = mandel(real, imag)
         color = math.floor(i * colorStep)
         pixels[x,y + yRange ] = (color, 0, 0)
         pixels[x,yRange - y] = (color, 0, 0)
-        y += step
-    y = yStart
-    x += step
+        imag += step
+    imag = yStart
+    real += step
 
 img.show()
