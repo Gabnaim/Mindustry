@@ -1,5 +1,4 @@
 import math
-import numpy as np
 from PIL import Image
 
 ITERATIONS = 46
@@ -22,8 +21,8 @@ def mandel(x0,y0):
         zR = zRSquared - zISquared + x0
 
         if zRSquared + zISquared > 4:
-            return i     
-    return ITERATIONS
+            return (0, math.floor(i * colorStep), 255)
+    return (0,0,0)
     
 img = Image.new( 'RGB', (SIZE, SIZE), "black") # create a new black image
 pixels = img.load() # create the pixel map
@@ -33,10 +32,9 @@ imag = yStart
 
 for x in range(SIZE):    # for every col:
     for y in range(yRange):    # For every row
-        i = mandel(real, imag)
-        color = math.floor(i * colorStep)
-        pixels[x,y + yRange ] = (color, 0, 0)
-        pixels[x,yRange - y] = (color, 0, 0)
+        color = mandel(real, imag)
+        pixels[x,y + yRange ] = color
+        pixels[x,yRange - y] = color
         imag += step
     imag = yStart
     real += step
