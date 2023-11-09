@@ -1,3 +1,5 @@
+set name "Unit Map"
+
 Initialize:
 	set unitType @poly
 	set typeFromCell true
@@ -11,9 +13,15 @@ Initialize:
 			sensor type link @type
 			jump FoundCell equal type @memory-cell
 			jump FoundLargeDisplay equal type @large-logic-display
+			jump FoundDisplay equal type @logic-display
 			jump NextLink always
 			FoundLargeDisplay:
 				set display link
+				set displaySize 176
+				jump NextLink always
+			FoundDisplay:
+				set display link
+				set displaySize 80
 				jump NextLink always
 			FoundCell:
 				set memory link
@@ -26,7 +34,6 @@ Initialize:
 			jump GetLinks equal memory null
 		EndGetLinks:	
 
-	set displaySize 176
 	set margin 2
 	set unitColor %00ff00
 	op mul margins margin 2
@@ -67,15 +74,15 @@ StartUnitBind:
 
 	ReadLoc:
 		sensor x @unit @x
-		op div relX x @mapw
-		op mul relX relX size
+		op div mapX x @mapw
+		op mul mapX mapX size
 
 		sensor y @unit @y
-		op div relY y @maph
-		op mul relY relY size
+		op div mapY y @maph
+		op mul mapY mapY size
 
 	Draw:
-		draw rect relX relY 2 2
+		draw rect mapX mapY 2 2
 		jump UnitLoop always
 
 Done:
