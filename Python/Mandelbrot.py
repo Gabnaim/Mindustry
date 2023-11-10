@@ -1,20 +1,20 @@
 import math
 from PIL import Image
 
-ITERATIONS = 46
-SIZE = 1000
-DIAMETER = 2.5
+MAXITER = 46
+PIXELSIZE = 1001
+VIEWSIZE = 2.5
 
-step = DIAMETER / SIZE
-yRange = SIZE // 2
-xStart = -0.5 - DIAMETER / 2
-yStart = 0
-colorStep = 255 / ITERATIONS
+step = VIEWSIZE / PIXELSIZE
+yPxRange = PIXELSIZE // 2
+realStart = -0.5 - VIEWSIZE / 2
+imagStart = 0
+colorStep = 255 / MAXITER
 
 def mandel(x0,y0):
     zR = 0
     zI = 0
-    for i in range(ITERATIONS):
+    for i in range(MAXITER):
         zRSquared = zR * zR
         zISquared = zI * zI
         zI = 2 * zR * zI + y0
@@ -24,19 +24,22 @@ def mandel(x0,y0):
             return (0, math.floor(i * colorStep), 255)
     return (0,0,0)
     
-img = Image.new( 'RGB', (SIZE, SIZE), "black") # create a new black image
+img = Image.new( 'RGB', (PIXELSIZE, PIXELSIZE), "black") # create a new black image
 pixels = img.load() # create the pixel map
 
-real = xStart
-imag = yStart
+real = realStart
+imag = imagStart
+x = 0
+y = 0
 
-for x in range(SIZE):    # for every col:
-    for y in range(yRange):    # For every row
+while x < PIXELSIZE: # for every col:
+    for y in range(yPxRange):    # For every row
         color = mandel(real, imag)
-        pixels[x,y + yRange ] = color
-        pixels[x,yRange - y] = color
+        pixels[x,y + yPxRange ] = color
+        pixels[x,yPxRange - y] = color
         imag += step
-    imag = yStart
+    imag = imagStart
     real += step
+    x += 1
 
 img.show()
