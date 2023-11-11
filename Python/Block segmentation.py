@@ -11,20 +11,24 @@ MARGIN = 30
 displaySize = IMAGESIZE * SCALE
 pixelSize = SCALE
 rows = cols = IMAGESIZE // BLOCKSIZE
-blockOffset = BLOCKSIZE * SCALE
+rectSize = 14
+blockCenter = math.floor((BLOCKSIZE - rectSize) / 2)
+
 
 slowDown = 0.05
-pixels = np.zeros((IMAGESIZE, IMAGESIZE))
+pixels = np.full((IMAGESIZE, IMAGESIZE, 4), (0, 0, 1, 1))
 
 def generateImage():
-	imgX = imgY = 0
+	imgX = imgY = blockCenter
 	for col in range(cols):
 		for row in range(rows):
 			time.sleep(slowDown)
-			pixels[imgX, imgY] = 1
+			for i in range(rectSize):
+				for j in range(rectSize):
+					pixels[imgX + i, imgY + j] = (1, 0, 0, 1)
 			imgY += BLOCKSIZE
 		imgX += BLOCKSIZE
-		imgY = 0
+		imgY = blockCenter
 			
 			
 class ImageRender(Scene):
@@ -34,8 +38,8 @@ class ImageRender(Scene):
 		rect(MARGIN, MARGIN, displaySize, displaySize)
 		for px in range(IMAGESIZE):
 			for py in range(IMAGESIZE):
-				colorValue = pixels[px, py]
-				fill(0, colorValue, 1)
+				color = pixels[px, py]
+				fill(tuple(color))
 				rect(px * SCALE + MARGIN, py * SCALE + MARGIN, pixelSize, pixelSize)
 				
 def showImage():
