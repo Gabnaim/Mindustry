@@ -5,21 +5,25 @@ import numpy as np
 from threading import Thread
 
 
-MAXITER = 46
-IMGSIZE = 32
-DISPLAYSIZE = 760
-VIEWSIZE = 2.5
-offset = (-0.5, 0)
+MAXITER = 200
+IMAGE_PIXELS = 176
+DISPLAYSIZE = 704
+VIEWSIZE = 2
+OFFSET = Point(-0.5, 0)
+PIXEL_SIZE = 4
+BLOCK_SIZE = 16
 
-center = (IMGSIZE // 2, IMGSIZE // 2)
-step = VIEWSIZE / IMGSIZE
-realStart = offset[0] - VIEWSIZE / 2
-imagStart = offset[1] - VIEWSIZE / 2
+imgCenter = (IMAGE_PIXELS // 2, IMAGE_PIXELS // 2)
+mbStep = VIEWSIZE / IMAGE_PIXELS
+#realStart = OFFSET.x - VIEWSIZE / 2
+#imagStart = OFFSET.y - VIEWSIZE / 2
 colorStep = 1 / MAXITER
-pixelRange = IMGSIZE // 2
-pixelSize = DISPLAYSIZE //IMGSIZE
+pixelRange = IMAGE_PIXELS // 2
+rows = cols = IMAGE_PIXELS // BLOCK_SIZE
 
-viewSlowdown = 0.001
+viewSlowdown = 0
+
+
 
 def mandel(x0,y0):
     zR = 0
@@ -34,40 +38,37 @@ def mandel(x0,y0):
             return i
     return MAXITER
     
-pixels = np.zeros((IMGSIZE, IMGSIZE))
+pixels = np.zeros((IMAGE_PIXELS, IMAGE_PIXELS))
 
 def calcMandel():
-	real = realStart
-	imag = imagStart	
+	real = OFFSET.x
+	imag = OFFSET.y	
 	
-	for x in range(IMGSIZE):
-		for y in range(IMGSIZE):   
+	for i in range(pixelRange):
+		for j in range(pixelRange):   
 			time.sleep(viewSlowdown)
 			mb = mandel(real, imag)
-			pixels[x,y] = mb
-			#mb = mandel(real, imag)
-			#pixels[x,pixelRange - y] = mb
-			imag += step
-		imag = imagStart
-		real += step
+			pixels[imgCenter[0] + i, imgCenter[1] + j] = mb
+			imag += mbStep		
+		imag = OFFSET.y
+		real += mbStep
 
-class ImageRender(Scene):
-		
+class ImageRender(Scene):	
 	def draw(self):
 		background('white')
 		px = 0
 		py = 0
 		
-		for px in range(IMGSIZE): 
-			for py in range(IMGSIZE):    
-				imgX = px * pixelSize
-				imgY = py * pixelSize
+		for px in range(IMAGE_PIXELS): 
+			for py in range(IMAGE_PIXELS):    
+				imgX = px * PIXEL_SIZE - PIXEL_SIZE // 2
+				imgY = py * PIXEL_SIZE - PIXEL_SIZE // 2
 				iter = pixels[px,py]
 				if iter == MAXITER:
 					fill(0,0,0,1)
 				else:
 					fill(0,iter/MAXITER, 1, 1)
-				rect(imgX, imgY, pixelSize, pixelSize)
+				rect(imgX, imgY, PIXEL_SIZE, PIXEL_SIZE)
 				
 def displayImage():
 	run(ImageRender())
