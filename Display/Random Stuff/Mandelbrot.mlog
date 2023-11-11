@@ -1,5 +1,5 @@
 Initialize:
-	set iterations 46
+	set iterations 20
 	set size 176
 	set diameter 2.5
 	GetLinks:
@@ -17,10 +17,11 @@ Initialize:
 	drawflush display
 
 Start:
+	set cycleStart @time
 	set real xStart
 	set x 0
 	XLoop:
-		set imag YStart
+		set imag yStart
 		set y 0
 		YLoop:
 			set zR 0
@@ -33,6 +34,11 @@ Start:
 				jump Outside greaterThanEq allSquared 4
 
 				op mul zRzI zR zI
+				op mul 2zRzI zRzI 2
+				op add zI 2zRzI imag
+				op sub squareDiff zRSquared zISquared
+				op add zR squareDiff real
+
 				NextMandel:
 					op add i i 1
 					jump MandelLoop lessThan i iterations
@@ -47,18 +53,24 @@ Start:
 					draw color 0 color 255
 				
 				DrawPixel:
-					draw rect x y 1 1
+					op sub py1 yRange y
+					op add py2 yRange y
+					draw rect x py1 1 1
+					draw rect x py2 1 1
 
 		NextY:
 			op add y y 1
+			op add imag imag step
 			jump YLoop lessThan y yRange
 	NextX:
 		drawflush display
+		op sub cycleTime @time cycleStart
 		op add real real step
+		set imag yStart
 		op add x x 1
 		jump XLoop lessThan x size
 
-	jump Start always
+	stop
 
 
 	
