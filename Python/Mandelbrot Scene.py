@@ -6,19 +6,20 @@ from threading import Thread
 
 
 MAXITER = 46
-PIXELSIZE = 401
+IMGSIZE = 32
+DISPLAYSIZE = 760
 VIEWSIZE = 2.5
+offset = (-0.5, 0)
 
-step = VIEWSIZE / PIXELSIZE
-yPxRange = PIXELSIZE // 2
-realStart = -0.5 - VIEWSIZE / 2
-imagStart = 0
+center = (IMGSIZE // 2, IMGSIZE // 2)
+step = VIEWSIZE / IMGSIZE
+realStart = offset[0] - VIEWSIZE / 2
+imagStart = offset[1] - VIEWSIZE / 2
 colorStep = 1 / MAXITER
+pixelRange = IMGSIZE // 2
+pixelSize = DISPLAYSIZE //IMGSIZE
 
-screenSize = get_screen_size()
-leftBounds = (screenSize.x - PIXELSIZE)//2
-bottomBounds = (screenSize.y - PIXELSIZE)//2
-viewSlow = 0
+viewSlowdown = 0.001
 
 def mandel(x0,y0):
     zR = 0
@@ -33,42 +34,40 @@ def mandel(x0,y0):
             return i
     return MAXITER
     
-pixels = np.zeros((PIXELSIZE, PIXELSIZE))
+pixels = np.zeros((IMGSIZE, IMGSIZE))
 
 def calcMandel():
 	real = realStart
 	imag = imagStart	
-	x = 0
-	y = 0
-	while x < PIXELSIZE: 
-		for y in range(yPxRange):    
+	
+	for x in range(IMGSIZE):
+		for y in range(IMGSIZE):   
+			time.sleep(viewSlowdown)
 			mb = mandel(real, imag)
-			time.sleep(viewSlow)
-			pixels[x,y + yPxRange ] = mb
-			pixels[x,yPxRange - y] = mb
+			pixels[x,y] = mb
+			#mb = mandel(real, imag)
+			#pixels[x,pixelRange - y] = mb
 			imag += step
 		imag = imagStart
 		real += step
-		x += 1
 
-    
 class ImageRender(Scene):
-	def setup(self):
-		self.x = leftBounds
-		self.y = bottomBounds
 		
 	def draw(self):
 		background('white')
 		px = 0
 		py = 0
-		for px in range(PIXELSIZE): 
-			for py in range(PIXELSIZE):    
+		
+		for px in range(IMGSIZE): 
+			for py in range(IMGSIZE):    
+				imgX = px * pixelSize
+				imgY = py * pixelSize
 				iter = pixels[px,py]
 				if iter == MAXITER:
 					fill(0,0,0,1)
 				else:
 					fill(0,iter/MAXITER, 1, 1)
-				rect(px,py,1,1)
+				rect(imgX, imgY, pixelSize, pixelSize)
 				
 def displayImage():
 	run(ImageRender())
