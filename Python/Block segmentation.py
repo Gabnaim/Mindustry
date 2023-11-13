@@ -15,42 +15,58 @@ size = IMAGESIZE // BLOCKSIZE
 rectSize = math.floor(BLOCKSIZE * 1)
 blockCenter = math.floor((BLOCKSIZE - rectSize) / 2)
 
-slowDown = 0.05
+slowDown = 1e-4
 pixels = np.full((IMAGESIZE, IMAGESIZE, 4),(0.0, 0.0, 1.0, 1.0))
 
 def generateBlock(imgX, imgY):	
-	time.sleep(slowDown)
 	r = np.random.random()
 	g = np.random.random()
 	b = np.random.random()
-	for i in range(rectSize):
-		for j in range(rectSize):
-			pixels[imgX + i, imgY + j] = (r, g, b, 1)
+	blockSpiral = Spiral(BLOCKSIZE)
+	while not blockSpiral.atEnd():
+		time.sleep(slowDown)
+		i, j = blockSpiral.next()
+		pixels[imgX + i, imgY + j] = (r, g, b, 1)
 	
-def spiral(size, process):
-	midX = size // 2
-	midY = math.ceil(size / 2 - 1)
-	x = midX
-	y = midY
-	yDir = 0
-	xDir = 1 if (size % 2 == 1) else -1
-	while 0 <= x < size and 0 <= y < size:
-		generateBlock(x * BLOCKSIZE, y * BLOCKSIZE)
-		x += xDir
-		y += yDir
+class Spiral:
+	def __init__(self, size):
+		self.size = size
+		self.midX = size // 2
+		self.midY = math.ceil(size / 2 - 1)
+		self.x = self.midX
+		self.y = self.midY
+		self.yDir = 0
+		self.xDir = 1 if (size % 2 == 1) else -1
+		
+	def atEnd(self):
+		return self.x >= self.size or self.y >= self.size
+		
+	def getDirection(self):
 		# direction changes
-		if x == y and y <= midY: # up
-			xDir, yDir = 0, 1
-		elif x == y + 1 and y >= midY: #down
-			xDir, yDir = 0, -1
-		elif x + y == size - 1:
-			if y >= midY: #right
-				xDir, yDir = 1, 0
+		if self.x == self.y and self.y <= self.midY: # up
+			self.xDir, self.yDir = 0, 1
+		elif self.x == (self.y + 1) and self.y >= self.midY: #down
+			self.xDir, self.yDir = 0, -1
+		elif (self.x + self.y) == (self.size - 1):
+			if self.y >= self.midY: #right
+				self.xDir, self.yDir = 1, 0
 			else: # left
-				xDir, yDir = -1, 0
-				
+				self.xDir, self.yDir = -1, 0
+		
+	def next(self):
+		if self.atEnd():
+		 return None
+		value = self.x, self.y
+		self.x += self.xDir
+		self.y += self.yDir
+		self.getDirection()
+		return value
+
+spiral = Spiral(size)	
 def generateImage():
-	spiral(size, generateBlock)
+	while not spiral.atEnd():
+		x, y = spiral.next()
+		generateBlock(x * BLOCKSIZE, y * BLOCKSIZE)
 			
 class ImageRender(Scene):
 	def draw(self):
